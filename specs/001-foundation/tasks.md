@@ -31,7 +31,7 @@ Monolith web application layout per `plan.md`: `apps/web` (frontend),
 
 **Purpose**: Project initialization needed before any story-specific work
 
-- [ ] T001 Initialize root `package.json` at repository root declaring npm workspaces for `apps/web` and `packages/shared` (research.md decision 1; supports FR-004)
+- [X] T001 Initialize root `package.json` at repository root declaring npm workspaces for `apps/web` and `packages/shared` (research.md decision 1; supports FR-004)
 
 ---
 
