@@ -41,7 +41,7 @@ Monolith web application layout per `plan.md`: `apps/web` (frontend),
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 Verify the repository's top-level boundaries exactly match `plan.md`'s Project Structure (`apps/web`, `apps/api`, `packages/shared`, `supabase`, `specs`, `docs`, `infra`, `tests` — no extra or missing top-level directories) and confirm no top-level directory declares independent versioning/publishing (e.g., no standalone `.git`, no `apps/*` package configured for separate release) at repository root (FR-001–FR-009)
+- [X] T002 Verify the repository's top-level boundaries exactly match `plan.md`'s Project Structure (`apps/web`, `apps/api`, `packages/shared`, `supabase`, `specs`, `docs`, `infra`, `tests` — no extra or missing top-level directories) and confirm no top-level directory declares independent versioning/publishing (e.g., no standalone `.git`, no `apps/*` package configured for separate release) at repository root (FR-001–FR-009)
 
 **Checkpoint**: Foundation verified — user story implementation can now begin
 
