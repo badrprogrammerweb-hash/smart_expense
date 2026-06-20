@@ -55,13 +55,13 @@ Monolith web application layout per `plan.md`: `apps/web` (frontend),
 
 ### Implementation for User Story 1
 
-- [ ] T003 [P] [US1] Replace placeholder text in `apps/web/README.md` with a purpose statement: owns Next.js 14 frontend application code (FR-001)
-- [ ] T004 [P] [US1] Replace placeholder text in `apps/api/README.md` with a purpose statement: owns FastAPI backend application code (FR-002)
-- [ ] T005 [P] [US1] Replace placeholder text in `packages/shared/README.md` with a purpose + scope statement: cross-cutting constants/conventions, documentation-only in this phase per research.md decision 3 (FR-004)
-- [ ] T006 [P] [US1] Replace placeholder text in `supabase/README.md` with a purpose statement: owns DB migrations, RLS policy files, and storage policy notes; no live project provisioned yet (FR-003)
-- [ ] T007 [P] [US1] Replace placeholder text in `infra/README.md` with a purpose statement: owns deployment configuration and environment notes; real deployment config arrives in Phase 10 (FR-007)
-- [ ] T008 [P] [US1] Replace placeholder text in `tests/README.md` with a purpose statement: owns cross-application testing strategy documentation (FR-008)
-- [ ] T009 [US1] Validate User Story 1 independently per `quickstart.md` step 1: confirm a contributor can identify all eight boundary purposes from the top-level directory names alone, without opening any README, within 2 minutes — then confirm each README written in T003-T008 states the same purpose without contradiction (SC-001)
+- [X] T003 [P] [US1] Replace placeholder text in `apps/web/README.md` with a purpose statement: owns Next.js 14 frontend application code (FR-001)
+- [X] T004 [P] [US1] Replace placeholder text in `apps/api/README.md` with a purpose statement: owns FastAPI backend application code (FR-002)
+- [X] T005 [P] [US1] Replace placeholder text in `packages/shared/README.md` with a purpose + scope statement: cross-cutting constants/conventions, documentation-only in this phase per research.md decision 3 (FR-004)
+- [X] T006 [P] [US1] Replace placeholder text in `supabase/README.md` with a purpose statement: owns DB migrations, RLS policy files, and storage policy notes; no live project provisioned yet (FR-003)
+- [X] T007 [P] [US1] Replace placeholder text in `infra/README.md` with a purpose statement: owns deployment configuration and environment notes; real deployment config arrives in Phase 10 (FR-007)
+- [X] T008 [P] [US1] Replace placeholder text in `tests/README.md` with a purpose statement: owns cross-application testing strategy documentation (FR-008)
+- [X] T009 [US1] Validate User Story 1 independently per `quickstart.md` step 1: confirm a contributor can identify all eight boundary purposes from the top-level directory names alone, without opening any README, within 2 minutes — then confirm each README written in T003-T008 states the same purpose without contradiction (SC-001)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 

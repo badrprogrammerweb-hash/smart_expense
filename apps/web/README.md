@@ -1,1 +1,4 @@
-Placeholder — populated during its implementation phase. See ../../docs/implementation-plan.md.
+# Web application
+
+This directory owns the Next.js 14 frontend application code, including UI
+routes, components, and browser-facing assets.
