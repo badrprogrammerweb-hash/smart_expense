@@ -125,9 +125,15 @@ work completed under the prior constitution version.
 
 **Purpose**: Final validation across all user stories
 
-- [ ] T019 [P] Run the full `quickstart.md` (steps 1-6) end-to-end on a clean clone as final cross-story validation
-- [ ] T020 [P] Confirm `.gitignore` already excludes every local artifact newly introduced by this feature (`apps/web/node_modules`, `apps/web/.next`, `apps/api/.venv`, real `.env`/`.env.local` files), add any missing pattern, and actively scan the working tree (`git status`, `git diff --staged`) for any committed file containing a real-looking secret value to confirm zero are present (FR-013, SC-004)
-- [ ] T021 Update `specs/001-foundation/spec.md` Status field from `Draft` to `Implemented` once T001-T020 are verified complete (closes out FR-001–FR-017, SC-001–SC-005)
+- [X] T019 [P] Run the full `quickstart.md` (steps 1-6) end-to-end on a clean clone as final cross-story validation
+
+  **Validation note**: Clean-clone testing exposed incorrect Turbopack
+  workspace-root inference in `apps/web`. `apps/web/next.config.js` now sets
+  an explicit, portable `turbopack.root` (resolved via `__dirname`, not a
+  hardcoded path) pointing at the repository root, resolving the issue.
+
+- [X] T020 [P] Confirm `.gitignore` already excludes every local artifact newly introduced by this feature (`apps/web/node_modules`, `apps/web/.next`, `apps/api/.venv`, real `.env`/`.env.local` files), add any missing pattern, and actively scan the working tree (`git status`, `git diff --staged`) for any committed file containing a real-looking secret value to confirm zero are present (FR-013, SC-004)
+- [X] T021 Update `specs/001-foundation/spec.md` Status field from `Draft` to `Implemented` once T001-T020 are verified complete (closes out FR-001–FR-017, SC-001–SC-005)
 
 ---
 
