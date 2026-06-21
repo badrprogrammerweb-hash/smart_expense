@@ -114,8 +114,8 @@ work completed under the prior constitution version.
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Add a "Feature spec convention" section to `docs/setup.md` explaining the `specs/<seq>-<short-name>/` pattern (`spec.md`, `plan.md`, `research.md`, `data-model.md`, `quickstart.md`, `contracts/`, `tasks.md`), referencing `specs/001-foundation/` as the worked example (FR-005, FR-015)
-- [ ] T018 [US3] Validate User Story 3 independently per `quickstart.md` step 6: confirm `.specify/init-options.json`'s `feature_numbering: "sequential"` setting matches the `001-foundation` directory actually produced (SC-005)
+- [X] T017 [US3] Add a "Feature spec convention" section to `docs/setup.md` explaining the `specs/<seq>-<short-name>/` pattern (`spec.md`, `plan.md`, `research.md`, `data-model.md`, `quickstart.md`, `contracts/`, `tasks.md`), referencing `specs/001-foundation/` as the worked example (FR-005, FR-015)
+- [X] T018 [US3] Validate User Story 3 independently per `quickstart.md` step 6: confirm `.specify/init-options.json`'s `feature_numbering: "sequential"` setting matches the `001-foundation` directory actually produced (SC-005)
 
 **Checkpoint**: All three user stories should now be independently functional
 

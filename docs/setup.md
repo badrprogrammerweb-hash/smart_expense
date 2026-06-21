@@ -119,3 +119,31 @@ regardless of whether the override is correctly applied, so it is not a
 reliable health check here. `npm ci`, `npm audit`, and `npm run build` are
 the actual validation gates — all three passing confirms the dependency
 tree is healthy.
+
+## Feature spec convention
+
+Each new feature uses a sequentially numbered directory under `specs/`:
+
+```text
+specs/<seq>-<short-name>/
+```
+
+Use the next sequence number and a concise kebab-case name. Keep the feature's
+Spec Kit artifacts together in that directory:
+
+```text
+spec.md
+plan.md
+research.md
+data-model.md
+quickstart.md
+contracts/
+tasks.md
+```
+
+The foundation feature is the worked example at `specs/001-foundation/`.
+Its specification, plan, research, data model, quickstart, contracts, and
+tasks all follow this convention. The repository's
+`.specify/init-options.json` sets `feature_numbering` to `sequential`, so
+subsequent features reuse this pattern rather than choosing a new location
+or numbering scheme.
