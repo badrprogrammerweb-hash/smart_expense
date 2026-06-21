@@ -1,0 +1,14 @@
+{
+  "name": "smart-expense-ai",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "packages/shared"
+  ],
+  "overrides": {
+    "next@16.2.9": {
+      "postcss": "8.5.10"
+    }
+  }
+}

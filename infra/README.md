@@ -1,1 +1,4 @@
-Placeholder — populated during its implementation phase. See ../../docs/implementation-plan.md.
+# Infrastructure
+
+This directory owns deployment configuration and environment notes. Real
+deployment configuration is deferred to Phase 10.

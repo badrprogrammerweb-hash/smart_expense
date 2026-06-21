@@ -1,0 +1,21 @@
+{
+  "name": "@smart-expense/web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "16.2.9",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.17.30",
+    "@types/react": "18.3.20",
+    "@types/react-dom": "18.3.6",
+    "typescript": "5.7.3"
+  }
+}

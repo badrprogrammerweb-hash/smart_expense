@@ -1,1 +1,3 @@
-Placeholder — populated during its implementation phase. See ../../docs/implementation-plan.md.
+# Testing
+
+This directory owns cross-application testing strategy documentation.

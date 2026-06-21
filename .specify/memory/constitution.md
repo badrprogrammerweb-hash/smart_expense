@@ -1,37 +1,50 @@
 <!--
 Sync Impact Report
 ==================
-Version change: TEMPLATE → 1.0.0 (initial ratification)
-Modified principles: N/A (first ratification, template placeholders filled)
-Added sections:
-  - Core Principles I–XVI (Core Product Principle, Budgeting Philosophy,
-    MVP Scope Discipline, Saudi-First Default, Manual-First/AI-Optional,
-    Privacy and Security, Workspace and Multi-Tenant Isolation, Storage
-    and File Retention, Architecture Authority, Financial Accuracy
-    (NON-NEGOTIABLE), Reports Integrity, History Tracking, Future
-    Monetization Readiness, Testing Requirements, Scope Control,
-    Spec-Kit Workflow)
-  - Technology Constraints
-  - Documentation and Scope Boundaries
-  - Governance (Amendment Rule + Final Rule)
-Removed sections: none (template placeholders only)
-Templates requiring updates:
-  - .specify/templates/plan-template.md ✅ no changes required (generic
-    Constitution Check gate already references this file by path)
-  - .specify/templates/spec-template.md ✅ no changes required (no
-    agent-specific or contradicting language found)
-  - .specify/templates/tasks-template.md ✅ no changes required (task
-    categories remain compatible with financial-accuracy and security
-    testing principles)
-  - .claude/commands/*.md ✅ no agent-specific references requiring
-    updates
-  - CLAUDE.md ⚠ pending manual review — currently a stub pointing to
-    "the current plan"; no contradiction with this constitution, no
-    change required at this time
+Version change: 1.0.0 → 1.1.0
+Modified principles: N/A (no Core Principle I–XVI added, removed, or
+  redefined)
+Modified sections:
+  - Technology Constraints → Frontend line: "Next.js 14" replaced with
+    "Next.js 16.x (Active LTS), kept on the latest patched 16.x release"
+    (security-driven amendment; see rationale below). React, Tailwind
+    CSS, and Shadcn UI are unchanged. The Backend line ("Python,
+    FastAPI") is unchanged — it carries no version pin and remains
+    accurate; backend-specific version pins belong in
+    specs/001-foundation/plan.md and research.md, not the constitution.
+Added sections: none
+Removed sections: none
+Version bump rationale: MINOR, not MAJOR or PATCH. No Core Principle was
+  added, removed, or redefined, so this is not MAJOR. The change is more
+  than a wording/typo fix — it is a binding Technology Constraint change
+  with a security rationale and an ongoing maintenance policy ("kept on
+  the latest patched release") that did not exist before — so PATCH
+  understates it. MINOR best fits "materially expanded guidance" within
+  an existing section.
+Amendment rationale: npm audit identified unresolved advisories against
+  next@14.2.35 — the newest 14.x release that exists — including a high-
+  severity SSRF via WebSocket upgrades (CVSS 8.6) and several Denial-of-
+  Service issues. Next.js has stopped backporting security fixes to the
+  14.x branch, so no in-line 14.x upgrade can resolve them. The project
+  adopts the actively-patched 16.x LTS line instead, with an explicit
+  policy to stay current on 16.x patches going forward.
+Templates checked, no changes required:
+  - .specify/templates/plan-template.md ✅ no project-specific version
+    references found
+  - .specify/templates/spec-template.md ✅ no project-specific version
+    references found
+  - .specify/templates/tasks-template.md ✅ no project-specific version
+    references found
+  - .specify/templates/commands/*.md — directory does not exist in this
+    project; nothing to check
+  - CLAUDE.md / AGENTS.md ✅ both only point to specs/001-foundation/
+    plan.md for stack details; no direct version references to update
 Follow-up TODOs:
-  - TODO(RATIFICATION_DATE): Original ratification date is set to the
-    date this constitution was first authored (2026-06-19) since no
-    earlier ratified version exists.
+  - specs/001-foundation/plan.md, research.md, data-model.md,
+    tasks.md, and docs/implementation-plan.md still need their own
+    Next.js/FastAPI/python-dotenv/Starlette/pip references updated for
+    consistency with this amendment — tracked as a separate, immediate
+    follow-up in this same session, not deferred.
 -->
 
 # Smart Expense - AI Constitution
@@ -299,7 +312,8 @@ implementation traceable back to an approved design decision.
 
 ## Technology Constraints
 
-**Frontend:** Next.js 14, React, Tailwind CSS, Shadcn UI.
+**Frontend:** Next.js 16.x (Active LTS), kept on the latest patched 16.x
+release; React, Tailwind CSS, Shadcn UI.
 
 **Backend:** Python, FastAPI.
 
@@ -359,4 +373,4 @@ focused on income, expenses, invoices, receipts, reports, and remaining
 balance. The core experience is: add income, add expenses, upload
 invoices, use AI only when desired, see exactly what remains.
 
-**Version**: 1.0.0 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-06-19
+**Version**: 1.1.0 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-06-21
