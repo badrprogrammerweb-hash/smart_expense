@@ -55,7 +55,7 @@ Monolith web application layout per `plan.md`: `apps/web` (frontend),
 
 ### Implementation for User Story 1
 
-- [X] T003 [P] [US1] Replace placeholder text in `apps/web/README.md` with a purpose statement: owns Next.js 14 frontend application code (FR-001)
+- [X] T003 [P] [US1] Replace placeholder text in `apps/web/README.md` with a purpose statement: owns Next.js 16 frontend application code (FR-001)
 - [X] T004 [P] [US1] Replace placeholder text in `apps/api/README.md` with a purpose statement: owns FastAPI backend application code (FR-002)
 - [X] T005 [P] [US1] Replace placeholder text in `packages/shared/README.md` with a purpose + scope statement: cross-cutting constants/conventions, documentation-only in this phase per research.md decision 3 (FR-004)
 - [X] T006 [P] [US1] Replace placeholder text in `supabase/README.md` with a purpose statement: owns DB migrations, RLS policy files, and storage policy notes; no live project provisioned yet (FR-003)
@@ -75,15 +75,34 @@ Monolith web application layout per `plan.md`: `apps/web` (frontend),
 
 ### Implementation for User Story 2
 
-- [ ] T010 [P] [US2] Scaffold minimal Next.js 14 app shell in `apps/web` (`package.json`, `tsconfig.json`, `next.config.js`, `app/page.tsx` default starter page) per FR-016
-- [ ] T011 [P] [US2] Scaffold minimal FastAPI app shell in `apps/api` (`app/main.py`, `requirements.txt` pinning `fastapi` + `uvicorn`) per FR-016
-- [ ] T012 [US2] Implement `GET /health` route in `apps/api/app/routes/health.py` per `contracts/health-endpoint.md`, reading `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` and reporting `"not_configured"` unless both are present (depends on T011; FR-017)
-- [ ] T013 [P] [US2] Create `apps/web/.env.example` documenting every frontend environment variable and its purpose (FR-012, FR-013)
-- [ ] T014 [P] [US2] Create `apps/api/.env.example` documenting every backend environment variable and its purpose, including `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (the Supabase-shaped connection values defined in `contracts/health-endpoint.md`), marked as not required to start (FR-012, FR-013, FR-014)
-- [ ] T015 [US2] Write `docs/setup.md` covering prerequisites, both `.env.example` files, the startup command for each shell, what "started successfully" looks like for each, the secret-vs-committed distinction, and which steps run in a degraded/"not configured" mode without external credentials (depends on T010-T014; FR-006, FR-010, FR-011, FR-012, FR-013, FR-014)
-- [ ] T016 [US2] Validate User Story 2 independently per `quickstart.md` steps 2-5: both shells start using only documented steps, `GET /health` returns the documented `"not_configured"` response with zero external credentials configured, and the frontend shell keeps working when the backend is stopped (depends on T015; SC-002, SC-003, SC-004)
+- [X] T010 [P] [US2] Scaffold minimal Next.js 16 app shell in `apps/web` (`package.json`, `tsconfig.json`, `next.config.js`, `app/page.tsx` default starter page) per FR-016
+- [X] T011 [P] [US2] Scaffold minimal FastAPI app shell in `apps/api` (`app/main.py`, `requirements.txt` pinning `fastapi` + `uvicorn`) per FR-016
+- [X] T012 [US2] Implement `GET /health` route in `apps/api/app/routes/health.py` per `contracts/health-endpoint.md`, reading `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` and reporting `"not_configured"` unless both are present (depends on T011; FR-017)
+- [X] T013 [P] [US2] Create `apps/web/.env.example` documenting every frontend environment variable and its purpose (FR-012, FR-013)
+- [X] T014 [P] [US2] Create `apps/api/.env.example` documenting every backend environment variable and its purpose, including `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (the Supabase-shaped connection values defined in `contracts/health-endpoint.md`), marked as not required to start (FR-012, FR-013, FR-014)
+- [X] T015 [US2] Write `docs/setup.md` covering prerequisites, both `.env.example` files, the startup command for each shell, what "started successfully" looks like for each, the secret-vs-committed distinction, and which steps run in a degraded/"not configured" mode without external credentials (depends on T010-T014; FR-006, FR-010, FR-011, FR-012, FR-013, FR-014)
+- [X] T016 [US2] Validate User Story 2 independently per `quickstart.md` steps 2-5: both shells start using only documented steps, `GET /health` returns the documented `"not_configured"` response with zero external credentials configured, and the frontend shell keeps working when the backend is stopped (depends on T015; SC-002, SC-003, SC-004)
 
-**Checkpoint**: At this point, User Stories 1 AND 2 should both work independently — this is the MVP-equivalent local dev loop
+**Amendment note (2026-06-21)**: T010–T016 were originally completed under
+constitution v1.0.0 (Next.js 14; `fastapi==0.115.12`; `python-dotenv==1.1.0`).
+The v1.1.0 security amendment (no patched Next.js 14.x release exists;
+`npm audit`/`pip-audit` findings — see `research.md` Decision 7) raised the
+required versions to Next.js 16.x (Active LTS), FastAPI 0.138.0, and
+python-dotenv 1.2.2. T003's and T010's task text was updated in place to
+describe this new target, which is why it now reads "Next.js 16" even
+though the README and `package.json` it describes were written under the
+old target and have not been touched yet (`apps/web/README.md` still says
+"Next.js 14"; `apps/web/package.json` still pins `next@14.2.35`) — this gap
+is intentional and tracked here, not an unnoticed inconsistency. T022–T024
+below close that gap. Phase 4 is NOT considered complete until T022–T024
+are done, even though T010–T016 remain checked as a historical record of
+work completed under the prior constitution version.
+
+- [X] T022 [US2] Upgrade the frontend to the latest patched Next.js 16.x release in `apps/web` (`package.json`, and any compatible React/`@types/react`/`@types/react-dom` dependency updates required by that release), update `apps/web/README.md` where it still states "Next.js 14", regenerate the root `package-lock.json`, then run `npm audit` and a production build (`npm run build`) to confirm a clean, patched result (FR-016; resolves the C1/F1/F2 gap raised in the 2026-06-21 security amendment)
+- [X] T023 [US2] Upgrade the backend in `apps/api/requirements.txt` to `fastapi==0.138.0` and `python-dotenv==1.2.2`, keep Starlette unpinned (FastAPI resolves it), recreate or update `apps/api/.venv` accordingly, update `apps/api/README.md` where necessary, and run `pip-audit` to confirm a clean, patched result (FR-016, FR-017; resolves the C2 gap raised in the 2026-06-21 security amendment; depends on T022 only insofar as both must land before Phase 4 is re-validated)
+- [X] T024 [US2] Re-run `quickstart.md` steps 2-5 against the upgraded shells: both `apps/web` and `apps/api` start using only documented steps, `GET /health` still returns the documented contract response (`contracts/health-endpoint.md`) with zero external credentials configured, the frontend shell keeps working when the backend is stopped, and both servers are confirmed stopped afterward (depends on T022, T023; SC-002, SC-003, SC-004)
+
+**Checkpoint**: At this point, User Stories 1 AND 2 should both work independently — this is the MVP-equivalent local dev loop, now on the constitution v1.1.0-mandated framework versions
 
 ---
 
@@ -154,7 +173,7 @@ Task: "Replace placeholder text in tests/README.md with a purpose statement"
 
 ```bash
 # Launch independent scaffolding and env-doc tasks together:
-Task: "Scaffold minimal Next.js 14 app shell in apps/web"
+Task: "Scaffold minimal Next.js 16 app shell in apps/web"
 Task: "Scaffold minimal FastAPI app shell in apps/api"
 Task: "Create apps/web/.env.example documenting every frontend environment variable"
 Task: "Create apps/api/.env.example documenting every backend environment variable"

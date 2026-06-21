@@ -40,7 +40,7 @@ The MVP must avoid bank connections, payment gateways, subscription billing, ful
 
 The frontend will be built using:
 
-* Next.js 14
+* Next.js 16.x (Active LTS), kept on the latest patched 16.x release
 * React
 * Tailwind CSS
 * Shadcn UI

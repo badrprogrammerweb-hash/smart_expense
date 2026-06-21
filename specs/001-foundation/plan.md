@@ -21,9 +21,9 @@ end-to-end so Phase 2 can build on a known-good baseline.
 
 ## Technical Context
 
-**Language/Version**: TypeScript (Next.js 14 / React 18) for `apps/web`; Python 3.11+ for `apps/api`
+**Language/Version**: TypeScript (Next.js 16.x Active LTS / React 18) for `apps/web`; Python 3.11+ for `apps/api`
 
-**Primary Dependencies**: Next.js 14, React, Tailwind CSS, Shadcn UI (frontend, per constitution Technology Constraints); FastAPI, Uvicorn (backend)
+**Primary Dependencies**: Next.js 16.x (Active LTS, kept on the latest patched 16.x release), React, Tailwind CSS, Shadcn UI (frontend, per constitution Technology Constraints); FastAPI 0.138.0, Uvicorn, python-dotenv 1.2.2 (backend) — Starlette is not pinned directly and resolves via FastAPI's own dependency constraint
 
 **Storage**: N/A this phase — Supabase Postgres/Auth/Vault/Storage are the project's eventual source of truth (constitution §Technology Constraints) but no live project is provisioned or connected in Phase 1 (per spec Assumptions and FR-017)
 
@@ -64,6 +64,14 @@ No violations identified. Complexity Tracking table is not applicable.
 and `quickstart.md` introduce no business entities, no secret values, and no
 deviation from the monolith boundary — all gates above still PASS unchanged.
 
+**Post-amendment re-check (2026-06-21, constitution v1.1.0)**: The Next.js
+14→16 and FastAPI/python-dotenv version replacement (security decision: no
+patched Next.js 14.x release exists) changes dependency versions only — no
+business entity, secret value, scope boundary, or monolith deviation is
+introduced. All gates above still PASS unchanged. `apps/web` and `apps/api`
+application code itself has not yet been updated to match (tracked as
+follow-up implementation work, not part of this planning update).
+
 ## Project Structure
 
 ### Documentation (this feature)
@@ -82,7 +90,7 @@ specs/001-foundation/
 ### Source Code (repository root)
 
 ```text
-apps/web/                     # Next.js 14 frontend shell (App Router)
+apps/web/                     # Next.js 16 frontend shell (App Router)
 ├── app/
 │   └── page.tsx               # default starter page (spec FR-016)
 ├── package.json

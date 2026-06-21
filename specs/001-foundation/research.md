@@ -111,7 +111,51 @@ tooling.
 multiple real build/test/lint tasks across packages, but premature for a
 foundation phase with one trivial command per app.
 
+## 7. Framework version security amendment (2026-06-21)
+
+**Decision**: Replace the frontend and backend framework versions decided
+in Decisions 1–2 above. Frontend moves from Next.js 14 to **Next.js 16.x
+(Active LTS)**, kept on the latest patched 16.x release going forward.
+Backend pins move to **`fastapi==0.138.0`**, **`uvicorn`** (latest release
+compatible with that FastAPI version), and **`python-dotenv==1.2.2`**.
+Starlette (FastAPI's transitive ASGI dependency) is intentionally **not**
+pinned directly in `requirements.txt` — FastAPI resolves a compatible
+Starlette version itself. `pip` inside `apps/api/.venv` is treated as local
+development tooling used to install dependencies, not a shipped application
+dependency, so its own version is not pinned or tracked here.
+
+**Rationale**: `npm audit` against the Phase 1 implementation found
+unresolved advisories — up to high severity (CVSS 8.6, SSRF via WebSocket
+upgrades) — against `next@14.2.35`, the newest 14.x release that exists.
+Next.js has stopped backporting security fixes to the 14.x branch, so no
+in-line 14.x upgrade resolves them; only 15.x/16.x releases carry the fixes.
+`pip-audit` against the Phase 1 backend venv separately found unpatched CVEs
+in `starlette==0.46.2` (transitive, via `fastapi==0.115.12`) and
+`python-dotenv==1.1.0`. This amendment adopts the actively-patched 16.x LTS
+line for the frontend (constitution v1.1.0) and current patched releases for
+the backend pins, while leaving Starlette unpinned so FastAPI continues to
+own that compatibility constraint, and excluding `pip` itself from the
+dependency-pinning concern since it never ships with the application.
+
+**Alternatives considered**: Stay on Next.js 14.x and mitigate at the
+application layer (e.g., avoid Middleware, `next/image`, i18n routing, and
+Server Actions to dodge the specific advisory vectors) — rejected because it
+is a permanent, growing constraint on every future phase rather than a
+one-time fix, and still leaves a known-vulnerable dependency in the tree.
+Pinning Starlette directly to a patched version — rejected because FastAPI
+already constrains its own compatible Starlette range, and a manual pin
+would need to be re-verified on every FastAPI upgrade.
+
+**Scope note**: This decision updates the planning artifacts only.
+`apps/web/package.json`, `apps/api/requirements.txt`, and the rest of the
+already-scaffolded application code still reflect the pre-amendment
+versions and are tracked as separate, immediate follow-up implementation
+work.
+
 ## Outcome
 
 All Technical Context fields in `plan.md` are resolved; no
-`NEEDS CLARIFICATION` markers remain.
+`NEEDS CLARIFICATION` markers remain. Decision 7 (2026-06-21) supersedes the
+specific framework versions implied by Decisions 1–2 above; those decisions'
+tooling choices (npm workspaces, venv + requirements.txt) remain valid
+unchanged.

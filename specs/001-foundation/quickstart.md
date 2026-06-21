@@ -8,7 +8,7 @@ this feature.
 
 ## Prerequisites
 
-- Node.js (LTS) and npm installed
+- Node.js 20.9 or newer and npm installed
 - Python 3.11+ installed
 - A fresh clone of the repository, no prior environment configured
 

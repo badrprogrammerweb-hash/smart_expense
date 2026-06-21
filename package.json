@@ -5,5 +5,10 @@
   "workspaces": [
     "apps/web",
     "packages/shared"
-  ]
+  ],
+  "overrides": {
+    "next@16.2.9": {
+      "postcss": "8.5.10"
+    }
+  }
 }
