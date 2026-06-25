@@ -69,15 +69,15 @@ Proceed directly to Phase 2: Foundational.
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T013 [P] [US1] Contract test in `apps/api/tests/test_incomes_create.py`: `POST /workspaces/{id}/incomes` returns `201` with `status: "confirmed"` for Owner/Admin, `403` for Member/Viewer, `422` for zero/negative/missing `amount_minor` and missing/invalid `occurred_on`; `GET /workspaces/{id}/incomes` lists it for any role (`contracts/incomes-api.md`; FR-001, FR-004, FR-014, FR-025, FR-026)
-- [ ] T014 [P] [US1] Contract test in `apps/api/tests/test_expenses_create.py`: `POST /workspaces/{id}/expenses` returns `201` with `status: "confirmed"` for Owner/Admin/Member, `403` for Viewer; optional `category_id`, `description`, `merchant_name` are accepted and stored as distinct fields; `422` for zero/negative/missing `amount_minor`, missing/invalid `occurred_on`, a `category_id` from another workspace, or a `category_id` that is archived (`category_archived`); `GET /workspaces/{id}/expenses` lists it for any role (`contracts/expenses-api.md`; FR-002, FR-003, FR-004, FR-013, FR-015, FR-021, FR-025, FR-026; the `category_id` used here comes from the `default_category_id` SQL helper, not the categories API, since that endpoint isn't built until US3)
+- [X] T013 [P] [US1] Contract test in `apps/api/tests/test_incomes_create.py`: `POST /workspaces/{id}/incomes` returns `201` with `status: "confirmed"` for Owner/Admin, `403` for Member/Viewer, `422` for zero/negative/missing `amount_minor` and missing/invalid `occurred_on`; `GET /workspaces/{id}/incomes` lists it for any role (`contracts/incomes-api.md`; FR-001, FR-004, FR-014, FR-025, FR-026)
+- [X] T014 [P] [US1] Contract test in `apps/api/tests/test_expenses_create.py`: `POST /workspaces/{id}/expenses` returns `201` with `status: "confirmed"` for Owner/Admin/Member, `403` for Viewer; optional `category_id`, `description`, `merchant_name` are accepted and stored as distinct fields; `422` for zero/negative/missing `amount_minor`, missing/invalid `occurred_on`, a `category_id` from another workspace, or a `category_id` that is archived (`category_archived`); `GET /workspaces/{id}/expenses` lists it for any role (`contracts/expenses-api.md`; FR-002, FR-003, FR-004, FR-013, FR-015, FR-021, FR-025, FR-026; the `category_id` used here comes from the `default_category_id` SQL helper, not the categories API, since that endpoint isn't built until US3)
 
 ### Implementation for User Story 1
 
-- [ ] T015 [P] [US1] Implement `GET /workspaces/{workspace_id}/incomes` and `POST /workspaces/{workspace_id}/incomes` in `apps/api/app/routes/incomes.py` per `contracts/incomes-api.md`, including the explicit Owner/Admin role check on create (depends on T007, T009)
-- [ ] T016 [US1] Register the incomes router in `apps/api/app/main.py` (depends on T015)
-- [ ] T017 [P] [US1] Implement `GET /workspaces/{workspace_id}/expenses` and `POST /workspaces/{workspace_id}/expenses` in `apps/api/app/routes/expenses.py` per `contracts/expenses-api.md`, including the explicit non-Viewer role check on create and the category-workspace-match check (depends on T008, T010)
-- [ ] T018 [US1] Register the expenses router in `apps/api/app/main.py` (depends on T017, T016)
+- [X] T015 [P] [US1] Implement `GET /workspaces/{workspace_id}/incomes` and `POST /workspaces/{workspace_id}/incomes` in `apps/api/app/routes/incomes.py` per `contracts/incomes-api.md`, including the explicit Owner/Admin role check on create (depends on T007, T009)
+- [X] T016 [US1] Register the incomes router in `apps/api/app/main.py` (depends on T015)
+- [X] T017 [P] [US1] Implement `GET /workspaces/{workspace_id}/expenses` and `POST /workspaces/{workspace_id}/expenses` in `apps/api/app/routes/expenses.py` per `contracts/expenses-api.md`, including the explicit non-Viewer role check on create and the category-workspace-match check (depends on T008, T010)
+- [X] T018 [US1] Register the expenses router in `apps/api/app/main.py` (depends on T017, T016)
 - [ ] T019 [US1] Validate User Story 1 per `quickstart.md` step 3: Owner creates income, Member creates an expense, Member's attempt to create income is denied (depends on T013-T018; SC-001)
 
 **Checkpoint**: User Story 1 fully functional and testable independently
