@@ -78,7 +78,7 @@ Proceed directly to Phase 2: Foundational.
 - [X] T016 [US1] Register the incomes router in `apps/api/app/main.py` (depends on T015)
 - [X] T017 [P] [US1] Implement `GET /workspaces/{workspace_id}/expenses` and `POST /workspaces/{workspace_id}/expenses` in `apps/api/app/routes/expenses.py` per `contracts/expenses-api.md`, including the explicit non-Viewer role check on create and the category-workspace-match check (depends on T008, T010)
 - [X] T018 [US1] Register the expenses router in `apps/api/app/main.py` (depends on T017, T016)
-- [ ] T019 [US1] Validate User Story 1 per `quickstart.md` step 3: Owner creates income, Member creates an expense, Member's attempt to create income is denied (depends on T013-T018; SC-001)
+- [X] T019 [US1] Validate User Story 1 per `quickstart.md` step 3: Owner creates income, Member creates an expense, Member's attempt to create income is denied (depends on T013-T018; SC-001)
 
 **Checkpoint**: User Story 1 fully functional and testable independently
 
@@ -100,7 +100,7 @@ Proceed directly to Phase 2: Foundational.
 
 - [X] T021 [P] [US2] Implement `GET /workspaces/{workspace_id}/incomes/{income_id}`, `PATCH /workspaces/{workspace_id}/incomes/{income_id}`, and `DELETE /workspaces/{workspace_id}/incomes/{income_id}` (soft-delete) in `apps/api/app/routes/incomes.py` per `contracts/incomes-api.md`, including the Owner/Admin-only check and the already-deleted → `404` rule (depends on T015)
 - [X] T022 [P] [US2] Implement `GET /workspaces/{workspace_id}/expenses/{expense_id}`, `PATCH /workspaces/{workspace_id}/expenses/{expense_id}`, and `DELETE /workspaces/{workspace_id}/expenses/{expense_id}` (soft-delete) in `apps/api/app/routes/expenses.py` per `contracts/expenses-api.md`, including the Owner/Admin-vs-creator-only-Member authorization check and the already-deleted → `404` rule (depends on T017)
-- [ ] T023 [US2] Validate User Story 2 per `quickstart.md` step 4: confirm an edit and a delete each immediately change the confirmed-record sum computed from the list endpoints (depends on T020-T022; SC-002, SC-003)
+- [X] T023 [US2] Validate User Story 2 per `quickstart.md` step 4: confirm an edit and a delete each immediately change the confirmed-record sum computed from the list endpoints (depends on T020-T022; SC-002, SC-003)
 
 **Checkpoint**: User Stories 1 AND 2 both work independently
 
@@ -116,15 +116,15 @@ Proceed directly to Phase 2: Foundational.
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T024 [P] [US3] Contract test in `apps/api/tests/test_categories_manage.py`: `GET /workspaces/{id}/categories` returns the 15 Saudi-first defaults immediately after workspace creation; `POST` creates a custom category for Owner/Admin (`201`), `403` for Member/Viewer, `409` for a name duplicating an active category case-insensitively; `PATCH` renames and/or archives for Owner/Admin (`403` otherwise), and an archived category's name becomes reusable while its existing expense association is unaffected; `PUT .../categories/order` resequences for a full, matching ID list and returns `422` for a mismatched set (`contracts/categories-api.md`; FR-016–FR-022)
+- [X] T024 [P] [US3] Contract test in `apps/api/tests/test_categories_manage.py`: `GET /workspaces/{id}/categories` returns the 15 Saudi-first defaults immediately after workspace creation; `POST` creates a custom category for Owner/Admin (`201`), `403` for Member/Viewer, `409` for a name duplicating an active category case-insensitively; `PATCH` renames and/or archives for Owner/Admin (`403` otherwise), and an archived category's name becomes reusable while its existing expense association is unaffected; `PUT .../categories/order` resequences for a full, matching ID list and returns `422` for a mismatched set (`contracts/categories-api.md`; FR-016–FR-022)
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] Implement `GET /workspaces/{workspace_id}/categories` and `POST /workspaces/{workspace_id}/categories` in `apps/api/app/routes/categories.py` per `contracts/categories-api.md`, including the Owner/Admin-only create check and the duplicate-name `409` (depends on T006, T011)
-- [ ] T026 [US3] Implement `PATCH /workspaces/{workspace_id}/categories/{category_id}` in `apps/api/app/routes/categories.py` per `contracts/categories-api.md` (rename and/or archive, Owner/Admin-only, duplicate-name `409`) (depends on T025)
-- [ ] T027 [US3] Implement `PUT /workspaces/{workspace_id}/categories/order` in `apps/api/app/routes/categories.py` per `contracts/categories-api.md`, validating the submitted ID set exactly matches the workspace's current categories (depends on T025)
-- [ ] T028 [US3] Register the categories router in `apps/api/app/main.py` (depends on T025)
-- [ ] T029 [US3] Validate User Story 3 per `quickstart.md` steps 2 and 7: default categories present at creation with no setup call, duplicate-name rejection, and archive-then-reuse-name behavior (depends on T024-T028; SC-005)
+- [X] T025 [US3] Implement `GET /workspaces/{workspace_id}/categories` and `POST /workspaces/{workspace_id}/categories` in `apps/api/app/routes/categories.py` per `contracts/categories-api.md`, including the Owner/Admin-only create check and the duplicate-name `409` (depends on T006, T011)
+- [X] T026 [US3] Implement `PATCH /workspaces/{workspace_id}/categories/{category_id}` in `apps/api/app/routes/categories.py` per `contracts/categories-api.md` (rename and/or archive, Owner/Admin-only, duplicate-name `409`) (depends on T025)
+- [X] T027 [US3] Implement `PUT /workspaces/{workspace_id}/categories/order` in `apps/api/app/routes/categories.py` per `contracts/categories-api.md`, validating the submitted ID set exactly matches the workspace's current categories (depends on T025)
+- [X] T028 [US3] Register the categories router in `apps/api/app/main.py` (depends on T025)
+- [X] T029 [US3] Validate User Story 3 per `quickstart.md` steps 2 and 7: default categories present at creation with no setup call, duplicate-name rejection, and archive-then-reuse-name behavior (depends on T024-T028; SC-005)
 
 **Checkpoint**: User Stories 1, 2, AND 3 all work independently
 
