@@ -81,6 +81,7 @@ desktop.ini
 
 # --- Misc local artifacts ---
 *.local
+*.tmp
 .cache/
 tmp/
 temp/
