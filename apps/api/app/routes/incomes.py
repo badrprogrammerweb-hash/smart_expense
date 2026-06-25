@@ -1,13 +1,13 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser, get_current_user
 from app.db import database_unavailable_exception, get_rls_session
-from app.schemas.incomes import Income, IncomeCreateRequest, IncomesListResponse
+from app.schemas.incomes import Income, IncomeCreateRequest, IncomeUpdateRequest, IncomesListResponse
 
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/incomes", tags=["incomes"])
@@ -23,6 +23,22 @@ def not_found() -> HTTPException:
 
 def forbidden() -> HTTPException:
     return error(status.HTTP_403_FORBIDDEN, "forbidden", "You do not have permission to do that.")
+
+
+def invalid_amount() -> HTTPException:
+    return error(
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        "invalid_amount",
+        "Amount must be greater than zero.",
+    )
+
+
+def invalid_date() -> HTTPException:
+    return error(
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        "invalid_date",
+        "Date is required.",
+    )
 
 
 def _income_from_row(row) -> Income:
@@ -57,6 +73,23 @@ async def _workspace_role(session: AsyncSession, workspace_id: UUID, user_id: UU
     if row is None:
         raise not_found()
     return row.role
+
+
+async def _income(session: AsyncSession, workspace_id: UUID, income_id: UUID):
+    result = await session.execute(
+        text(
+            """
+            select id, amount_minor, currency, occurred_on, description, status,
+                   created_by, created_at, updated_at
+            from public.incomes
+            where workspace_id = :workspace_id
+              and id = :income_id
+              and status = 'confirmed'
+            """
+        ),
+        {"workspace_id": str(workspace_id), "income_id": str(income_id)},
+    )
+    return result.first()
 
 
 @router.get("", response_model=IncomesListResponse)
@@ -127,3 +160,101 @@ async def create_income(
     if row is None:
         raise not_found()
     return _income_from_row(row)
+
+
+@router.get("/{income_id}", response_model=Income)
+async def get_income(
+    workspace_id: UUID,
+    income_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_rls_session),
+) -> Income:
+    await _workspace_role(session, workspace_id, current_user.user_id)
+    try:
+        row = await _income(session, workspace_id, income_id)
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+    if row is None:
+        raise not_found()
+    return _income_from_row(row)
+
+
+@router.patch("/{income_id}", response_model=Income)
+async def update_income(
+    workspace_id: UUID,
+    income_id: UUID,
+    request: IncomeUpdateRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_rls_session),
+) -> Income:
+    role = await _workspace_role(session, workspace_id, current_user.user_id)
+    if role not in {"owner", "admin"}:
+        raise forbidden()
+    if "amount_minor" in request.model_fields_set and request.amount_minor is None:
+        raise invalid_amount()
+    if "occurred_on" in request.model_fields_set and request.occurred_on is None:
+        raise invalid_date()
+
+    assignments: list[str] = []
+    params = {"workspace_id": str(workspace_id), "income_id": str(income_id)}
+    for field in ("amount_minor", "occurred_on", "description"):
+        if field in request.model_fields_set:
+            assignments.append(f"{field} = :{field}")
+            params[field] = getattr(request, field)
+
+    try:
+        result = await session.execute(
+            text(
+                f"""
+                update public.incomes
+                set {", ".join(assignments)}
+                where workspace_id = :workspace_id
+                  and id = :income_id
+                  and status = 'confirmed'
+                returning id, amount_minor, currency, occurred_on, description, status,
+                          created_by, created_at, updated_at
+                """
+            ),
+            params,
+        )
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+
+    row = result.first()
+    if row is None:
+        raise not_found()
+    return _income_from_row(row)
+
+
+@router.delete("/{income_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_income(
+    workspace_id: UUID,
+    income_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_rls_session),
+) -> Response:
+    role = await _workspace_role(session, workspace_id, current_user.user_id)
+    if role not in {"owner", "admin"}:
+        raise forbidden()
+
+    try:
+        result = await session.execute(
+            text(
+                """
+                update public.incomes
+                set status = 'deleted',
+                    deleted_at = now()
+                where workspace_id = :workspace_id
+                  and id = :income_id
+                  and status = 'confirmed'
+                returning id
+                """
+            ),
+            {"workspace_id": str(workspace_id), "income_id": str(income_id)},
+        )
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+
+    if result.first() is None:
+        raise not_found()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -1,13 +1,13 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser, get_current_user
 from app.db import database_unavailable_exception, get_rls_session
-from app.schemas.expenses import Expense, ExpenseCreateRequest, ExpensesListResponse
+from app.schemas.expenses import Expense, ExpenseCreateRequest, ExpenseUpdateRequest, ExpensesListResponse
 
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/expenses", tags=["expenses"])
@@ -38,6 +38,22 @@ def category_archived() -> HTTPException:
         status.HTTP_422_UNPROCESSABLE_CONTENT,
         "category_archived",
         "Category is archived.",
+    )
+
+
+def invalid_amount() -> HTTPException:
+    return error(
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        "invalid_amount",
+        "Amount must be greater than zero.",
+    )
+
+
+def invalid_date() -> HTTPException:
+    return error(
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        "invalid_date",
+        "Date is required.",
     )
 
 
@@ -77,6 +93,31 @@ async def _workspace_role(session: AsyncSession, workspace_id: UUID, user_id: UU
     return row.role
 
 
+async def _expense(session: AsyncSession, workspace_id: UUID, expense_id: UUID):
+    result = await session.execute(
+        text(
+            """
+            select id, amount_minor, currency, occurred_on, category_id, description,
+                   merchant_name, status, created_by, created_at, updated_at
+            from public.expenses
+            where workspace_id = :workspace_id
+              and id = :expense_id
+              and status = 'confirmed'
+            """
+        ),
+        {"workspace_id": str(workspace_id), "expense_id": str(expense_id)},
+    )
+    return result.first()
+
+
+def _can_mutate_expense(role: str, user_id: UUID, expense_row) -> bool:
+    if role in {"owner", "admin"}:
+        return True
+    if role == "member" and str(expense_row.created_by) == str(user_id):
+        return True
+    return False
+
+
 async def _validate_category(
     session: AsyncSession, workspace_id: UUID, category_id: UUID | None
 ) -> None:
@@ -94,7 +135,7 @@ async def _validate_category(
         {"category_id": str(category_id)},
     )
     row = result.first()
-    if row is None or row.workspace_id != workspace_id:
+    if row is None or str(row.workspace_id) != str(workspace_id):
         raise invalid_category()
     if row.is_archived:
         raise category_archived()
@@ -190,3 +231,123 @@ async def create_expense(
     if row is None:
         raise not_found()
     return _expense_from_row(row)
+
+
+@router.get("/{expense_id}", response_model=Expense)
+async def get_expense(
+    workspace_id: UUID,
+    expense_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_rls_session),
+) -> Expense:
+    await _workspace_role(session, workspace_id, current_user.user_id)
+    try:
+        row = await _expense(session, workspace_id, expense_id)
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+    if row is None:
+        raise not_found()
+    return _expense_from_row(row)
+
+
+@router.patch("/{expense_id}", response_model=Expense)
+async def update_expense(
+    workspace_id: UUID,
+    expense_id: UUID,
+    request: ExpenseUpdateRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_rls_session),
+) -> Expense:
+    role = await _workspace_role(session, workspace_id, current_user.user_id)
+    if "amount_minor" in request.model_fields_set and request.amount_minor is None:
+        raise invalid_amount()
+    if "occurred_on" in request.model_fields_set and request.occurred_on is None:
+        raise invalid_date()
+
+    try:
+        existing = await _expense(session, workspace_id, expense_id)
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+    if existing is None:
+        raise not_found()
+    if not _can_mutate_expense(role, current_user.user_id, existing):
+        raise forbidden()
+
+    if (
+        "category_id" in request.model_fields_set
+        and str(request.category_id) != str(existing.category_id)
+    ):
+        await _validate_category(session, workspace_id, request.category_id)
+
+    assignments: list[str] = []
+    params = {"workspace_id": str(workspace_id), "expense_id": str(expense_id)}
+    for field in ("amount_minor", "occurred_on", "category_id", "description", "merchant_name"):
+        if field in request.model_fields_set:
+            assignments.append(f"{field} = :{field}")
+            value = getattr(request, field)
+            params[field] = str(value) if field == "category_id" and value else value
+
+    try:
+        result = await session.execute(
+            text(
+                f"""
+                update public.expenses
+                set {", ".join(assignments)}
+                where workspace_id = :workspace_id
+                  and id = :expense_id
+                  and status = 'confirmed'
+                returning id, amount_minor, currency, occurred_on, category_id, description,
+                          merchant_name, status, created_by, created_at, updated_at
+                """
+            ),
+            params,
+        )
+    except DBAPIError as exc:
+        _raise_from_insert_error(exc)
+    except SQLAlchemyError as exc:
+        _raise_from_db_error(exc)
+
+    row = result.first()
+    if row is None:
+        raise not_found()
+    return _expense_from_row(row)
+
+
+@router.delete("/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_expense(
+    workspace_id: UUID,
+    expense_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_rls_session),
+) -> Response:
+    role = await _workspace_role(session, workspace_id, current_user.user_id)
+    try:
+        existing = await _expense(session, workspace_id, expense_id)
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+    if existing is None:
+        raise not_found()
+    if not _can_mutate_expense(role, current_user.user_id, existing):
+        raise forbidden()
+
+    try:
+        result = await session.execute(
+            text(
+                """
+                update public.expenses
+                set status = 'deleted',
+                    deleted_at = now()
+                where workspace_id = :workspace_id
+                  and id = :expense_id
+                  and status = 'confirmed'
+                returning id
+                """
+            ),
+            {"workspace_id": str(workspace_id), "expense_id": str(expense_id)},
+        )
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+
+    if result.first() is None:
+        raise not_found()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
