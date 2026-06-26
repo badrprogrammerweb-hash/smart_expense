@@ -27,6 +27,10 @@ def not_found() -> HTTPException:
     return error(status.HTTP_404_NOT_FOUND, "not_found", "Workspace not found.")
 
 
+def category_not_found() -> HTTPException:
+    return error(status.HTTP_404_NOT_FOUND, "not_found", "Category not found.")
+
+
 def forbidden() -> HTTPException:
     return error(status.HTTP_403_FORBIDDEN, "forbidden", "You do not have permission to do that.")
 
@@ -185,6 +189,10 @@ async def create_category(
     await _ensure_unique_active_name(session, workspace_id, request.name)
 
     try:
+        await session.execute(
+            text("select pg_advisory_xact_lock(hashtext(cast(:workspace_id as text)))"),
+            {"workspace_id": str(workspace_id)},
+        )
         result = await session.execute(
             text(
                 """
@@ -226,7 +234,7 @@ async def update_category(
 
     existing = await _category(session, workspace_id, category_id)
     if existing is None:
-        raise not_found()
+        raise category_not_found()
     if "is_archived" in request.model_fields_set and request.is_archived is False:
         raise invalid_archive_state()
     if "name" in request.model_fields_set and request.name is not None:
@@ -261,7 +269,7 @@ async def update_category(
 
     row = result.first()
     if row is None:
-        raise not_found()
+        raise category_not_found()
     return _category_from_row(row)
 
 
@@ -280,20 +288,6 @@ async def reorder_categories(
     if len(requested_ids) != len(set(requested_ids)):
         raise invalid_order()
 
-    result = await session.execute(
-        text(
-            """
-            select id
-            from public.categories
-            where workspace_id = :workspace_id
-            """
-        ),
-        {"workspace_id": str(workspace_id)},
-    )
-    existing_ids = {str(row.id) for row in result}
-    if set(requested_ids) != existing_ids:
-        raise invalid_order()
-
     order_values = ",".join(
         f"(CAST(:category_id_{index} AS uuid), CAST(:sort_order_{index} AS integer))"
         for index in range(len(requested_ids))
@@ -304,6 +298,20 @@ async def reorder_categories(
         params[f"sort_order_{index}"] = index
 
     try:
+        result = await session.execute(
+            text(
+                """
+                select id
+                from public.categories
+                where workspace_id = :workspace_id
+                """
+            ),
+            {"workspace_id": str(workspace_id)},
+        )
+        existing_ids = {str(row.id) for row in result}
+        if set(requested_ids) != existing_ids:
+            raise invalid_order()
+
         await session.execute(
             text(
                 f"""
@@ -317,6 +325,8 @@ async def reorder_categories(
             params,
         )
         categories = await _categories(session, workspace_id)
+    except HTTPException:
+        raise
     except DBAPIError as exc:
         raise database_unavailable_exception(exc) from exc
 

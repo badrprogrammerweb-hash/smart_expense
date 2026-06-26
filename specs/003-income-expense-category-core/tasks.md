@@ -140,11 +140,11 @@ Proceed directly to Phase 2: Foundational.
 
 > **NOTE: Write these tests FIRST — they should already PASS against US1–US3's implementation; a failure here means a per-story check missed a case**
 
-- [ ] T030 [P] [US4] Comprehensive integration test in `apps/api/tests/test_role_permissions_phase3.py`: with one Owner, Admin, Member, and Viewer in the same team workspace, assert the expected `200`/`201`/`204` vs `403` outcome for every income (create, edit, delete), expense (create, edit own, edit other's, delete own, delete other's), and category (create, rename, archive, reorder) action per role (User Story 4 acceptance scenarios 1–5; FR-012, FR-013, FR-014, FR-015), and confirm a non-member's request against any of the three new endpoint groups for another workspace returns `404` (FR-011)
+- [X] T030 [P] [US4] Comprehensive integration test in `apps/api/tests/test_role_permissions_phase3.py`: with one Owner, Admin, Member, and Viewer in the same team workspace, assert the expected `200`/`201`/`204` vs `403` outcome for every income (create, edit, delete), expense (create, edit own, edit other's, delete own, delete other's), and category (create, rename, archive, reorder) action per role (User Story 4 acceptance scenarios 1–5; FR-012, FR-013, FR-014, FR-015), and confirm a non-member's request against any of the three new endpoint groups for another workspace returns `404` (FR-011)
 
 ### Validation for User Story 4
 
-- [ ] T031 [US4] Validate User Story 4 per `quickstart.md` steps 5 and 6: the full role-permission matrix produces the expected allow/deny outcome across income, expense, and category actions, and cross-workspace requests are denied uniformly (depends on T030; SC-004, SC-006)
+- [X] T031 [US4] Validate User Story 4 per `quickstart.md` steps 5 and 6: the full role-permission matrix produces the expected allow/deny outcome across income, expense, and category actions, and cross-workspace requests are denied uniformly (depends on T030; SC-004, SC-006)
 
 **Checkpoint**: All four user stories independently functional
 

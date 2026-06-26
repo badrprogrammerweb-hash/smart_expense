@@ -40,11 +40,18 @@ class CategoryUpdateRequest(BaseModel):
     @classmethod
     def name_must_not_be_blank(cls, value: str | None) -> str | None:
         if value is None:
-            return value
+            raise ValueError("Category name cannot be null.")
         stripped = value.strip()
         if not stripped:
             raise ValueError("Category name is required.")
         return stripped
+
+    @field_validator("is_archived")
+    @classmethod
+    def is_archived_must_be_bool(cls, value: bool | None) -> bool | None:
+        if value is None:
+            raise ValueError("is_archived must be true or false.")
+        return value
 
     @model_validator(mode="after")
     def require_update_field(self) -> "CategoryUpdateRequest":

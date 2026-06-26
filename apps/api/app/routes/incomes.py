@@ -128,6 +128,8 @@ async def create_income(
     role = await _workspace_role(session, workspace_id, current_user.user_id)
     if role not in {"owner", "admin"}:
         raise forbidden()
+    if request.amount_minor <= 0:
+        raise invalid_amount()
 
     try:
         result = await session.execute(
@@ -154,7 +156,7 @@ async def create_income(
     except DBAPIError as exc:
         raise database_unavailable_exception(exc) from exc
     except SQLAlchemyError as exc:
-        raise exc
+        raise database_unavailable_exception() from exc
 
     row = result.first()
     if row is None:
@@ -190,7 +192,9 @@ async def update_income(
     role = await _workspace_role(session, workspace_id, current_user.user_id)
     if role not in {"owner", "admin"}:
         raise forbidden()
-    if "amount_minor" in request.model_fields_set and request.amount_minor is None:
+    if "amount_minor" in request.model_fields_set and (
+        request.amount_minor is None or request.amount_minor <= 0
+    ):
         raise invalid_amount()
     if "occurred_on" in request.model_fields_set and request.occurred_on is None:
         raise invalid_date()

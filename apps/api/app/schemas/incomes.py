@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 
 
 RecordStatus = Literal["confirmed", "deleted"]
@@ -28,7 +28,7 @@ class IncomesListResponse(BaseModel):
 
 
 class IncomeCreateRequest(BaseModel):
-    amount_minor: int = Field(gt=0)
+    amount_minor: int
     occurred_on: date
     description: str | None = None
 
@@ -36,7 +36,7 @@ class IncomeCreateRequest(BaseModel):
 
 
 class IncomeUpdateRequest(BaseModel):
-    amount_minor: int | None = Field(default=None, gt=0)
+    amount_minor: int | None = None
     occurred_on: date | None = None
     description: str | None = None
 

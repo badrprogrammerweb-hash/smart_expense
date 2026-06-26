@@ -145,14 +145,14 @@ def _raise_from_db_error(exc: SQLAlchemyError) -> None:
     message = str(exc).lower()
     if "category_archived" in message:
         raise category_archived() from exc
-    if "category_not_in_workspace" in message or "foreign key" in message:
+    if "category_not_in_workspace" in message:
         raise invalid_category() from exc
     raise exc
 
 
 def _raise_from_insert_error(exc: DBAPIError) -> None:
     message = str(exc).lower()
-    if "category_archived" in message or "category_not_in_workspace" in message or "foreign key" in message:
+    if "category_archived" in message or "category_not_in_workspace" in message:
         _raise_from_db_error(exc)
     raise database_unavailable_exception(exc) from exc
 
@@ -193,6 +193,8 @@ async def create_expense(
     role = await _workspace_role(session, workspace_id, current_user.user_id)
     if role not in {"owner", "admin", "member"}:
         raise forbidden()
+    if request.amount_minor <= 0:
+        raise invalid_amount()
 
     await _validate_category(session, workspace_id, request.category_id)
 
@@ -259,10 +261,8 @@ async def update_expense(
     session: AsyncSession = Depends(get_rls_session),
 ) -> Expense:
     role = await _workspace_role(session, workspace_id, current_user.user_id)
-    if "amount_minor" in request.model_fields_set and request.amount_minor is None:
-        raise invalid_amount()
-    if "occurred_on" in request.model_fields_set and request.occurred_on is None:
-        raise invalid_date()
+    if role not in {"owner", "admin", "member"}:
+        raise forbidden()
 
     try:
         existing = await _expense(session, workspace_id, expense_id)
@@ -272,6 +272,13 @@ async def update_expense(
         raise not_found()
     if not _can_mutate_expense(role, current_user.user_id, existing):
         raise forbidden()
+
+    if "amount_minor" in request.model_fields_set and (
+        request.amount_minor is None or request.amount_minor <= 0
+    ):
+        raise invalid_amount()
+    if "occurred_on" in request.model_fields_set and request.occurred_on is None:
+        raise invalid_date()
 
     if (
         "category_id" in request.model_fields_set
