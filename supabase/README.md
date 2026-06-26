@@ -3,14 +3,18 @@
 This directory owns the local Supabase CLI project: `config.toml`, database
 migrations under `migrations/`, and CLI-managed state under `.branches`/
 `.temp` (ignored by Git). As of Phase 2 (Authentication and Workspace
-Foundation), a live local stack is provisioned via `supabase start`; only
+Foundation), a live local stack is provisioned via `npx supabase start`; only
 email/password Auth is enabled (`[auth.email] enable_signup = true`, every
 `[auth.external.*]` provider `enabled = false` — see `config.toml`).
 
+Phase 3 (Income, Expense, and Category Core) adds the first business-data
+tables on top of that workspace foundation.
+
 ## Schema
 
-Defined in `migrations/20260624000000_auth_workspace_foundation.sql`, on top
-of the Supabase-managed `auth.users` table.
+Defined in `migrations/20260624000000_auth_workspace_foundation.sql` and
+`migrations/20260625000000_income_expense_category_core.sql`, on top of the
+Supabase-managed `auth.users` table.
 
 ### `public.user_profiles`
 
@@ -38,6 +42,39 @@ Joins `workspaces` and `user_profiles` with a fixed `role`
 workspace, which is also what makes duplicate-add rejection (FR-032)
 enforceable at the constraint level.
 
+### `public.categories`
+
+Workspace-scoped expense labels. Every workspace receives the Saudi-first
+default set when it is created: Restaurants, Groceries, Fuel,
+Transportation, Rent, Utilities, Internet & Mobile, Health, Education,
+Family, Shopping, Entertainment, Travel, Subscriptions, Other. Custom
+categories share the same table and are ordered by `sort_order`.
+
+Category names must be non-empty and are unique case-insensitively among
+active categories in the same workspace via the
+`categories_unique_active_name` partial index. Categories are archived with
+`is_archived = true` instead of hard-deleted, which preserves old expense
+references while allowing the archived name to be reused by a new active
+category.
+
+### `public.incomes`
+
+Workspace-scoped confirmed income records. Amounts are stored as
+`amount_minor bigint` (halalas) with `currency = 'SAR'`; zero or negative
+amounts are rejected. Each row records the creating user, the date it
+occurred, an optional description, and a `status` of `confirmed` or
+`deleted`. Deletion is a soft-delete update that sets `status = 'deleted'`
+and `deleted_at`; no SQL `DELETE` policy is exposed.
+
+### `public.expenses`
+
+Workspace-scoped confirmed expense records. Amounts use the same
+`amount_minor bigint` plus fixed `SAR` currency as incomes. Expenses may
+reference a category, but `category_id` is optional so uncategorized
+expenses remain valid. `description` and `merchant_name` are separate
+optional fields. Like incomes, expenses use `confirmed`/`deleted` status
+with soft-delete retention instead of hard deletion.
+
 ## Functions
 
 All helper functions are `SECURITY DEFINER` with `search_path = public`,
@@ -62,9 +99,17 @@ visibility, and are granted `EXECUTE` only to `authenticated` (revoked from
   authenticated request (`apps/api/app/core/auth.py`) to self-heal an
   interrupted signup.
 
+- `seed_default_categories()` — inserts the 15 default categories for each
+  new workspace, in `sort_order` 0 through 14.
+- `validate_expense_category()` — rejects an expense category assignment
+  unless the category belongs to the same workspace and is active. Updates
+  that do not change `category_id` are allowed, so historical references
+  survive later category archival.
+- `set_updated_at()` — shared timestamp helper used by Phase 3 tables.
+
 ## Row Level Security
 
-RLS is enabled on all three tables; every policy runs `to authenticated`.
+RLS is enabled on all application tables; every policy runs `to authenticated`.
 Base table grants (`grant select/insert/update/delete ... to authenticated`)
 are also required — RLS policies only filter rows you already have a grant
 to touch, they don't substitute for one.
@@ -86,6 +131,20 @@ to touch, they don't substitute for one.
   allowed for `owner`/`admin` removing a non-owner, or a member deleting
   their own row (voluntary leave).
 
+- **`categories`**: `SELECT` for any workspace member, including Viewer.
+  `INSERT` and `UPDATE` are restricted to `owner`/`admin` callers for
+  create, rename, archive, and reorder operations. No `DELETE`
+  policy exists; archive is the removal path for this phase.
+- **`incomes`**: `SELECT` for any workspace member. `INSERT` and `UPDATE`
+  are restricted to `owner`/`admin` callers, covering create, edit, and
+  soft-delete. Members and Viewers cannot create or modify income records.
+  No `DELETE` policy exists.
+- **`expenses`**: `SELECT` for any workspace member. `INSERT` is allowed
+  for `owner`, `admin`, and `member`, but not `viewer`. `UPDATE` is
+  allowed for `owner`/`admin` on any expense, or for a `member` only when
+  `created_by = auth.uid()`, covering edit and soft-delete. Viewers cannot
+  create or modify expense records. No `DELETE` policy exists.
+
 ## Triggers
 
 - `workspaces_prevent_type_change` (`BEFORE UPDATE OF type`) — rejects
@@ -103,12 +162,22 @@ to touch, they don't substitute for one.
   `_update` (`BEFORE DELETE` / `BEFORE UPDATE OF role`) — rejects removing
   or demoting the sole remaining Owner of a workspace (FR-017).
 
+- `workspaces_seed_default_categories` (`AFTER INSERT` on `workspaces`) —
+  inserts the 15 default categories for every personal or team workspace.
+- `categories_set_updated_at`, `incomes_set_updated_at`,
+  `expenses_set_updated_at` (`BEFORE UPDATE`) — refresh `updated_at` on
+  each edit, archive/reorder, or soft-delete.
+- `expenses_validate_category` (`BEFORE INSERT OR UPDATE OF category_id`) —
+  rejects a category from another workspace (`category_not_in_workspace`)
+  or an archived category (`category_archived`) when a category is newly
+  assigned or changed.
+
 ## Local development
 
 ```bash
-supabase start   # applies every migration to a fresh local Postgres
-supabase db reset  # re-applies migrations from scratch, wiping local data
+npx supabase start     # applies every migration to a fresh local Postgres
+npx supabase db reset  # re-applies migrations from scratch, wiping local data
 ```
 
-Copy the printed URLs/keys from `supabase status` into `apps/api/.env` —
+Copy the printed URLs/keys from `npx supabase status` into `apps/api/.env` —
 see `docs/setup.md`.

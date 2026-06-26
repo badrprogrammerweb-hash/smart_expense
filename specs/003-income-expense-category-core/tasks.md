@@ -154,10 +154,10 @@ Proceed directly to Phase 2: Foundational.
 
 **Purpose**: Documentation and final validation across all user stories
 
-- [ ] T032 [P] Update `supabase/README.md` to describe the `categories`, `incomes`, and `expenses` tables, their RLS policies, and their triggers, alongside the existing Phase 2 schema description
-- [ ] T033 [P] Update `docs/setup.md`'s opening paragraph and test-suite section to mention that the income/expense/category endpoints (alongside the Phase 2 workspace endpoints) require the local Supabase stack
-- [ ] T034 Run the full `quickstart.md` (steps 1–7) end-to-end against a fresh local Supabase stack as final cross-story validation
-- [ ] T035 Update `specs/003-income-expense-category-core/spec.md` Status field from `Draft` to `Implemented` once T001–T034 are verified complete (closes out FR-001–FR-030, SC-001–SC-007)
+- [X] T032 [P] Update `supabase/README.md` to describe the `categories`, `incomes`, and `expenses` tables, their RLS policies, and their triggers, alongside the existing Phase 2 schema description
+- [X] T033 [P] Update `docs/setup.md`'s opening paragraph and test-suite section to mention that the income/expense/category endpoints (alongside the Phase 2 workspace endpoints) require the local Supabase stack
+- [X] T034 Run the full `quickstart.md` (steps 1–7) end-to-end against a fresh local Supabase stack as final cross-story validation
+- [X] T035 Update `specs/003-income-expense-category-core/spec.md` Status field from `Draft` to `Implemented` once T001–T034 are verified complete (closes out FR-001–FR-030, SC-001–SC-007)
 
 ---
 
