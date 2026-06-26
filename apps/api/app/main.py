@@ -4,7 +4,10 @@ from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 
 from app.core.logging import configure_logging
+from app.routes.categories import router as categories_router
+from app.routes.expenses import router as expenses_router
 from app.routes.health import router as health_router
+from app.routes.incomes import router as incomes_router
 from app.routes.workspace_members import router as workspace_members_router
 from app.routes.workspaces import router as workspaces_router
 
@@ -51,3 +54,6 @@ async def validation_exception_handler(_: Request, __: RequestValidationError) -
 app.include_router(health_router)
 app.include_router(workspaces_router)
 app.include_router(workspace_members_router)
+app.include_router(incomes_router)
+app.include_router(expenses_router)
+app.include_router(categories_router)

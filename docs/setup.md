@@ -3,33 +3,38 @@
 This guide starts the frontend and backend development shells from a fresh
 checkout. The frontend still runs with no live Supabase project. The backend
 also starts and reports a degraded health status without one, but the
-authentication and workspace endpoints (`/workspaces`, `/workspaces/{id}`,
-`/workspaces/{id}/members`, ...) and the backend test suite require a local
-Supabase stack to be running, as introduced in Phase 2 (Authentication and
-Workspace Foundation).
+authentication/workspace endpoints (`/workspaces`, `/workspaces/{id}`,
+`/workspaces/{id}/members`, ...) and the income, expense, and category
+endpoints (`/workspaces/{id}/incomes`, `/workspaces/{id}/expenses`,
+`/workspaces/{id}/categories`, ...) require a local Supabase stack. The
+backend test suite needs that same stack because Phase 2+ features exercise
+real Auth, Postgres, RLS policies, and triggers.
 
 ## Prerequisites
 
 - Node.js 20.9 or newer with npm
 - Python 3.11 or newer
 - [Supabase CLI](https://supabase.com/docs/guides/cli) with Docker running
-  (required for `supabase start`)
+  (required for `npx supabase start`)
 
 Run all commands from the repository root unless a step says otherwise.
 
 ## Start the local Supabase stack
 
 ```bash
-supabase start
+npx supabase start
 ```
 
 This applies every migration under `supabase/migrations/` to a fresh local
 Postgres instance — the `user_profiles`, `workspaces`, and
 `workspace_memberships` tables, their RLS policies, and triggers (see
 `supabase/README.md`) — and prints local URLs and keys, including the
-`DB URL` and `anon`/`service_role` keys. Re-run later with `supabase status`
-to print those values again, or `supabase db reset` to re-apply every
+`DB URL` and `anon`/`service_role` keys. Re-run later with `npx supabase status`
+to print those values again, or `npx supabase db reset` to re-apply every
 migration from scratch (wipes local data).
+Those migrations now include the Phase 3 `categories`, `incomes`, and
+`expenses` tables, their RLS policies, and their triggers as well; see
+`supabase/README.md` for the schema overview.
 
 ## Configure local environment files
 
@@ -55,7 +60,8 @@ The frontend example contains one optional public setting:
   browser code, this value must never contain a secret.
 
 The backend example contains four server settings, all populated from the
-values `supabase start`/`supabase status` printed in the previous step:
+values `npx supabase start`/`npx supabase status` printed in the previous
+step:
 
 - `SUPABASE_URL`: URL of the local (or hosted) Supabase project.
 - `SUPABASE_DB_URL`: Direct Postgres connection string used for the
@@ -73,8 +79,8 @@ The API loads `apps/api/.env` when started from `apps/api`. If
 `SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` is empty or missing, the API
 still starts and `/health` reports the database as `not_configured` — this
 is the expected degraded mode. `SUPABASE_DB_URL` is required for the
-workspace endpoints and the backend test suite; without it, those endpoints
-return `503 database_not_configured`.
+workspace, income, expense, and category endpoints plus the backend test
+suite; without it, those endpoints return `503 database_not_configured`.
 
 Only the `.env.example` files are safe to commit. Real `.env`, `.env.local`,
 and other `.env.*` files are local-only and ignored by Git. Example files
@@ -119,7 +125,7 @@ Leave this process running while starting the frontend in a second terminal.
 ## Run the backend test suite
 
 With the local Supabase stack running and `apps/api/.env` populated from
-`supabase status`, run `pytest` from `apps/api` (a separate terminal; it
+`npx supabase status`, run `pytest` from `apps/api` (a separate terminal; it
 does not require the `uvicorn` process from the previous step):
 
 ```powershell
@@ -135,7 +141,8 @@ source .venv/bin/activate
 python -m pytest
 ```
 
-Tests that need Supabase (most of the suite, from Phase 2 onward) are
+Tests that need Supabase (most of the suite, from Phase 2 onward, including
+the workspace, income, expense, and category endpoint tests) are
 skipped automatically — not failed — when `SUPABASE_URL`,
 `SUPABASE_SERVICE_ROLE_KEY`, or `SUPABASE_DB_URL` is missing from
 `apps/api/.env` (see the `requires_supabase` marker in
@@ -144,7 +151,7 @@ Auth and exercises the real RLS-protected endpoints — there are no mocks
 for the database layer, since RLS correctness cannot be verified by
 mocking it away. If a test run leaves stale users behind (tests reuse a few
 fixed email addresses for readable role-matrix assertions) and a later run
-fails with `user_already_exists`, run `supabase db reset` for a clean
+fails with `user_already_exists`, run `npx supabase db reset` for a clean
 slate.
 
 ## Start the frontend

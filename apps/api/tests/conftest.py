@@ -181,3 +181,93 @@ async def ensure_personal_workspace(connection, user: TestUser) -> None:
         text("select public.ensure_personal_workspace(:user_id, :email)"),
         {"user_id": user.user_id, "email": user.email},
     )
+
+
+async def create_income(
+    client: httpx.AsyncClient,
+    caller: TestUser,
+    workspace_id: str,
+    payload: dict[str, Any] | None = None,
+) -> httpx.Response:
+    body = {"amount_minor": 500000, "occurred_on": "2026-06-01"}
+    if payload is not None:
+        body.update(payload)
+    return await client.post(
+        f"/workspaces/{workspace_id}/incomes",
+        headers=caller.auth_header,
+        json=body,
+    )
+
+
+async def create_expense(
+    client: httpx.AsyncClient,
+    caller: TestUser,
+    workspace_id: str,
+    payload: dict[str, Any] | None = None,
+) -> httpx.Response:
+    body = {"amount_minor": 4500, "occurred_on": "2026-06-10"}
+    if payload is not None:
+        body.update(payload)
+    return await client.post(
+        f"/workspaces/{workspace_id}/expenses",
+        headers=caller.auth_header,
+        json=body,
+    )
+
+
+async def create_category(
+    client: httpx.AsyncClient,
+    caller: TestUser,
+    workspace_id: str,
+    payload: dict[str, Any] | None = None,
+) -> httpx.Response:
+    body = {"name": f"Category {uuid.uuid4().hex[:8]}"}
+    if payload is not None:
+        body.update(payload)
+    return await client.post(
+        f"/workspaces/{workspace_id}/categories",
+        headers=caller.auth_header,
+        json=body,
+    )
+
+
+async def list_incomes(
+    client: httpx.AsyncClient, caller: TestUser, workspace_id: str
+) -> list[dict[str, Any]]:
+    response = await client.get(f"/workspaces/{workspace_id}/incomes", headers=caller.auth_header)
+    assert response.status_code == 200, response.text
+    return response.json()["incomes"]
+
+
+async def list_expenses(
+    client: httpx.AsyncClient, caller: TestUser, workspace_id: str
+) -> list[dict[str, Any]]:
+    response = await client.get(f"/workspaces/{workspace_id}/expenses", headers=caller.auth_header)
+    assert response.status_code == 200, response.text
+    return response.json()["expenses"]
+
+
+async def list_categories(
+    client: httpx.AsyncClient, caller: TestUser, workspace_id: str
+) -> list[dict[str, Any]]:
+    response = await client.get(f"/workspaces/{workspace_id}/categories", headers=caller.auth_header)
+    assert response.status_code == 200, response.text
+    return response.json()["categories"]
+
+
+async def default_category_id(connection, workspace_id: str, name: str) -> str:
+    result = await connection.execute(
+        text(
+            """
+            select id
+            from public.categories
+            where workspace_id = :workspace_id
+              and name = :name
+              and not is_archived
+            """
+        ),
+        {"workspace_id": workspace_id, "name": name},
+    )
+    row = result.first()
+    assert row is not None, f"Default category {name!r} was not found."
+    return str(row.id)
