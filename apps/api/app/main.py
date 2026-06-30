@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 from app.core.logging import configure_logging
 from app.routes.categories import router as categories_router
+from app.routes.dashboard import router as dashboard_router
 from app.routes.expenses import router as expenses_router
 from app.routes.health import router as health_router
 from app.routes.incomes import router as incomes_router
@@ -46,7 +47,17 @@ async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(_: Request, __: RequestValidationError) -> JSONResponse:
+async def validation_exception_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
+    if any(tuple(error.get("loc", ()))[-1:] == ("recent_limit",) for error in exc.errors()):
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": {
+                    "code": "invalid_limit",
+                    "message": "recent_limit must be an integer between 1 and 50.",
+                }
+            },
+        )
     code, message = _default_error(422)
     return JSONResponse(status_code=422, content={"error": {"code": code, "message": message}})
 
@@ -57,3 +68,4 @@ app.include_router(workspace_members_router)
 app.include_router(incomes_router)
 app.include_router(expenses_router)
 app.include_router(categories_router)
+app.include_router(dashboard_router)

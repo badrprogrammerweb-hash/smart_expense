@@ -183,6 +183,12 @@ async def ensure_personal_workspace(connection, user: TestUser) -> None:
     )
 
 
+def period_date(day: int) -> str:
+    from app.services.dashboard import get_current_period
+    period_start, _ = get_current_period()
+    return period_start.replace(day=day).isoformat()
+
+
 async def create_income(
     client: httpx.AsyncClient,
     caller: TestUser,
