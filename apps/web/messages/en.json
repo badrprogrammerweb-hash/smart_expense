@@ -20,7 +20,12 @@
     "settings": "Settings",
     "signOut": "Sign out",
     "workspaceRole": "{role} role",
-    "memberCount": "{count, plural, one {# member} other {# members}}"
+    "memberCount": "{count, plural, one {# member} other {# members}}",
+    "workspaceTypePersonal": "Personal",
+    "workspaceTypeTeam": "Team",
+    "switchWorkspace": "Switch workspace",
+    "noTeamMembersYet": "No team members yet",
+    "newWorkspace": "Create a team workspace"
   },
   "auth": {
     "email": "Email",
@@ -87,6 +92,12 @@
     "archived": "Archived",
     "validationName": "Enter a category name.",
     "viewerBlocked": "Your current role can view categories but cannot manage them."
+  },
+  "workspace": {
+    "createWorkspace": "Create a team workspace",
+    "workspaceName": "Workspace name",
+    "create": "Create",
+    "validationName": "Enter a workspace name."
   },
   "errors": {
     "generic": "Something went wrong.",

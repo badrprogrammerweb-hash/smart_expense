@@ -113,9 +113,10 @@ Viewer.
 4. Switch back to the personal workspace via the selector.
 5. **Expected**: the personal workspace's totals are unchanged by the
    "Test Team" expense — the two never mix (SC-007).
-6. Sign out and back in. **Expected**: lands on "Test Team" (the most
-   recently active workspace), not the personal workspace, since it was
-   the last one viewed before sign-out (FR-009).
+6. Switch into "Test Team" again (making it, not personal, the most
+   recently viewed workspace), then sign out and back in. **Expected**:
+   lands on "Test Team", not the personal workspace, since it was the
+   last one viewed before sign-out (FR-009).
 
 ## Scenario 6: Reports match the dashboard (US5)
 

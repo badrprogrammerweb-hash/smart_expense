@@ -21,3 +21,10 @@ export async function getWorkspaces() {
 export async function getWorkspace(workspaceId: string) {
   return apiFetch<WorkspaceDetail>(`/workspaces/${workspaceId}`);
 }
+
+export async function createWorkspace(name: string) {
+  return apiFetch<WorkspaceSummary>("/workspaces", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}

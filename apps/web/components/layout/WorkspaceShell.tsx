@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { WorkspaceSelector } from "@/components/layout/WorkspaceSelector";
 import { WorkspaceProvider, useWorkspaceContext } from "@/lib/workspace-context";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -33,7 +34,7 @@ function WorkspaceFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations("nav");
-  const { workspaceId, workspaceName, workspaceType, role, memberCount } = useWorkspaceContext();
+  const { workspaceId, role } = useWorkspaceContext();
 
   async function signOut() {
     const supabase = createSupabaseBrowserClient();
@@ -45,13 +46,10 @@ function WorkspaceFrame({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">{workspaceType}</p>
-              <h1 className="text-xl font-semibold text-card-foreground">{workspaceName}</h1>
-              <p className="text-sm text-muted-foreground">
-                {t("workspaceRole", { role })} · {t("memberCount", { count: memberCount })}
-              </p>
+              <WorkspaceSelector />
+              <p className="mt-2 text-sm text-muted-foreground">{t("workspaceRole", { role })}</p>
             </div>
             <button
               className="inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-medium hover:bg-muted"

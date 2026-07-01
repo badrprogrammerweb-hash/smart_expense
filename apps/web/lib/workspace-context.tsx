@@ -2,7 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { createContext, type ReactNode, useContext, useEffect, useMemo, useRef } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { useCurrentUserId } from "@/hooks/use-current-user";
 import { useWorkspace } from "@/hooks/use-workspaces";
@@ -49,6 +49,28 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
   }, [pathname]);
 
+  // Switching to a workspace TanStack Query already has cached from earlier
+  // in the session renders that (possibly-stale) cache immediately — data
+  // existing means `isLoading` is false — while refetching in the
+  // background. That could briefly show a role that's no longer current
+  // (FR-035/FR-037). Adjusted during render, not in an effect, so the
+  // stale value is never painted (React's documented "adjusting state
+  // when a prop changes" pattern) — the loading gate below stays active
+  // until the newly-selected workspace's own fetch actually settles.
+  const [renderedWorkspaceId, setRenderedWorkspaceId] = useState(workspaceId);
+  const [isSwitchingWorkspace, setIsSwitchingWorkspace] = useState(false);
+
+  if (workspaceId !== renderedWorkspaceId) {
+    setRenderedWorkspaceId(workspaceId);
+    setIsSwitchingWorkspace(true);
+  }
+
+  useEffect(() => {
+    if (isSwitchingWorkspace && !workspaceQuery.isFetching) {
+      setIsSwitchingWorkspace(false);
+    }
+  }, [isSwitchingWorkspace, workspaceQuery.isFetching]);
+
   useEffect(() => {
     if (workspaceQuery.data?.id) {
       window.localStorage.setItem(LAST_WORKSPACE_KEY, workspaceQuery.data.id);
@@ -76,7 +98,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     };
   }, [workspaceQuery.data, currentUserQuery.data]);
 
-  if (workspaceQuery.isLoading || currentUserQuery.isLoading) {
+  if (workspaceQuery.isLoading || currentUserQuery.isLoading || isSwitchingWorkspace) {
     return <main className="p-6 text-sm text-muted-foreground">{t("loading")}</main>;
   }
 

@@ -20,7 +20,12 @@
     "settings": "الإعدادات",
     "signOut": "تسجيل الخروج",
     "workspaceRole": "دورك: {role}",
-    "memberCount": "{count, plural, one {عضو واحد} two {عضوان} few {# أعضاء} many {# عضوا} other {# عضو}}"
+    "memberCount": "{count, plural, one {عضو واحد} two {عضوان} few {# أعضاء} many {# عضوا} other {# عضو}}",
+    "workspaceTypePersonal": "شخصية",
+    "workspaceTypeTeam": "جماعية",
+    "switchWorkspace": "تبديل مساحة العمل",
+    "noTeamMembersYet": "لا يوجد أعضاء بعد",
+    "newWorkspace": "إنشاء مساحة عمل جماعية"
   },
   "auth": {
     "email": "البريد الإلكتروني",
@@ -87,6 +92,12 @@
     "archived": "مؤرشف",
     "validationName": "أدخل اسم التصنيف.",
     "viewerBlocked": "دورك الحالي يسمح بعرض التصنيفات فقط ولا يسمح بإدارتها."
+  },
+  "workspace": {
+    "createWorkspace": "إنشاء مساحة عمل جماعية",
+    "workspaceName": "اسم مساحة العمل",
+    "create": "إنشاء",
+    "validationName": "أدخل اسم مساحة العمل."
   },
   "errors": {
     "generic": "حدث خطأ ما.",

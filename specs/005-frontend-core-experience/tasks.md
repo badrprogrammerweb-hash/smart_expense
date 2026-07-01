@@ -165,16 +165,16 @@ backend endpoint, table, or migration is introduced (see
 
 ### Tests for User Story 4
 
-- [ ] T057 [P] [US4] Playwright test in `tests/e2e/workspace-switch.spec.ts`: create a team workspace via the selector; switch into it and confirm empty totals; add an expense there; switch back to the personal workspace and confirm its totals are unchanged; sign out and back in and confirm landing on the most recently active workspace (FR-006-FR-009; `quickstart.md` Scenario 5)
+- [X] T057 [P] [US4] Playwright test in `tests/e2e/workspace-switch.spec.ts`: create a team workspace via the selector; switch into it and confirm empty totals; add an expense there; switch back to the personal workspace and confirm its totals are unchanged; sign out and back in and confirm landing on the most recently active workspace (FR-006-FR-009; `quickstart.md` Scenario 5)
 
 ### Implementation for User Story 4
 
-- [ ] T058 [US4] Extend `lib/api/workspaces.ts` (T014) with `createWorkspace(name)` (`002-auth-workspace-foundation/contracts/workspaces-api.md`)
-- [ ] T059 [US4] Extend `hooks/use-workspaces.ts` (T015) with a `useCreateWorkspace` mutation invalidating `["workspaces"]` (depends on T058)
-- [ ] T060 [US4] Create `components/layout/WorkspaceSelector.tsx`: lists every workspace from `useWorkspaces()` labeled personal/team, switches the active workspace (writes `localStorage["smart-expense.lastWorkspaceId"]` and navigates to the selected workspace's dashboard), shows the active team workspace's member count from `useWorkspaceContext()`'s `memberCount` (T016) with a "no team members yet" state when it is 1 (just the caller), and links to the new-workspace flow (depends on T015, T016; FR-006, FR-007, FR-035)
-- [ ] T061 [US4] Replace the static header from `app/[locale]/w/[workspaceId]/layout.tsx` (T017/T031) with `WorkspaceSelector` (T060) (depends on T060, T017, T031)
-- [ ] T062 [US4] Create `app/[locale]/w/[workspaceId]/new-workspace/page.tsx`: create-team-workspace form using `useCreateWorkspace` (T059), redirecting into the new workspace's dashboard as its Owner on success (depends on T059; FR-008)
-- [ ] T063 [US4] Validate User Story 4 per `quickstart.md` Scenario 5 (depends on T057-T062; SC-007)
+- [X] T058 [US4] Extend `lib/api/workspaces.ts` (T014) with `createWorkspace(name)` (`002-auth-workspace-foundation/contracts/workspaces-api.md`)
+- [X] T059 [US4] Extend `hooks/use-workspaces.ts` (T015) with a `useCreateWorkspace` mutation invalidating `["workspaces"]` (depends on T058)
+- [X] T060 [US4] Create `components/layout/WorkspaceSelector.tsx`: lists every workspace from `useWorkspaces()` labeled personal/team, switches the active workspace (writes `localStorage["smart-expense.lastWorkspaceId"]` and navigates to the selected workspace's dashboard), shows the active team workspace's member count from `useWorkspaceContext()`'s `memberCount` (T016) with a "no team members yet" state when it is 1 (just the caller), and links to the new-workspace flow (depends on T015, T016; FR-006, FR-007, FR-035)
+- [X] T061 [US4] Replace the static header from `app/[locale]/w/[workspaceId]/layout.tsx` (T017/T031) with `WorkspaceSelector` (T060) (depends on T060, T017, T031)
+- [X] T062 [US4] Create `app/[locale]/w/[workspaceId]/new-workspace/page.tsx`: create-team-workspace form using `useCreateWorkspace` (T059), redirecting into the new workspace's dashboard as its Owner on success (depends on T059; FR-008)
+- [X] T063 [US4] Validate User Story 4 per `quickstart.md` Scenario 5 (depends on T057-T062; SC-007)
 
 **Checkpoint**: User Stories 1-4 all work independently
 
