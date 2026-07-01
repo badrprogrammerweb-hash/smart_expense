@@ -77,6 +77,17 @@
     "validationDate": "أدخل تاريخا صحيحا.",
     "categoryPlaceholder": "اختر تصنيفا"
   },
+  "categories": {
+    "title": "التصنيفات",
+    "categoryName": "اسم التصنيف",
+    "addCategory": "إضافة تصنيف",
+    "rename": "إعادة تسمية",
+    "archive": "أرشفة",
+    "unarchive": "إلغاء الأرشفة",
+    "archived": "مؤرشف",
+    "validationName": "أدخل اسم التصنيف.",
+    "viewerBlocked": "دورك الحالي يسمح بعرض التصنيفات فقط ولا يسمح بإدارتها."
+  },
   "errors": {
     "generic": "حدث خطأ ما.",
     "requestFailed": "فشل الطلب. حاول مرة أخرى.",

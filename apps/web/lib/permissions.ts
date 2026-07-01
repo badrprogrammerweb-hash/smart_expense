@@ -5,6 +5,10 @@ export function canManageIncome(role: WorkspaceRole) {
   return role === "owner" || role === "admin";
 }
 
+export function canManageCategories(role: WorkspaceRole) {
+  return role === "owner" || role === "admin";
+}
+
 export function canCreateExpense(role: WorkspaceRole) {
   return role === "owner" || role === "admin" || role === "member";
 }

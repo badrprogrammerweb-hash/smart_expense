@@ -143,15 +143,15 @@ backend endpoint, table, or migration is introduced (see
 
 ### Tests for User Story 3
 
-- [ ] T051 [P] [US3] Playwright test in `tests/e2e/categories.spec.ts`: default categories listed on a fresh workspace; create, rename, and archive a custom category as Owner; archived category excluded from the expense form's picker but still displayed on an expense already using it; Member/Viewer see no create/rename/archive controls (FR-024-FR-027; `quickstart.md` Scenario 4)
+- [X] T051 [P] [US3] Playwright test in `tests/e2e/categories.spec.ts`: default categories listed on a fresh workspace; create, rename, and archive a custom category as Owner; archived category excluded from the expense form's picker but still displayed on an expense already using it; Member/Viewer see no create/rename/archive controls (FR-024-FR-027; `quickstart.md` Scenario 4)
 
 ### Implementation for User Story 3
 
-- [ ] T052 [US3] Extend `lib/api/categories.ts` (T039) with `createCategory(workspaceId, name)` and `updateCategory(workspaceId, categoryId, { name?, isArchived? })` (`003-income-expense-category-core/contracts/categories-api.md`)
-- [ ] T053 [US3] Extend `hooks/use-categories.ts` (T042) with `useCreateCategory`/`useUpdateCategory` mutations invalidating `["categories", workspaceId]` (depends on T052)
-- [ ] T054 [US3] Create `components/category/CategoryList.tsx` and `components/category/CategoryForm.tsx`: full category list (active + archived, archived visually marked), create/rename/archive controls rendered only for Owner/Admin (depends on T053, T043; FR-024-FR-027; User Story 3 Acceptance Scenario 5)
-- [ ] T055 [US3] Create `app/[locale]/w/[workspaceId]/categories/page.tsx` assembling T054 (depends on T054)
-- [ ] T056 [US3] Validate User Story 3 per `quickstart.md` Scenario 4 (depends on T051-T055)
+- [X] T052 [US3] Extend `lib/api/categories.ts` (T039) with `createCategory(workspaceId, name)` and `updateCategory(workspaceId, categoryId, { name?, isArchived? })` (`003-income-expense-category-core/contracts/categories-api.md`)
+- [X] T053 [US3] Extend `hooks/use-categories.ts` (T042) with `useCreateCategory`/`useUpdateCategory` mutations invalidating `["categories", workspaceId]` (depends on T052)
+- [X] T054 [US3] Create `components/category/CategoryList.tsx` and `components/category/CategoryForm.tsx`: full category list (active + archived, archived visually marked), create/rename/archive controls rendered only for Owner/Admin (depends on T053, T043; FR-024-FR-027; User Story 3 Acceptance Scenario 5)
+- [X] T055 [US3] Create `app/[locale]/w/[workspaceId]/categories/page.tsx` assembling T054 (depends on T054)
+- [X] T056 [US3] Validate User Story 3 per `quickstart.md` Scenario 4 (depends on T051-T055)
 
 **Checkpoint**: User Stories 1, 2, AND 3 all work independently
 

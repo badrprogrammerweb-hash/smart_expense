@@ -14,6 +14,7 @@ test.describe("income and expense flow", () => {
     await expect(page).toHaveURL(/\/dashboard/);
 
     await page.getByRole("link", { name: "Add income" }).click();
+    await page.waitForURL(/\/incomes$/);
     await page.getByLabel("Amount").fill("5000");
     await page.getByLabel("Date").fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill("Salary");
@@ -21,6 +22,7 @@ test.describe("income and expense flow", () => {
     await expect(page.getByText("SAR 5,000.00").first()).toBeVisible();
 
     await page.getByRole("link", { name: "Expenses" }).click();
+    await page.waitForURL(/\/expenses$/);
     await page.getByLabel("Amount").fill("450.50");
     await page.getByLabel("Date").fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill("Lunch");
@@ -28,8 +30,12 @@ test.describe("income and expense flow", () => {
     await expect(page.getByText("Lunch")).toBeVisible();
 
     await page.getByRole("button", { name: "Edit" }).first().click();
-    await page.getByLabel("Amount").fill("500.00");
-    await page.getByRole("button", { name: "Save" }).click();
+    // The always-visible "create" form above the list also has an "Amount"
+    // field, so once editing starts there are two on the page — scope to
+    // the row currently in edit mode (the only <li> containing a textbox).
+    const editingRow = page.locator("li").filter({ has: page.getByRole("textbox") });
+    await editingRow.getByLabel("Amount").fill("500.00");
+    await editingRow.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("SAR 500.00").first()).toBeVisible();
 
     await page.getByRole("button", { name: "Delete" }).first().click();

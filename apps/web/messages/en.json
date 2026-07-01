@@ -77,6 +77,17 @@
     "validationDate": "Enter a valid date.",
     "categoryPlaceholder": "Choose a category"
   },
+  "categories": {
+    "title": "Categories",
+    "categoryName": "Category name",
+    "addCategory": "Add category",
+    "rename": "Rename",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "archived": "Archived",
+    "validationName": "Enter a category name.",
+    "viewerBlocked": "Your current role can view categories but cannot manage them."
+  },
   "errors": {
     "generic": "Something went wrong.",
     "requestFailed": "The request failed. Try again.",
