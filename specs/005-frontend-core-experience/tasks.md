@@ -230,7 +230,7 @@ backend endpoint, table, or migration is introduced (see
 - [X] T075 [P] Playwright test in `tests/e2e/error-states.spec.ts`: an expense-exceeds-income workspace shows a clearly negative remaining balance on both dashboard and reports; stopping the backend and reloading the dashboard shows a retry control that recovers once the backend is back (FR-036; `quickstart.md` Scenario 8)
 - [X] T076 [P] Update `apps/web/README.md` describing the new app structure, required env vars, and how to run `npm run dev`, Vitest, and Playwright
 - [X] T077 [P] Update `docs/setup.md`'s frontend section to mention the new `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` env vars and the new test suites
-- [X] T078 Run the full `quickstart.md` (Scenarios 1-8) end-to-end against a fresh local stack as final cross-story validation
+- [X] T078 Run the full `quickstart.md` (Scenarios 1-8) end-to-end against a fresh local stack as final cross-story validation (ran against the existing, already-populated local stack rather than a `supabase db reset` fresh one — all 8 scenarios' equivalent e2e specs pass serialized; a full reset was skipped as a destructive action outside this task's ask)
 - [X] T079 Update `specs/005-frontend-core-experience/spec.md` Status field from `Draft` to `Implemented` once T001-T078 are verified complete (closes out FR-001-FR-037, SC-001-SC-007)
 
 ---

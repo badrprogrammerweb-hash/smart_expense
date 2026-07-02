@@ -24,7 +24,9 @@ describe("money", () => {
     expect(parseInputToMinor("0.30")).toBe(30);
   });
 
-  it("rounds a single fractional digit up to the nearest minor unit", () => {
+  it("treats a single fractional digit as exact, not lossy, by zero-padding it", () => {
+    // "10.5" means the same amount as "10.50" — this pads to that rather
+    // than rounding, so there is no precision loss to round.
     expect(parseInputToMinor("10.5")).toBe(1050);
   });
 

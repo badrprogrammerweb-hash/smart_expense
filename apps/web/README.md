@@ -66,8 +66,8 @@ most specs also need a signed-in user and the FastAPI backend running):
 npm run test:e2e
 ```
 
-Most e2e specs are gated behind `E2E_EMAIL`/`E2E_PASSWORD` (a confirmed
-local Supabase user) and skip themselves when those are unset:
+Every spec is gated behind `E2E_EMAIL`/`E2E_PASSWORD` (a confirmed local
+Supabase user) and skips itself when those are unset:
 
 ```powershell
 $env:E2E_EMAIL = "you@example.com"
@@ -75,6 +75,27 @@ $env:E2E_PASSWORD = "your-local-password"
 npm run test:e2e
 ```
 
+That covers most specs, but three need more to actually run rather than
+skip:
+
+- `auth.spec.ts` additionally needs `E2E_WORKSPACE_ID` (the owner's own
+  workspace id — e.g. the personal workspace `E2E_EMAIL` lands on after
+  sign-in).
+- `roles.spec.ts`, and the member/viewer half of `categories.spec.ts`,
+  additionally need `E2E_MEMBER_EMAIL`, `E2E_MEMBER_PASSWORD`,
+  `E2E_VIEWER_EMAIL`, `E2E_VIEWER_PASSWORD`, and `E2E_TEAM_WORKSPACE_ID` — a
+  team workspace `E2E_EMAIL` owns, with those two accounts added as Member
+  and Viewer respectively (via `POST /workspaces/{id}/members`).
+
+Without those, the suite still runs and passes — it just silently skips
+those three cases rather than failing, so it is easy to believe you covered
+the full suite when you have not.
+
 `playwright.config.ts` starts `npm run dev` automatically if nothing is
 already listening on the configured base URL (override with
-`PLAYWRIGHT_BASE_URL` if port 3000 is taken locally).
+`PLAYWRIGHT_BASE_URL` if port 3000 is taken locally). Playwright also
+defaults to full parallelism; the suite shares one Supabase account across
+most specs, and `supabase-js`'s default `signOut()` scope is global (it
+invalidates every session for that user), so running `auth.spec.ts`
+alongside others in parallel can intermittently sign other in-flight specs
+out mid-test. Add `--workers=1` for a reliable full-suite run.
