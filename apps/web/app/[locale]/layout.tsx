@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
 
+import { LocaleDirectionSync } from "@/components/layout/LocaleDirectionSync";
 import { AppProviders } from "@/components/providers";
 import { isLocale, locales } from "@/i18n/routing";
 
@@ -26,6 +27,7 @@ export default async function LocaleLayout({
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
+      <LocaleDirectionSync />
       <AppProviders>{children}</AppProviders>
     </NextIntlClientProvider>
   );

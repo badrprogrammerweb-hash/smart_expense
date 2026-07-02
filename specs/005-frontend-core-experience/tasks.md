@@ -208,15 +208,15 @@ backend endpoint, table, or migration is introduced (see
 
 ### Tests for User Story 6
 
-- [ ] T068 [P] [US6] Playwright test in `tests/e2e/locale-rtl.spec.ts`: switching to Arabic sets `<html dir="rtl">` and renders Arabic labels on the dashboard, income form, and categories screen (not just settings itself); switching back restores `dir="ltr"` and English text; the AI section shows the optional/not-configured notice (FR-030-FR-034; `quickstart.md` Scenario 7)
+- [X] T068 [P] [US6] Playwright test in `tests/e2e/locale-rtl.spec.ts`: switching to Arabic sets `<html dir="rtl">` and renders Arabic labels on the dashboard, income form, and categories screen (not just settings itself); switching back restores `dir="ltr"` and English text; the AI section shows the optional/not-configured notice (FR-030-FR-034; `quickstart.md` Scenario 7)
 
 ### Implementation for User Story 6
 
-- [ ] T069 [US6] Expand `messages/en.json` and `messages/ar.json` (T010) with full, non-placeholder translations for every screen built in US1-US5 (dashboard, income/expense forms and history, categories, reports, nav) (FR-032)
-- [ ] T070 [P] [US6] Create `components/settings/LanguageSwitcher.tsx`: toggles `en`/`ar`, writes `localStorage["smart-expense.locale"]`, and navigates to the equivalent path under the other locale segment (depends on T009; FR-030, FR-031)
-- [ ] T071 [P] [US6] Create `components/settings/AiOptionalNotice.tsx`: static panel stating AI is optional and not yet configured (FR-034)
-- [ ] T072 [US6] Create `app/[locale]/w/[workspaceId]/settings/page.tsx` assembling `LanguageSwitcher` (T070), `AiOptionalNotice` (T071), and basic workspace info from `useWorkspaceContext()` (T016) — for a team workspace, includes the member count and its "no team members yet" state (depends on T070, T071, T016; FR-030, FR-035)
-- [ ] T073 [US6] Validate User Story 6 per `quickstart.md` Scenario 7 (depends on T068-T072; SC-005)
+- [X] T069 [US6] Expand `messages/en.json` and `messages/ar.json` (T010) with full, non-placeholder translations for every screen built in US1-US5 (dashboard, income/expense forms and history, categories, reports, nav) (FR-032)
+- [X] T070 [P] [US6] Create `components/settings/LanguageSwitcher.tsx`: toggles `en`/`ar`, writes `localStorage["smart-expense.locale"]`, and navigates to the equivalent path under the other locale segment (depends on T009; FR-030, FR-031)
+- [X] T071 [P] [US6] Create `components/settings/AiOptionalNotice.tsx`: static panel stating AI is optional and not yet configured (FR-034)
+- [X] T072 [US6] Create `app/[locale]/w/[workspaceId]/settings/page.tsx` assembling `LanguageSwitcher` (T070), `AiOptionalNotice` (T071), and basic workspace info from `useWorkspaceContext()` (T016) — for a team workspace, includes the member count and its "no team members yet" state (depends on T070, T071, T016; FR-030, FR-035)
+- [X] T073 [US6] Validate User Story 6 per `quickstart.md` Scenario 7 (depends on T068-T072; SC-005)
 
 **Checkpoint**: All six user stories independently functional
 

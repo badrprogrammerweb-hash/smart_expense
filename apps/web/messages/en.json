@@ -105,6 +105,14 @@
     "emptyTitle": "No confirmed records this period",
     "emptyDescription": "Add income or an expense to see a report for this period."
   },
+  "settings": {
+    "title": "Settings",
+    "workspaceInfo": "Workspace",
+    "language": "Language",
+    "languageDescription": "Choose the interface language.",
+    "aiTitle": "AI review",
+    "aiDescription": "AI is optional and not yet configured. You can add and confirm income and expenses manually without it."
+  },
   "errors": {
     "generic": "Something went wrong.",
     "requestFailed": "The request failed. Try again.",
