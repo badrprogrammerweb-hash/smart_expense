@@ -16,6 +16,16 @@ function isWorkspacePath(pathname: string) {
   return isLocale(segments[0]) && segments[1] === "w";
 }
 
+// intlMiddleware's response can carry a Set-Cookie (NEXT_LOCALE sync) that a
+// bare NextResponse.redirect() would otherwise silently drop.
+function redirectPreservingCookies(url: URL, from: NextResponse) {
+  const redirectResponse = NextResponse.redirect(url);
+  from.cookies.getAll().forEach(({ name, value, ...options }) => {
+    redirectResponse.cookies.set(name, value, options);
+  });
+  return redirectResponse;
+}
+
 export async function middleware(request: NextRequest) {
   const response = intlMiddleware(request);
 
@@ -26,7 +36,7 @@ export async function middleware(request: NextRequest) {
   const locale = localeFromPath(request.nextUrl.pathname);
 
   if (!hasSupabaseConfig()) {
-    return NextResponse.redirect(new URL(`/${locale}/sign-in`, request.url));
+    return redirectPreservingCookies(new URL(`/${locale}/sign-in`, request.url), response);
   }
 
   const supabase = createMiddlewareSupabaseClient(request, response);
@@ -35,7 +45,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.redirect(new URL(`/${locale}/sign-in`, request.url));
+    return redirectPreservingCookies(new URL(`/${locale}/sign-in`, request.url), response);
   }
 
   return response;

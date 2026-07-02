@@ -78,12 +78,15 @@ the backend has no "own income" carve-out at all.
 
 Edit/delete are rendered per the two-part rule in `data-model.md`
 (Owner/Admin: any expense; Member: only their own — `created_by` match;
-Viewer: never). The category picker on the create/edit form sources options
-from `GET /workspaces/{workspace_id}/categories?include_archived=false`
-(FR-025 — archived categories excluded from new selection, but an
-already-assigned archived category still renders correctly by name via the
-expense record's own `category_id`, matched against the full, unfiltered
-category list fetched once for name lookups).
+Viewer: never). The category picker on the create/edit form shares its
+`useCategories` cache entry with `ExpenseHistoryList`'s
+`GET /workspaces/{workspace_id}/categories?include_archived=true` fetch
+(same query key) rather than issuing a second, near-duplicate
+`include_archived=false` request, then filters archived categories out of
+the *selectable* options client-side (FR-025 — archived categories excluded
+from new selection, but an already-assigned archived category still renders
+correctly by name via the expense record's own `category_id`, matched
+against the same full, unfiltered category list).
 
 ## Categories (US3)
 

@@ -40,7 +40,7 @@ export default function SignUpPage() {
     }
 
     if (!data.session) {
-      setFormError(t("resetSent"));
+      setFormError(t("confirmEmailSent"));
       return;
     }
 

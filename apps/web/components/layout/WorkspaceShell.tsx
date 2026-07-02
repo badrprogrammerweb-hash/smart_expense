@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { LogOut } from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
@@ -33,12 +34,16 @@ function WorkspaceFrame({ children }: { children: ReactNode }) {
   const locale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const t = useTranslations("nav");
   const { workspaceId, role } = useWorkspaceContext();
 
   async function signOut() {
     const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
+    // Drop every cached query (including ["auth","currentUserId"]) so a
+    // different account signing in on the same tab never reads stale data.
+    queryClient.clear();
     router.replace(`/${locale}/sign-in`);
   }
 

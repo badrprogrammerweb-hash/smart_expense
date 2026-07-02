@@ -40,7 +40,8 @@
     "signInTitle": "Sign in",
     "signUpTitle": "Create your account",
     "resetTitle": "Reset your password",
-    "resetSent": "If an account exists, a reset link has been sent."
+    "resetSent": "If an account exists, a reset link has been sent.",
+    "confirmEmailSent": "Check your email to confirm your account before signing in."
   },
   "dashboard": {
     "title": "Dashboard",

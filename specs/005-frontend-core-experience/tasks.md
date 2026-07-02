@@ -27,6 +27,14 @@ backend endpoint, table, or migration is introduced (see
 `contracts/frontend-api-consumption.md`). All paths below are relative to
 `apps/web/` unless stated otherwise.
 
+One narrow, disclosed exception: `apps/api/app/main.py` and
+`apps/api/app/core/config.py` add `CORSMiddleware` (env-configurable
+`CORS_ALLOW_ORIGINS`, defaulting to `http://localhost:3000`/`127.0.0.1:3000`)
+so the browser-hosted `apps/web` frontend can call the separate-origin
+FastAPI backend at all. This adds zero new endpoints, tables, routes, or
+migrations — it is transport-level plumbing the frontend phase requires, not
+backend feature work.
+
 ---
 
 ## Phase 1: Setup
