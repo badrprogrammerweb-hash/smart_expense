@@ -57,12 +57,27 @@ test.describe("income and expense flow", () => {
     await page.getByLabel("Amount").fill("42.00");
     await page.getByLabel("Date").fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill(description);
+
+    const createRequests: string[] = [];
+    page.on("request", (request) => {
+      if (request.method() === "POST" && /\/workspaces\/[^/]+\/incomes$/.test(new URL(request.url()).pathname)) {
+        createRequests.push(request.url());
+      }
+    });
+
     // A real double-click sends both click events before React's re-render
     // can disable the button — the case the form's isSubmitting/isPending
-    // disabled guard (IncomeForm.tsx) is meant to cover.
+    // disabled guard (IncomeForm.tsx) is meant to cover. The deterministic
+    // unit test in tests/unit/double-submit-protection.test.tsx proves the
+    // same guard at the component level (two clicks in the same tick, no
+    // gap for React to flush); this asserts it end-to-end by counting the
+    // actual create requests sent, not just the rendered list — a duplicate
+    // request that the UI happened to collapse into one visible row would
+    // otherwise go unnoticed.
     await page.getByRole("button", { name: "Save" }).dblclick();
 
     await expect(page.getByText(description)).toBeVisible();
     await expect(page.getByText(description)).toHaveCount(1);
+    expect(createRequests).toHaveLength(1);
   });
 });

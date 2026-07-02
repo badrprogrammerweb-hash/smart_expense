@@ -24,6 +24,7 @@ export default function SignUpPage() {
   const t = useTranslations("auth");
   const errors = useTranslations("errors");
   const [formError, setFormError] = useState<string | null>(null);
+  const [formNotice, setFormNotice] = useState<string | null>(null);
   const form = useForm<AuthValues>({
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "" },
@@ -31,6 +32,7 @@ export default function SignUpPage() {
 
   async function submit(values: AuthValues) {
     setFormError(null);
+    setFormNotice(null);
     const supabase = createSupabaseBrowserClient();
     const { data, error } = await supabase.auth.signUp(values);
 
@@ -40,7 +42,7 @@ export default function SignUpPage() {
     }
 
     if (!data.session) {
-      setFormError(t("confirmEmailSent"));
+      setFormNotice(t("confirmEmailSent"));
       return;
     }
 
@@ -80,6 +82,7 @@ export default function SignUpPage() {
           {form.formState.errors.password && (
             <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
           )}
+          {formNotice && <p className="rounded-md border bg-muted p-3 text-sm text-muted-foreground">{formNotice}</p>}
           {formError && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{formError}</p>}
           <button
             className="h-10 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60"
