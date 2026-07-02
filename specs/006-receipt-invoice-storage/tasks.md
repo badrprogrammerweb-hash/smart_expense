@@ -31,9 +31,9 @@ component/permission/i18n patterns under `[locale]/w/[workspaceId]`.
 
 **Purpose**: Create empty module/route/i18n scaffolding so later tasks only add behavior. No new dependencies are required (research Decision 1 & plan: `httpx` and the Phase 5 frontend stack are reused).
 
-- [ ] T001 [P] Create backend module stubs: empty `apps/api/app/schemas/files.py`, `apps/api/app/services/files.py`, `apps/api/app/services/storage.py`, and `apps/api/app/routes/files.py` (module docstrings + imports only)
-- [ ] T002 [P] Create frontend scaffolding: `apps/web/app/[locale]/w/[workspaceId]/files/page.tsx` placeholder, `apps/web/components/files/` directory, and a "Files" nav entry in the workspace shell layout
-- [ ] T003 [P] Add `files.*` i18n message keys (upload, list columns, preview/download, delete, auto-delete toggle, errors) to `apps/web/messages/en.json` and `apps/web/messages/ar.json`
+- [X] T001 [P] Create backend module stubs: empty `apps/api/app/schemas/files.py`, `apps/api/app/services/files.py`, `apps/api/app/services/storage.py`, and `apps/api/app/routes/files.py` (module docstrings + imports only)
+- [X] T002 [P] Create frontend scaffolding: `apps/web/app/[locale]/w/[workspaceId]/files/page.tsx` placeholder, `apps/web/components/files/` directory, and a "Files" nav entry in the workspace shell layout
+- [X] T003 [P] Add `files.*` i18n message keys (upload, list columns, preview/download, delete, auto-delete toggle, errors) to `apps/web/messages/en.json` and `apps/web/messages/ar.json`
 
 ---
 

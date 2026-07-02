@@ -15,6 +15,7 @@
     "dashboard": "لوحة التحكم",
     "incomes": "الدخل",
     "expenses": "المصروفات",
+    "files": "الملفات",
     "categories": "التصنيفات",
     "reports": "التقارير",
     "settings": "الإعدادات",
@@ -113,6 +114,46 @@
     "languageDescription": "اختر لغة الواجهة.",
     "aiTitle": "مراجعة الذكاء الاصطناعي",
     "aiDescription": "ميزات الذكاء الاصطناعي اختيارية وغير مفعلة حاليا. يمكنك إضافة وتأكيد الدخل والمصروفات يدويا بدونها."
+  },
+  "files": {
+    "title": "الملفات",
+    "emptyState": "لا توجد ملفات إيصالات أو فواتير بعد.",
+    "upload": {
+      "title": "رفع إيصال أو فاتورة",
+      "action": "رفع ملف",
+      "hint": "PNG أو JPEG أو WebP أو PDF حتى 10 م.ب.",
+      "success": "تم رفع الملف."
+    },
+    "list": {
+      "name": "الاسم",
+      "type": "النوع",
+      "size": "الحجم",
+      "uploadedAt": "تاريخ الرفع",
+      "uploadedBy": "رافع الملف",
+      "linkedExpense": "المصروف المرتبط",
+      "status": "الحالة"
+    },
+    "actions": {
+      "preview": "معاينة",
+      "download": "تنزيل",
+      "delete": "حذف الملف",
+      "confirmDelete": "تأكيد حذف الملف"
+    },
+    "autoDelete": {
+      "label": "الحذف التلقائي بعد الاستخراج",
+      "description": "حذف الملفات الأصلية بعد نجاح استخراج الذكاء الاصطناعي في مرحلة لاحقة."
+    },
+    "errors": {
+      "unsupportedFileType": "ارفع ملف PNG أو JPEG أو WebP أو PDF.",
+      "fileTooLarge": "يجب ألا يتجاوز حجم الملف 10 م.ب.",
+      "emptyFile": "ارفع ملفا غير فارغ.",
+      "forbidden": "دورك الحالي لا يسمح بتنفيذ هذا الإجراء على الملفات.",
+      "notFound": "الملف غير موجود.",
+      "fileDeleted": "تم حذف هذا الملف.",
+      "uploadFailed": "فشل رفع الملف.",
+      "downloadFailed": "فشل إنشاء رابط التنزيل.",
+      "deleteFailed": "فشل حذف الملف."
+    }
   },
   "errors": {
     "generic": "حدث خطأ ما.",
