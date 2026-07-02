@@ -4,7 +4,7 @@
 
 **Created**: 2026-07-01
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Phase 5 — Frontend Core Experience, based on docs/implementation-plan.md section 17. Create the specification for Phase 5 ONLY (build authentication UI, workspace selector, dashboard, income forms, expense forms, category UI, reports UI, settings UI, Arabic/English readiness, RTL readiness). Do not include Phase 6+ scope (file upload, BYOK/AI, extraction, advanced reports/history). This follows Phase 4 (backend financial dashboard, already complete on main) which provides the GET /workspaces/{workspace_id}/dashboard endpoint and contract at specs/004-backend-financial-dashboard/contracts/dashboard-api.md."
 
