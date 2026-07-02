@@ -1,8 +1,10 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 
+from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.routes.categories import router as categories_router
 from app.routes.dashboard import router as dashboard_router
@@ -17,6 +19,16 @@ load_dotenv()
 configure_logging()
 
 app = FastAPI(title="Smart Expense API")
+
+# apps/web calls this API directly from the browser (Authorization: Bearer
+# <token>, never cookies), so credentials aren't needed here — only an
+# explicit origin allow-list for the preflight to succeed.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=list(get_settings().cors_allow_origins),
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def _default_error(status_code: int) -> tuple[str, str]:

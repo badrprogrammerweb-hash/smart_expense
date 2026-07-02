@@ -52,12 +52,20 @@ cp apps/web/.env.example apps/web/.env.local
 cp apps/api/.env.example apps/api/.env
 ```
 
-The frontend example contains one optional public setting:
+The frontend example contains three public settings, all populated from the
+values `npx supabase start`/`npx supabase status` printed in the previous
+step (`NEXT_PUBLIC_API_URL` is the exception — it points at the backend
+started in the next section, not Supabase):
 
-- `NEXT_PUBLIC_API_URL`: Base URL for future browser requests to the FastAPI
-  app. The starter page does not call the API, so it runs when this value or
-  the backend is unavailable. Because `NEXT_PUBLIC_*` values are visible in
-  browser code, this value must never contain a secret.
+- `NEXT_PUBLIC_API_URL`: Base URL for browser requests to the FastAPI app.
+- `NEXT_PUBLIC_SUPABASE_URL`: Local (or hosted) Supabase project URL, used by
+  the browser Supabase client for sign-up/sign-in and session management.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anon/public key paired with the
+  URL above.
+
+Because `NEXT_PUBLIC_*` values are visible in browser code, none of these
+may ever contain a secret (the anon key is a public, RLS-constrained
+credential by design — not a secret).
 
 The backend example contains four server settings, all populated from the
 values `npx supabase start`/`npx supabase status` printed in the previous
@@ -164,9 +172,48 @@ npm install
 npm run dev
 ```
 
-A successful start reports a local URL, normally `http://localhost:3000`.
-Opening it shows the Smart Expense starter page and the message that the
-frontend development shell is running.
+A successful start reports a local URL, normally `http://localhost:3000`
+(the next free port if that one is already in use — the frontend's own
+Playwright suite runs into this in practice and is configured with an
+override, see below). Opening it redirects to sign-up/sign-in, and a
+registered user lands on their personal workspace's dashboard.
+
+## Run the frontend test suites
+
+With the local Supabase stack and the backend both running, from
+`apps/web`:
+
+```powershell
+cd apps/web
+npm run test        # Vitest — unit tests, no browser or network
+npm run test:e2e    # Playwright — drives a real browser
+```
+
+Every Playwright spec needs a confirmed local Supabase user and skips
+itself otherwise:
+
+```powershell
+$env:E2E_EMAIL = "you@example.com"
+$env:E2E_PASSWORD = "your-local-password"
+npm run test:e2e
+```
+
+Three specs need more than that to actually run instead of skip —
+`auth.spec.ts` also needs `E2E_WORKSPACE_ID`; `roles.spec.ts` and part of
+`categories.spec.ts` also need `E2E_MEMBER_EMAIL`/`E2E_MEMBER_PASSWORD`,
+`E2E_VIEWER_EMAIL`/`E2E_VIEWER_PASSWORD`, and `E2E_TEAM_WORKSPACE_ID` for a
+team workspace with those two accounts added as Member and Viewer. See
+`apps/web/README.md`'s "Run the tests" section for the full list and how
+to set it up; without it the suite still passes, it just quietly skips
+those three specs.
+
+`playwright.config.ts` starts `npm run dev` itself if nothing is already
+listening on the base URL; set `PLAYWRIGHT_BASE_URL` to point it at a
+dev server already running on a non-default port. The suite also defaults
+to full parallelism and shares one Supabase account across most specs;
+since `signOut()` invalidates that account's sessions globally, running
+`auth.spec.ts` in parallel with others can intermittently sign them out
+mid-test — add `--workers=1` for a reliable full-suite run.
 
 ## Run either shell independently
 
