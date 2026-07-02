@@ -52,4 +52,34 @@ test.describe("locale and RTL", () => {
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "AI review" })).toBeVisible();
   });
+
+  test("the chosen language survives sign-out and steers the signed-out root redirect", async ({ page }) => {
+    await page.goto("/en/sign-in");
+    await page.getByLabel("Email").fill(email!);
+    await page.getByLabel("Password").fill(password!);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.waitForURL(/\/en\/w\/.+\/dashboard$/);
+
+    await page.getByRole("link", { name: "Settings" }).click();
+    await page.waitForURL(/\/en\/w\/.+\/settings$/);
+    await page.getByRole("button", { name: "العربية" }).click();
+    await page.waitForURL(/\/ar\/w\/.+\/settings$/);
+
+    // Not app state — the language choice's durability across sign-out
+    // comes entirely from next-intl's own NEXT_LOCALE cookie, set on every
+    // locale-prefixed navigation (including the one above).
+    await page.getByRole("button", { name: "تسجيل الخروج" }).click();
+    await page.waitForURL(/\/ar\/sign-in$/);
+
+    await page.goto("/");
+    await page.waitForURL(/\/ar\/sign-in$/);
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+
+    // Restore English so this shared account doesn't leave other specs
+    // landing in Arabic. Visiting any /en/... path is enough — next-intl's
+    // middleware resets NEXT_LOCALE=en on that response, same as any other
+    // locale-prefixed navigation.
+    await page.goto("/en/sign-in");
+    await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+  });
 });

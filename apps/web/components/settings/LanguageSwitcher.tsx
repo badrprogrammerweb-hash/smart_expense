@@ -6,8 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { isLocale, locales, type Locale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
-const LOCALE_KEY = "smart-expense.locale";
-
 // Each option is always labeled in its own language, not the current
 // locale's translation of it — otherwise a user who can't read the
 // active language has no way to find their own in the switcher.
@@ -27,7 +25,10 @@ export function LanguageSwitcher() {
       return;
     }
 
-    window.localStorage.setItem(LOCALE_KEY, nextLocale);
+    // No separate persistence needed here: next-intl's middleware sets a
+    // NEXT_LOCALE cookie on every locale-prefixed request (this navigation
+    // included) and reads it back for the root `/` redirect, so the choice
+    // already survives sign-out without any app code.
     const segments = pathname.split("/");
     if (isLocale(segments[1])) {
       segments[1] = nextLocale;
