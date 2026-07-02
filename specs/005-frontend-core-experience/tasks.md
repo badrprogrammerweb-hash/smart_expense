@@ -188,13 +188,13 @@ backend endpoint, table, or migration is introduced (see
 
 ### Tests for User Story 5
 
-- [ ] T064 [P] [US5] Playwright test in `tests/e2e/reports.spec.ts`: reports screen figures match the dashboard's for the same workspace; empty state shown when there are no confirmed records this period (FR-028, FR-029; `quickstart.md` Scenario 6)
+- [X] T064 [P] [US5] Playwright test in `tests/e2e/reports.spec.ts`: reports screen figures match the dashboard's for the same workspace; empty state shown when there are no confirmed records this period (FR-028, FR-029; `quickstart.md` Scenario 6)
 
 ### Implementation for User Story 5
 
-- [ ] T065 [US5] Create `components/reports/ReportSummary.tsx`, reusing `useDashboard(workspaceId)` (T025) — no new API call — to render the same `summary`/`category_breakdown` data as the dashboard (depends on T025, T029; FR-028, FR-029)
-- [ ] T066 [US5] Create `app/[locale]/w/[workspaceId]/reports/page.tsx` assembling T065 (depends on T065)
-- [ ] T067 [US5] Validate User Story 5 per `quickstart.md` Scenario 6 (depends on T064-T066)
+- [X] T065 [US5] Create `components/reports/ReportSummary.tsx`, reusing `useDashboard(workspaceId)` (T025) — no new API call — to render the same `summary`/`category_breakdown` data as the dashboard (depends on T025, T029; FR-028, FR-029)
+- [X] T066 [US5] Create `app/[locale]/w/[workspaceId]/reports/page.tsx` assembling T065 (depends on T065)
+- [X] T067 [US5] Validate User Story 5 per `quickstart.md` Scenario 6 (depends on T064-T066)
 
 **Checkpoint**: User Stories 1-5 all work independently
 

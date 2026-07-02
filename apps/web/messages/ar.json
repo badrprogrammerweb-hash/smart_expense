@@ -99,6 +99,12 @@
     "create": "إنشاء",
     "validationName": "أدخل اسم مساحة العمل."
   },
+  "reports": {
+    "title": "التقارير",
+    "subtitle": "الفترة الحالية: {start} إلى {end}",
+    "emptyTitle": "لا توجد سجلات مؤكدة لهذه الفترة",
+    "emptyDescription": "أضف دخلا أو مصروفا لعرض تقرير هذه الفترة."
+  },
   "errors": {
     "generic": "حدث خطأ ما.",
     "requestFailed": "فشل الطلب. حاول مرة أخرى.",
