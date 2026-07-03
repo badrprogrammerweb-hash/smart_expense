@@ -15,6 +15,7 @@ from app.db import get_rls_session
 from app.schemas.files import FileListResponse, FileMetadata, LinkRequest, SignedUrlResponse
 from app.services.files import (
     MAX_FILE_SIZE_BYTES,
+    delete_file,
     detach_file_from_expense,
     get_download_url,
     get_file_metadata,
@@ -127,14 +128,6 @@ async def _parse_upload(request: Request) -> ParsedUpload:
     return ParsedUpload(filename=filename, content=content, expense_id=expense_id)
 
 
-def _not_implemented() -> HTTPException:
-    return _request_error(
-        status.HTTP_501_NOT_IMPLEMENTED,
-        "not_implemented",
-        "This file operation is not available yet.",
-    )
-
-
 @router.post("", response_model=FileMetadata, status_code=status.HTTP_201_CREATED)
 async def upload_workspace_file(
     workspace_id: UUID,
@@ -221,5 +214,4 @@ async def delete_workspace_file(
     current_user: CurrentUser = Depends(get_current_user),
     session: AsyncSession = Depends(get_rls_session),
 ) -> FileMetadata:
-    await get_file_metadata(session, workspace_id, current_user.user_id, file_id)
-    raise _not_implemented()
+    return await delete_file(session, workspace_id, current_user.user_id, file_id)

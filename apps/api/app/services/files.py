@@ -147,6 +147,7 @@ async def workspace_role(session: AsyncSession, workspace_id: UUID, user_id: UUI
 
 UPLOAD_ROLES = frozenset({"owner", "admin", "member"})
 LINK_ROLES = UPLOAD_ROLES
+DELETE_ROLES = frozenset({"owner", "admin"})
 
 
 async def require_upload_permission(
@@ -425,4 +426,59 @@ async def detach_file_from_expense(
     updated = result.first()
     if updated is None:
         raise not_found()
+    return _file_metadata_from_row(updated)
+
+
+async def delete_file(
+    session: AsyncSession,
+    workspace_id: UUID,
+    user_id: UUID,
+    file_id: UUID,
+) -> FileMetadata:
+    role = await workspace_role(session, workspace_id, user_id)
+    row = await _file_row(session, workspace_id, file_id)
+    if role not in DELETE_ROLES:
+        raise forbidden()
+    if row.status == "deleted":
+        raise file_deleted()
+
+    # Soft-delete the row first, then remove the binary. The request runs inside
+    # `session.begin()`, so if `remove_object` fails the raised exception rolls
+    # the row back to 'active' -- leaving the file fully intact and the delete
+    # safely retryable, rather than a visible-but-broken row whose object is
+    # already gone. (The object write happens before commit; the residual
+    # window is only a commit failure after a successful remove.)
+    try:
+        result = await session.execute(
+            text(
+                """
+                update public.files
+                set status = 'deleted',
+                    deleted_at = now(),
+                    deleted_by = :deleted_by
+                where workspace_id = :workspace_id
+                  and id = :file_id
+                  and status = 'active'
+                returning id, original_filename, content_type, size_bytes, expense_id,
+                          uploaded_by, status, created_at, deleted_at, deleted_by
+                """
+            ),
+            {
+                "workspace_id": str(workspace_id),
+                "file_id": str(file_id),
+                "deleted_by": str(user_id),
+            },
+        )
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+
+    updated = result.first()
+    if updated is None:
+        raise not_found()
+
+    try:
+        await storage.remove_object(row.storage_path)
+    except storage.StorageError as exc:
+        raise storage_unavailable() from exc
+
     return _file_metadata_from_row(updated)

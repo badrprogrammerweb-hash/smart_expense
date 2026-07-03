@@ -16,7 +16,7 @@ export default function FilesPage() {
         <h1 className="text-3xl font-semibold">{t("title")}</h1>
       </div>
       <FileUpload workspaceId={workspaceId} role={role} />
-      <FileList workspaceId={workspaceId} />
+      <FileList workspaceId={workspaceId} role={role} />
     </div>
   );
 }

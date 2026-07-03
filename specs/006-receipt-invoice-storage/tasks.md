@@ -123,13 +123,13 @@ component/permission/i18n patterns under `[locale]/w/[workspaceId]`.
 
 ### Tests for User Story 4
 
-- [ ] T023 [P] [US4] Backend test `apps/api/tests/test_files_delete.py`: Owner and Admin delete → `200 status:deleted`, object removed, row retained with `deleted_at`/`deleted_by`; subsequent `download-url` → `410`; Member and Viewer → `403` (FR-016–018; SC-005)
+- [X] T023 [P] [US4] Backend test `apps/api/tests/test_files_delete.py`: Owner and Admin delete → `200 status:deleted`, object removed, row retained with `deleted_at`/`deleted_by`; subsequent `download-url` → `410`; Member and Viewer → `403` (FR-016–018; SC-005)
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Implement `DELETE /workspaces/{workspace_id}/files/{file_id}` in `apps/api/app/routes/files.py` + service: authorize Owner/Admin only, `remove_object` via `services/storage.py`, set `status='deleted'`, `deleted_at`, `deleted_by`; keep the row
-- [ ] T025 [P] [US4] Frontend `apps/web/components/files/DeleteFileDialog.tsx`: confirm dialog gated by `canDeleteFile`; on success remove the row from the active list; no delete control rendered for Member/Viewer
-- [ ] T026 [P] [US4] Frontend test `apps/web/components/files/__tests__/delete-file.test.tsx`: delete control hidden for Member/Viewer, confirm flow present for Owner/Admin
+- [X] T024 [US4] Implement `DELETE /workspaces/{workspace_id}/files/{file_id}` in `apps/api/app/routes/files.py` + service: authorize Owner/Admin only, `remove_object` via `services/storage.py`, set `status='deleted'`, `deleted_at`, `deleted_by`; keep the row
+- [X] T025 [P] [US4] Frontend `apps/web/components/files/DeleteFileDialog.tsx`: confirm dialog gated by `canDeleteFile`; on success remove the row from the active list; no delete control rendered for Member/Viewer
+- [X] T026 [P] [US4] Frontend test `apps/web/components/files/__tests__/delete-file.test.tsx`: delete control hidden for Member/Viewer, confirm flow present for Owner/Admin
 
 **Checkpoint**: Deletion + retention works and is independently testable.
 

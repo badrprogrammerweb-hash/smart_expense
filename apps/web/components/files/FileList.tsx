@@ -7,12 +7,14 @@ import { useState } from "react";
 import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
 import { FileRow } from "@/components/files/FileRow";
 import { getFileDownloadUrl, listFiles, type FileMetadata } from "@/lib/api/files";
+import type { WorkspaceRole } from "@/lib/api/workspaces";
 
 type FileListProps = {
+  role: WorkspaceRole;
   workspaceId: string;
 };
 
-export function FileList({ workspaceId }: FileListProps) {
+export function FileList({ role, workspaceId }: FileListProps) {
   const t = useTranslations("files");
   const common = useTranslations("common");
   const errors = useTranslations("errors");
@@ -70,7 +72,7 @@ export function FileList({ workspaceId }: FileListProps) {
         {downloadError && <p className="mt-2 text-sm text-destructive">{downloadError}</p>}
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1040px] table-fixed text-left rtl:text-right">
+        <table className="w-full min-w-[1120px] table-fixed text-left rtl:text-right">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
             <tr>
               <th className="w-60 px-4 py-3 font-medium">{t("list.name")}</th>
@@ -80,7 +82,7 @@ export function FileList({ workspaceId }: FileListProps) {
               <th className="w-44 px-4 py-3 font-medium">{t("list.uploadedBy")}</th>
               <th className="w-40 px-4 py-3 font-medium">{t("list.linkedExpense")}</th>
               <th className="w-28 px-4 py-3 font-medium">{t("list.status")}</th>
-              <th className="w-48 px-4 py-3 font-medium">
+              <th className="w-72 px-4 py-3 font-medium">
                 <span className="sr-only">{t("actions.download")}</span>
               </th>
             </tr>
@@ -93,6 +95,8 @@ export function FileList({ workspaceId }: FileListProps) {
                 key={file.id}
                 onDownload={(selectedFile) => void openSignedUrl(selectedFile)}
                 onPreview={(selectedFile) => void openSignedUrl(selectedFile)}
+                role={role}
+                workspaceId={workspaceId}
               />
             ))}
           </tbody>

@@ -3,13 +3,17 @@
 import { Download, Eye } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
+import { DeleteFileDialog } from "@/components/files/DeleteFileDialog";
 import type { FileMetadata } from "@/lib/api/files";
+import type { WorkspaceRole } from "@/lib/api/workspaces";
 
 type FileRowProps = {
   file: FileMetadata;
   isOpening: boolean;
   onDownload: (file: FileMetadata) => void;
   onPreview: (file: FileMetadata) => void;
+  role: WorkspaceRole;
+  workspaceId: string;
 };
 
 function formatBytes(value: number, locale: string) {
@@ -41,7 +45,14 @@ function formatDate(value: string, locale: string) {
   }).format(new Date(value));
 }
 
-export function FileRow({ file, isOpening, onDownload, onPreview }: FileRowProps) {
+export function FileRow({
+  file,
+  isOpening,
+  onDownload,
+  onPreview,
+  role,
+  workspaceId,
+}: FileRowProps) {
   const locale = useLocale();
   const t = useTranslations("files");
   const common = useTranslations("common");
@@ -76,7 +87,7 @@ export function FileRow({ file, isOpening, onDownload, onPreview }: FileRowProps
         </span>
       </td>
       <td className="whitespace-nowrap px-4 py-3 align-top">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             aria-label={`${t("actions.preview")} ${file.original_filename}`}
             className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
@@ -99,6 +110,7 @@ export function FileRow({ file, isOpening, onDownload, onPreview }: FileRowProps
             <Download className="h-4 w-4" aria-hidden="true" />
             {t("actions.download")}
           </button>
+          <DeleteFileDialog file={file} role={role} workspaceId={workspaceId} />
         </div>
       </td>
     </tr>

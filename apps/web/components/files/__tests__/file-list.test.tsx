@@ -8,9 +8,11 @@ import { FileList } from "@/components/files/FileList";
 import messages from "@/messages/en.json";
 
 const getFileDownloadUrlMock = vi.hoisted(() => vi.fn());
+const deleteFileMock = vi.hoisted(() => vi.fn());
 const listFilesMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/api/files", () => ({
+  deleteFile: deleteFileMock,
   getFileDownloadUrl: getFileDownloadUrlMock,
   listFiles: listFilesMock,
 }));
@@ -43,6 +45,7 @@ const receiptFile = {
 
 describe("FileList", () => {
   beforeEach(() => {
+    deleteFileMock.mockReset();
     getFileDownloadUrlMock.mockReset();
     listFilesMock.mockReset();
   });
@@ -55,7 +58,7 @@ describe("FileList", () => {
   it("renders file metadata rows", async () => {
     listFilesMock.mockResolvedValue({ files: [receiptFile] });
 
-    renderWithProviders(<FileList workspaceId="workspace-1" />);
+    renderWithProviders(<FileList workspaceId="workspace-1" role="member" />);
 
     expect(await screen.findByText("receipt.pdf")).toBeInTheDocument();
     expect(screen.getByText("application/pdf")).toBeInTheDocument();
@@ -68,7 +71,7 @@ describe("FileList", () => {
   it("shows the empty state", async () => {
     listFilesMock.mockResolvedValue({ files: [] });
 
-    renderWithProviders(<FileList workspaceId="workspace-1" />);
+    renderWithProviders(<FileList workspaceId="workspace-1" role="member" />);
 
     expect(await screen.findByText("No receipt or invoice files yet.")).toBeInTheDocument();
   });
@@ -81,7 +84,7 @@ describe("FileList", () => {
       expires_in: 300,
     });
 
-    renderWithProviders(<FileList workspaceId="workspace-1" />);
+    renderWithProviders(<FileList workspaceId="workspace-1" role="member" />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Preview receipt.pdf" }));
 
