@@ -56,6 +56,10 @@ async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse
     error = {"code": code, "message": message}
     if isinstance(exc.detail, dict) and exc.detail.get("diagnostic"):
         error["diagnostic"] = str(exc.detail["diagnostic"])
+    if isinstance(exc.detail, dict):
+        for key, value in exc.detail.items():
+            if key not in {"code", "message", "diagnostic"}:
+                error[key] = value
     return JSONResponse(status_code=exc.status_code, content={"error": error})
 
 

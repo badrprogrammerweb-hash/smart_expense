@@ -61,14 +61,14 @@ component/permission/i18n patterns under `[locale]/w/[workspaceId]`.
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Backend test `apps/api/tests/test_files_upload.py`: valid PNG/JPEG/WebP/PDF → `201` with metadata + stored object; renamed-executable/`.docx` → `415`; >10 MB → `413`; 0-byte → `422`; Viewer → `403` (FR-001–005; SC-003)
+- [X] T009 [P] [US1] Backend test `apps/api/tests/test_files_upload.py`: valid PNG/JPEG/WebP/PDF → `201` with metadata + stored object; renamed-executable/`.docx` → `415`; >10 MB → `413`; 0-byte → `422`; Viewer → `403` (FR-001–005; SC-003)
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement upload orchestration in `apps/api/app/services/files.py`: authorize (Owner/Admin/Member), sniff + size-check, `put_object` to Storage, then insert the `files` row (row created only after object write succeeds — no orphan on failure)
-- [ ] T011 [US1] Implement `POST /workspaces/{workspace_id}/files` (multipart, optional `expense_id`) in `apps/api/app/routes/files.py` returning `201` per contract
-- [ ] T012 [P] [US1] Frontend `apps/web/components/files/FileUpload.tsx`: file picker with client-side type/size hints, calls `lib/api/files.ts`, shows success/error; render on the files page gated by `canUploadFile`
-- [ ] T013 [P] [US1] Frontend test `apps/web/components/files/__tests__/file-upload.test.tsx`: control hidden for Viewer, client-side validation messages, success path invalidates the file-list query
+- [X] T010 [US1] Implement upload orchestration in `apps/api/app/services/files.py`: authorize (Owner/Admin/Member), sniff + size-check, `put_object` to Storage, then insert the `files` row (row created only after object write succeeds — no orphan on failure)
+- [X] T011 [US1] Implement `POST /workspaces/{workspace_id}/files` (multipart, optional `expense_id`) in `apps/api/app/routes/files.py` returning `201` per contract
+- [X] T012 [P] [US1] Frontend `apps/web/components/files/FileUpload.tsx`: file picker with client-side type/size hints, calls `lib/api/files.ts`, shows success/error; render on the files page gated by `canUploadFile`
+- [X] T013 [P] [US1] Frontend test `apps/web/components/files/__tests__/file-upload.test.tsx`: control hidden for Viewer, client-side validation messages, success path invalidates the file-list query
 
 **Checkpoint**: Upload works end to end and is independently testable.
 
