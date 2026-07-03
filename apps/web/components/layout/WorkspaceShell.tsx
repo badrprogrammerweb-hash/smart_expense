@@ -17,6 +17,7 @@ const navItems: { key: string; href: string; roles: WorkspaceRole[] }[] = [
   { key: "dashboard", href: "dashboard", roles: ["owner", "admin", "member", "viewer"] },
   { key: "incomes", href: "incomes", roles: ["owner", "admin"] },
   { key: "expenses", href: "expenses", roles: ["owner", "admin", "member"] },
+  { key: "files", href: "files", roles: ["owner", "admin", "member", "viewer"] },
   { key: "categories", href: "categories", roles: ["owner", "admin", "member", "viewer"] },
   { key: "reports", href: "reports", roles: ["owner", "admin", "member", "viewer"] },
   { key: "settings", href: "settings", roles: ["owner", "admin", "member", "viewer"] },

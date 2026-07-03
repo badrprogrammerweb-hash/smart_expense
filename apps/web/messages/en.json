@@ -15,6 +15,7 @@
     "dashboard": "Dashboard",
     "incomes": "Incomes",
     "expenses": "Expenses",
+    "files": "Files",
     "categories": "Categories",
     "reports": "Reports",
     "settings": "Settings",
@@ -113,6 +114,54 @@
     "languageDescription": "Choose the interface language.",
     "aiTitle": "AI review",
     "aiDescription": "AI is optional and not yet configured. You can add and confirm income and expenses manually without it."
+  },
+  "files": {
+    "title": "Files",
+    "emptyState": "No receipt or invoice files yet.",
+    "upload": {
+      "title": "Upload receipt or invoice",
+      "action": "Upload file",
+      "hint": "PNG, JPEG, WebP, or PDF up to 10 MB.",
+      "success": "File uploaded."
+    },
+    "list": {
+      "name": "Name",
+      "type": "Type",
+      "size": "Size",
+      "uploadedAt": "Uploaded",
+      "uploadedBy": "Uploader",
+      "linkedExpense": "Linked expense",
+      "status": "Status"
+    },
+    "actions": {
+      "preview": "Preview",
+      "download": "Download",
+      "attach": "Attach file",
+      "detach": "Detach file",
+      "delete": "Delete file",
+      "confirmDelete": "Confirm file deletion"
+    },
+    "linked": {
+      "title": "Linked files",
+      "choose": "Choose a file",
+      "none": "No linked files"
+    },
+    "autoDelete": {
+      "label": "Auto-delete after extraction",
+      "description": "When extraction is available, delete original files only after a successful extraction."
+    },
+    "errors": {
+      "unsupportedFileType": "Upload a PNG, JPEG, WebP, or PDF file.",
+      "fileTooLarge": "Files must be 10 MB or smaller.",
+      "emptyFile": "Upload a file that is not empty.",
+      "forbidden": "Your current role cannot perform this file action.",
+      "notFound": "File not found.",
+      "fileDeleted": "This file has been deleted.",
+      "uploadFailed": "File upload failed.",
+      "linkFailed": "File link failed.",
+      "downloadFailed": "Download link failed.",
+      "deleteFailed": "File deletion failed."
+    }
   },
   "errors": {
     "generic": "Something went wrong.",

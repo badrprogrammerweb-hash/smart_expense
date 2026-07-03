@@ -1,4 +1,5 @@
 import { apiFetch } from "./client";
+import type { FileMetadata } from "./files";
 
 export type ExpenseRecord = {
   id: string;
@@ -12,6 +13,7 @@ export type ExpenseRecord = {
   created_by: string;
   created_at: string;
   updated_at: string;
+  files?: FileMetadata[];
 };
 
 export type ExpenseInput = {

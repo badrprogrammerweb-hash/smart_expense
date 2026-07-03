@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
+import { ExpenseFileAttach } from "@/components/expense/ExpenseFileAttach";
 import { ExpenseForm } from "@/components/expense/ExpenseForm";
 import { useCategories } from "@/hooks/use-categories";
 import { useDeleteExpense, useExpenses } from "@/hooks/use-expenses";
@@ -112,6 +113,7 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
                     {confirmingDeleteId === record.id && deleteError && (
                       <p className="mt-1 text-sm text-destructive">{deleteError}</p>
                     )}
+                    <ExpenseFileAttach expense={record} role={role} workspaceId={workspaceId} />
                   </div>
                   {canManageRecord && (
                     <div className="flex gap-2">

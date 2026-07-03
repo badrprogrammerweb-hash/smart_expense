@@ -73,8 +73,12 @@ async def signup_user() -> Callable[[str | None], Any]:
     async def _signup_user(email_prefix: str | None = None) -> TestUser:
         supabase_url = os.environ["SUPABASE_URL"].rstrip("/")
         service_key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-        prefix = email_prefix or f"user-{uuid.uuid4().hex}"
-        email = f"{prefix}@example.com"
+        # Always append a unique suffix — even when a caller passes a fixed,
+        # human-readable prefix — so a re-run against the same local Supabase
+        # never collides with a user created by a previous run
+        # (Auth /signup would otherwise return `user_already_exists`).
+        prefix = email_prefix or "user"
+        email = f"{prefix}-{uuid.uuid4().hex}@example.com"
         password = f"Correct-{uuid.uuid4().hex[:12]}-1"
 
         async with httpx.AsyncClient(

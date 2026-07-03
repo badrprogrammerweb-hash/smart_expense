@@ -17,6 +17,7 @@ export type WorkspaceContextValue = {
   workspaceName: string;
   role: WorkspaceRole;
   memberCount: number;
+  autoDeleteAfterExtraction: boolean;
   currentUserId: string | null;
 };
 
@@ -94,6 +95,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       workspaceName: workspaceQuery.data.name,
       role: workspaceQuery.data.role,
       memberCount: workspaceQuery.data.member_count,
+      autoDeleteAfterExtraction: workspaceQuery.data.auto_delete_after_extraction,
       currentUserId: currentUserQuery.data ?? null,
     };
   }, [workspaceQuery.data, currentUserQuery.data]);

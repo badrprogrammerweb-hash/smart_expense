@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { canCreateExpense, canEditOrDeleteExpense, canManageIncome } from "@/lib/permissions";
+import {
+  canCreateExpense,
+  canDeleteFile,
+  canEditAutoDelete,
+  canEditOrDeleteExpense,
+  canManageIncome,
+  canUploadFile,
+} from "@/lib/permissions";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 
 const roles: WorkspaceRole[] = ["owner", "admin", "member", "viewer"];
@@ -20,6 +27,33 @@ describe("permission matrix", () => {
       owner: true,
       admin: true,
       member: true,
+      viewer: false,
+    });
+  });
+
+  it("allows file upload for owner, admin, and member only", () => {
+    expect(Object.fromEntries(roles.map((role) => [role, canUploadFile(role)]))).toEqual({
+      owner: true,
+      admin: true,
+      member: true,
+      viewer: false,
+    });
+  });
+
+  it("allows file deletion for owner and admin only", () => {
+    expect(Object.fromEntries(roles.map((role) => [role, canDeleteFile(role)]))).toEqual({
+      owner: true,
+      admin: true,
+      member: false,
+      viewer: false,
+    });
+  });
+
+  it("allows auto-delete setting edits for owner only", () => {
+    expect(Object.fromEntries(roles.map((role) => [role, canEditAutoDelete(role)]))).toEqual({
+      owner: true,
+      admin: false,
+      member: false,
       viewer: false,
     });
   });

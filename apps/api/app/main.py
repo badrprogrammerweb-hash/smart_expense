@@ -9,6 +9,7 @@ from app.core.logging import configure_logging
 from app.routes.categories import router as categories_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.expenses import router as expenses_router
+from app.routes.files import router as files_router
 from app.routes.health import router as health_router
 from app.routes.incomes import router as incomes_router
 from app.routes.workspace_members import router as workspace_members_router
@@ -55,6 +56,10 @@ async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse
     error = {"code": code, "message": message}
     if isinstance(exc.detail, dict) and exc.detail.get("diagnostic"):
         error["diagnostic"] = str(exc.detail["diagnostic"])
+    if isinstance(exc.detail, dict):
+        for key, value in exc.detail.items():
+            if key not in {"code", "message", "diagnostic"}:
+                error[key] = value
     return JSONResponse(status_code=exc.status_code, content={"error": error})
 
 
@@ -80,4 +85,5 @@ app.include_router(workspace_members_router)
 app.include_router(incomes_router)
 app.include_router(expenses_router)
 app.include_router(categories_router)
+app.include_router(files_router)
 app.include_router(dashboard_router)

@@ -3,13 +3,15 @@
 import { useTranslations } from "next-intl";
 
 import { AiOptionalNotice } from "@/components/settings/AiOptionalNotice";
+import { AutoDeleteToggle } from "@/components/settings/AutoDeleteToggle";
 import { LanguageSwitcher } from "@/components/settings/LanguageSwitcher";
 import { useWorkspaceContext } from "@/lib/workspace-context";
 
 export default function SettingsPage() {
   const t = useTranslations("settings");
   const nav = useTranslations("nav");
-  const { workspaceName, workspaceType, memberCount } = useWorkspaceContext();
+  const { autoDeleteAfterExtraction, memberCount, role, workspaceId, workspaceName, workspaceType } =
+    useWorkspaceContext();
 
   return (
     <div className="space-y-6">
@@ -31,6 +33,11 @@ export default function SettingsPage() {
         <p className="mt-2 text-sm text-muted-foreground">{t("languageDescription")}</p>
         <LanguageSwitcher />
       </section>
+      <AutoDeleteToggle
+        autoDeleteAfterExtraction={autoDeleteAfterExtraction}
+        role={role}
+        workspaceId={workspaceId}
+      />
       <AiOptionalNotice />
     </div>
   );

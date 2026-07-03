@@ -13,6 +13,18 @@ export function canCreateExpense(role: WorkspaceRole) {
   return role === "owner" || role === "admin" || role === "member";
 }
 
+export function canUploadFile(role: WorkspaceRole) {
+  return role === "owner" || role === "admin" || role === "member";
+}
+
+export function canDeleteFile(role: WorkspaceRole) {
+  return role === "owner" || role === "admin";
+}
+
+export function canEditAutoDelete(role: WorkspaceRole) {
+  return role === "owner";
+}
+
 export function canEditOrDeleteExpense(
   record: Pick<ExpenseRecord, "created_by">,
   role: WorkspaceRole,

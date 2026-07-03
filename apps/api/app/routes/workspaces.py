@@ -10,6 +10,8 @@ from app.db import database_unavailable_exception, get_rls_session
 from app.schemas.workspaces import (
     Workspace,
     WorkspaceCreateRequest,
+    WorkspaceSettingsResponse,
+    WorkspaceUpdateRequest,
     WorkspacesListResponse,
 )
 
@@ -24,12 +26,20 @@ def not_found() -> HTTPException:
     )
 
 
+def forbidden() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail={"code": "forbidden", "message": "You do not have permission to do that."},
+    )
+
+
 def _workspace_from_row(row) -> Workspace:
     return Workspace(
         id=row.id,
         type=row.type,
         name=row.name,
         role=row.role,
+        auto_delete_after_extraction=row.auto_delete_after_extraction,
         member_count=getattr(row, "member_count", None),
     )
 
@@ -43,7 +53,7 @@ async def list_workspaces(
         result = await session.execute(
             text(
                 """
-                select w.id, w.type, w.name, wm.role
+                select w.id, w.type, w.name, w.auto_delete_after_extraction, wm.role
                 from public.workspaces w
                 join public.workspace_memberships wm on wm.workspace_id = w.id
                 where wm.user_id = :user_id
@@ -94,7 +104,7 @@ async def create_workspace(
     result = await session.execute(
         text(
             """
-            select w.id, w.type, w.name, wm.role
+            select w.id, w.type, w.name, w.auto_delete_after_extraction, wm.role
             from public.workspaces w
             join public.workspace_memberships wm on wm.workspace_id = w.id
             where w.created_by = :user_id
@@ -111,6 +121,59 @@ async def create_workspace(
     return _workspace_from_row(row)
 
 
+@router.patch("/{workspace_id}", response_model=WorkspaceSettingsResponse)
+async def update_workspace(
+    workspace_id: UUID,
+    request: WorkspaceUpdateRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_rls_session),
+) -> WorkspaceSettingsResponse:
+    role_result = await session.execute(
+        text(
+            """
+            select wm.role
+            from public.workspaces w
+            join public.workspace_memberships wm
+              on wm.workspace_id = w.id
+             and wm.user_id = :user_id
+            where w.id = :workspace_id
+            """
+        ),
+        {"workspace_id": str(workspace_id), "user_id": str(current_user.user_id)},
+    )
+    role_row = role_result.first()
+    if role_row is None:
+        raise not_found()
+    if role_row.role != "owner":
+        raise forbidden()
+
+    try:
+        update_result = await session.execute(
+            text(
+                """
+                update public.workspaces
+                set auto_delete_after_extraction = :auto_delete_after_extraction
+                where id = :workspace_id
+                returning id, auto_delete_after_extraction
+                """
+            ),
+            {
+                "workspace_id": str(workspace_id),
+                "auto_delete_after_extraction": request.auto_delete_after_extraction,
+            },
+        )
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+
+    row = update_result.first()
+    if row is None:
+        raise not_found()
+    return WorkspaceSettingsResponse(
+        id=row.id,
+        auto_delete_after_extraction=row.auto_delete_after_extraction,
+    )
+
+
 @router.get("/{workspace_id}", response_model=Workspace, response_model_exclude_none=True)
 async def get_workspace(
     workspace_id: UUID,
@@ -120,7 +183,13 @@ async def get_workspace(
     result = await session.execute(
         text(
             """
-            select w.id, w.type, w.name, wm.role, count(all_members.id)::int as member_count
+            select
+                w.id,
+                w.type,
+                w.name,
+                w.auto_delete_after_extraction,
+                wm.role,
+                count(all_members.id)::int as member_count
             from public.workspaces w
             join public.workspace_memberships wm
               on wm.workspace_id = w.id
@@ -128,7 +197,7 @@ async def get_workspace(
             left join public.workspace_memberships all_members
               on all_members.workspace_id = w.id
             where w.id = :workspace_id
-            group by w.id, w.type, w.name, wm.role
+            group by w.id, w.type, w.name, w.auto_delete_after_extraction, wm.role
             """
         ),
         {"workspace_id": str(workspace_id), "user_id": str(current_user.user_id)},

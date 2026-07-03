@@ -7,8 +7,8 @@ import { isLocale, locales, type Locale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
 // Each option is always labeled in its own language, not the current
-// locale's translation of it — otherwise a user who can't read the
-// active language has no way to find their own in the switcher.
+// locale's translation of it; otherwise a user who cannot read the active
+// language has no way to find their own in the switcher.
 const nativeLabel: Record<Locale, string> = {
   en: "English",
   ar: "العربية",
