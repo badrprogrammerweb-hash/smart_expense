@@ -143,13 +143,13 @@ component/permission/i18n patterns under `[locale]/w/[workspaceId]`.
 
 ### Tests for User Story 5
 
-- [ ] T027 [P] [US5] Backend test `apps/api/tests/test_workspace_auto_delete_setting.py`: Owner sets true/false and it persists across reads; Admin/Member/Viewer → `403`; toggling deletes zero files (FR-020–022; SC-006)
+- [X] T027 [P] [US5] Backend test `apps/api/tests/test_workspace_auto_delete_setting.py`: Owner sets true/false and it persists across reads; Admin/Member/Viewer → `403`; toggling deletes zero files (FR-020–022; SC-006)
 
 ### Implementation for User Story 5
 
-- [ ] T028 [US5] Expose `auto_delete_after_extraction` in `apps/api/app/schemas/workspaces.py` + workspace GET responses, and implement `PATCH /workspaces/{workspace_id}` accepting **only** that field, Owner-only, in `apps/api/app/routes/workspaces.py` (per `contracts/workspace-settings-api.md`)
-- [ ] T029 [P] [US5] Frontend auto-delete toggle in `apps/web/components/settings/` (editable only when `canEditAutoDelete`, read-only/hidden otherwise) calling the workspaces PATCH client
-- [ ] T030 [P] [US5] Frontend test for the settings toggle: editable for Owner, read-only for others, persists displayed value
+- [X] T028 [US5] Expose `auto_delete_after_extraction` in `apps/api/app/schemas/workspaces.py` + workspace GET responses, and implement `PATCH /workspaces/{workspace_id}` accepting **only** that field, Owner-only, in `apps/api/app/routes/workspaces.py` (per `contracts/workspace-settings-api.md`)
+- [X] T029 [P] [US5] Frontend auto-delete toggle in `apps/web/components/settings/` (editable only when `canEditAutoDelete`, read-only/hidden otherwise) calling the workspaces PATCH client
+- [X] T030 [P] [US5] Frontend test for the settings toggle: editable for Owner, read-only for others, persists displayed value
 
 **Checkpoint**: Auto-delete preference available (and provably inert).
 
