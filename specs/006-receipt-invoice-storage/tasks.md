@@ -103,13 +103,13 @@ component/permission/i18n patterns under `[locale]/w/[workspaceId]`.
 
 ### Tests for User Story 3
 
-- [ ] T019 [P] [US3] Backend test `apps/api/tests/test_files_link_expense.py`: link then detach; cross-workspace link → `422`; link to a deleted file → `410`; deleting the expense nulls the link and keeps the file; Viewer link → `403` (FR-012–015)
+- [X] T019 [P] [US3] Backend test `apps/api/tests/test_files_link_expense.py`: link then detach; cross-workspace link → `422`; link to a deleted file → `410`; deleting the expense nulls the link and keeps the file; Viewer link → `403` (FR-012–015)
 
 ### Implementation for User Story 3
 
-- [ ] T020 [US3] Implement `POST /files/{id}/link` and `DELETE /files/{id}/link` in `apps/api/app/routes/files.py` + service (validate same-workspace + existing expense, active file, replace any existing link; Owner/Admin/Member only)
-- [ ] T021 [US3] Extend `GET /workspaces/{workspace_id}/expenses/{expense_id}` in `apps/api/app/routes/expenses.py` + `apps/api/app/schemas/expenses.py` to include an additive `files` array; verify the `expenses` delete path leaves files (relies on `on delete set null` from T004) with no financial-field change
-- [ ] T022 [P] [US3] Frontend `apps/web/components/expense/ExpenseFileAttach.tsx`: attach/detach control wired into the expense form/detail, gated by non-Viewer; shows currently linked file(s)
+- [X] T020 [US3] Implement `POST /files/{id}/link` and `DELETE /files/{id}/link` in `apps/api/app/routes/files.py` + service (validate same-workspace + existing expense, active file, replace any existing link; Owner/Admin/Member only)
+- [X] T021 [US3] Extend `GET /workspaces/{workspace_id}/expenses/{expense_id}` in `apps/api/app/routes/expenses.py` + `apps/api/app/schemas/expenses.py` to include an additive `files` array; verify the `expenses` delete path leaves files (relies on `on delete set null` from T004) with no financial-field change
+- [X] T022 [P] [US3] Frontend `apps/web/components/expense/ExpenseFileAttach.tsx`: attach/detach control wired into the expense form/detail, gated by non-Viewer; shows currently linked file(s)
 
 **Checkpoint**: Expense linking works and is independently testable.
 

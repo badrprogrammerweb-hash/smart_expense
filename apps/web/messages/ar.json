@@ -136,8 +136,15 @@
     "actions": {
       "preview": "معاينة",
       "download": "تنزيل",
+      "attach": "إرفاق ملف",
+      "detach": "فصل الملف",
       "delete": "حذف الملف",
       "confirmDelete": "تأكيد حذف الملف"
+    },
+    "linked": {
+      "title": "الملفات المرتبطة",
+      "choose": "اختر ملفًا",
+      "none": "لا توجد ملفات مرتبطة"
     },
     "autoDelete": {
       "label": "الحذف التلقائي بعد الاستخراج",
@@ -151,6 +158,7 @@
       "notFound": "الملف غير موجود.",
       "fileDeleted": "تم حذف هذا الملف.",
       "uploadFailed": "فشل رفع الملف.",
+      "linkFailed": "فشل ربط الملف.",
       "downloadFailed": "فشل إنشاء رابط التنزيل.",
       "deleteFailed": "فشل حذف الملف."
     }

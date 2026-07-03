@@ -2,7 +2,9 @@ from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from app.schemas.files import FileMetadata
 
 
 RecordStatus = Literal["confirmed", "deleted"]
@@ -21,6 +23,7 @@ class Expense(BaseModel):
     created_by: UUID
     created_at: datetime
     updated_at: datetime
+    files: list[FileMetadata] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 

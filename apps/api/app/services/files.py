@@ -146,6 +146,7 @@ async def workspace_role(session: AsyncSession, workspace_id: UUID, user_id: UUI
 
 
 UPLOAD_ROLES = frozenset({"owner", "admin", "member"})
+LINK_ROLES = UPLOAD_ROLES
 
 
 async def require_upload_permission(
@@ -341,3 +342,87 @@ async def get_download_url(
 
     expires_in = max(1, min(signed_url.expires_in, ttl))
     return SignedUrlResponse(url=signed_url.url, expires_in=expires_in)
+
+
+async def link_file_to_expense(
+    session: AsyncSession,
+    workspace_id: UUID,
+    user_id: UUID,
+    file_id: UUID,
+    expense_id: UUID,
+) -> FileMetadata:
+    role = await workspace_role(session, workspace_id, user_id)
+    row = await _file_row(session, workspace_id, file_id)
+    if role not in LINK_ROLES:
+        raise forbidden()
+    if row.status == "deleted":
+        raise file_deleted()
+
+    await _validate_expense_link(session, workspace_id, expense_id)
+
+    try:
+        result = await session.execute(
+            text(
+                """
+                update public.files
+                set expense_id = :expense_id
+                where workspace_id = :workspace_id
+                  and id = :file_id
+                  and status = 'active'
+                returning id, original_filename, content_type, size_bytes, expense_id,
+                          uploaded_by, status, created_at, deleted_at, deleted_by
+                """
+            ),
+            {
+                "workspace_id": str(workspace_id),
+                "file_id": str(file_id),
+                "expense_id": str(expense_id),
+            },
+        )
+    except DBAPIError as exc:
+        message = str(exc).lower()
+        if "expense_not_in_workspace" in message:
+            raise cross_workspace_link() from exc
+        raise database_unavailable_exception(exc) from exc
+
+    updated = result.first()
+    if updated is None:
+        raise not_found()
+    return _file_metadata_from_row(updated)
+
+
+async def detach_file_from_expense(
+    session: AsyncSession,
+    workspace_id: UUID,
+    user_id: UUID,
+    file_id: UUID,
+) -> FileMetadata:
+    role = await workspace_role(session, workspace_id, user_id)
+    row = await _file_row(session, workspace_id, file_id)
+    if role not in LINK_ROLES:
+        raise forbidden()
+    if row.status == "deleted":
+        raise file_deleted()
+
+    try:
+        result = await session.execute(
+            text(
+                """
+                update public.files
+                set expense_id = null
+                where workspace_id = :workspace_id
+                  and id = :file_id
+                  and status = 'active'
+                returning id, original_filename, content_type, size_bytes, expense_id,
+                          uploaded_by, status, created_at, deleted_at, deleted_by
+                """
+            ),
+            {"workspace_id": str(workspace_id), "file_id": str(file_id)},
+        )
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+
+    updated = result.first()
+    if updated is None:
+        raise not_found()
+    return _file_metadata_from_row(updated)

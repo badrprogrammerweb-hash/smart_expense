@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser, get_current_user
 from app.db import database_unavailable_exception, get_rls_session
 from app.schemas.expenses import Expense, ExpenseCreateRequest, ExpenseUpdateRequest, ExpensesListResponse
+from app.schemas.files import FileMetadata
 
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/expenses", tags=["expenses"])
@@ -57,7 +58,22 @@ def invalid_date() -> HTTPException:
     )
 
 
-def _expense_from_row(row) -> Expense:
+def _file_from_row(row) -> FileMetadata:
+    return FileMetadata(
+        id=row.id,
+        original_filename=row.original_filename,
+        content_type=row.content_type,
+        size_bytes=row.size_bytes,
+        expense_id=row.expense_id,
+        uploaded_by=row.uploaded_by,
+        status=row.status,
+        created_at=row.created_at,
+        deleted_at=row.deleted_at,
+        deleted_by=row.deleted_by,
+    )
+
+
+def _expense_from_row(row, files: list[FileMetadata] | None = None) -> Expense:
     return Expense(
         id=row.id,
         amount_minor=row.amount_minor,
@@ -70,6 +86,7 @@ def _expense_from_row(row) -> Expense:
         created_by=row.created_by,
         created_at=row.created_at,
         updated_at=row.updated_at,
+        files=files or [],
     )
 
 
@@ -108,6 +125,26 @@ async def _expense(session: AsyncSession, workspace_id: UUID, expense_id: UUID):
         {"workspace_id": str(workspace_id), "expense_id": str(expense_id)},
     )
     return result.first()
+
+
+async def _expense_files(
+    session: AsyncSession, workspace_id: UUID, expense_id: UUID
+) -> list[FileMetadata]:
+    result = await session.execute(
+        text(
+            """
+            select id, original_filename, content_type, size_bytes, expense_id,
+                   uploaded_by, status, created_at, deleted_at, deleted_by
+            from public.files
+            where workspace_id = :workspace_id
+              and expense_id = :expense_id
+              and status = 'active'
+            order by created_at desc, id desc
+            """
+        ),
+        {"workspace_id": str(workspace_id), "expense_id": str(expense_id)},
+    )
+    return [_file_from_row(row) for row in result]
 
 
 def _can_mutate_expense(role: str, user_id: UUID, expense_row) -> bool:
@@ -245,11 +282,12 @@ async def get_expense(
     await _workspace_role(session, workspace_id, current_user.user_id)
     try:
         row = await _expense(session, workspace_id, expense_id)
+        files = await _expense_files(session, workspace_id, expense_id) if row is not None else []
     except DBAPIError as exc:
         raise database_unavailable_exception(exc) from exc
     if row is None:
         raise not_found()
-    return _expense_from_row(row)
+    return _expense_from_row(row, files)
 
 
 @router.patch("/{expense_id}", response_model=Expense)
@@ -338,6 +376,9 @@ async def delete_expense(
         raise forbidden()
 
     try:
+        # Linked files are unlinked authoritatively by the
+        # `expenses_unlink_files_on_soft_delete` trigger, which runs as definer
+        # and so is not limited by the caller's per-file UPDATE RLS.
         result = await session.execute(
             text(
                 """

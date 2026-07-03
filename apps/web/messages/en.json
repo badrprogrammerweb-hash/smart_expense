@@ -136,8 +136,15 @@
     "actions": {
       "preview": "Preview",
       "download": "Download",
+      "attach": "Attach file",
+      "detach": "Detach file",
       "delete": "Delete file",
       "confirmDelete": "Confirm file deletion"
+    },
+    "linked": {
+      "title": "Linked files",
+      "choose": "Choose a file",
+      "none": "No linked files"
     },
     "autoDelete": {
       "label": "Auto-delete after extraction",
@@ -151,6 +158,7 @@
       "notFound": "File not found.",
       "fileDeleted": "This file has been deleted.",
       "uploadFailed": "File upload failed.",
+      "linkFailed": "File link failed.",
       "downloadFailed": "Download link failed.",
       "deleteFailed": "File deletion failed."
     }
