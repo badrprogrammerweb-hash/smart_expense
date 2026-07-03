@@ -22,12 +22,13 @@ test.describe("locale and RTL", () => {
     await expect(page.getByText("AI is optional and not yet configured.", { exact: false })).toBeVisible();
 
     // Switching does not require a manual page reload: the same client
-    // session keeps navigating (FR-031), and every screen — not only
-    // settings — renders RTL with Arabic labels afterward.
+    // session keeps navigating (FR-031), and every screen renders RTL with
+    // Arabic labels afterward.
     await page.getByRole("button", { name: "العربية" }).click();
     await page.waitForURL(/\/ar\/w\/.+\/settings$/);
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.getByRole("heading", { name: "الإعدادات" })).toBeVisible();
+    await expect(page.getByLabel("الحذف التلقائي بعد الاستخراج")).toBeVisible();
 
     await page.getByRole("link", { name: "لوحة التحكم" }).click();
     await page.waitForURL(/\/ar\/w\/.+\/dashboard$/);
@@ -38,6 +39,13 @@ test.describe("locale and RTL", () => {
     await page.waitForURL(/\/ar\/w\/.+\/incomes$/);
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.getByRole("heading", { name: "إضافة دخل" })).toBeVisible();
+
+    await page.getByRole("link", { name: "الملفات" }).click();
+    await page.waitForURL(/\/ar\/w\/.+\/files$/);
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(page.getByRole("heading", { name: "الملفات" })).toBeVisible();
+    await expect(page.getByLabel("رفع إيصال أو فاتورة")).toBeVisible();
+    await expect(page.getByRole("button", { name: "رفع ملف" })).toBeVisible();
 
     await page.getByRole("link", { name: "التصنيفات" }).click();
     await page.waitForURL(/\/ar\/w\/.+\/categories$/);
@@ -65,9 +73,9 @@ test.describe("locale and RTL", () => {
     await page.getByRole("button", { name: "العربية" }).click();
     await page.waitForURL(/\/ar\/w\/.+\/settings$/);
 
-    // Not app state — the language choice's durability across sign-out
-    // comes entirely from next-intl's own NEXT_LOCALE cookie, set on every
-    // locale-prefixed navigation (including the one above).
+    // Not app state: the language choice's durability across sign-out comes
+    // entirely from next-intl's own NEXT_LOCALE cookie, set on every
+    // locale-prefixed navigation.
     await page.getByRole("button", { name: "تسجيل الخروج" }).click();
     await page.waitForURL(/\/ar\/sign-in$/);
 
@@ -75,10 +83,9 @@ test.describe("locale and RTL", () => {
     await page.waitForURL(/\/ar\/sign-in$/);
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
 
-    // Restore English so this shared account doesn't leave other specs
-    // landing in Arabic. Visiting any /en/... path is enough — next-intl's
-    // middleware resets NEXT_LOCALE=en on that response, same as any other
-    // locale-prefixed navigation.
+    // Restore English so this shared account does not leave other specs
+    // landing in Arabic. Visiting any /en/... path is enough: next-intl's
+    // middleware resets NEXT_LOCALE=en on that response.
     await page.goto("/en/sign-in");
     await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
   });

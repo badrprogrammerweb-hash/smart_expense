@@ -148,7 +148,7 @@
     },
     "autoDelete": {
       "label": "Auto-delete after extraction",
-      "description": "Delete original files after successful AI extraction in a later phase."
+      "description": "When extraction is available, delete original files only after a successful extraction."
     },
     "errors": {
       "unsupportedFileType": "Upload a PNG, JPEG, WebP, or PDF file.",

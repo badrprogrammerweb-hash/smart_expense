@@ -90,3 +90,29 @@ npm run test:e2e     # Playwright: upload → list → preview → delete happy 
 - **SC-006** setting persists, zero deletions — `test_workspace_auto_delete_setting.py`.
 - **SC-007** role permissions hold — role assertions across the upload/delete/
   link/setting tests.
+
+## Phase 8 validation record (2026-07-03)
+
+Commands run from the local workspace after completing Phase 8:
+
+| Check | Result |
+|-------|--------|
+| Backend quickstart suites (`test_files_upload.py`, `test_files_access_privacy.py`, `test_files_link_expense.py`, `test_files_delete.py`, `test_files_isolation.py`, `test_workspace_auto_delete_setting.py`) | PASS: 15 passed |
+| Backend full suite | PASS: 56 passed |
+| Frontend unit suite (`npm run test`) | PASS: 9 files / 30 tests passed |
+| TypeScript (`npx tsc --noEmit`) | PASS |
+| Phase 8 file e2e (`npm run test:e2e -- e2e/files.spec.ts --workers=1`) | PASS: 2 passed |
+| Full Playwright command (`npm run test:e2e -- --workers=1`) | PASS for runnable specs: 2 passed, 13 skipped because pre-seeded `E2E_*` account variables were not configured |
+
+Role smoke coverage recorded in this run:
+
+| Role path | Result |
+|-----------|--------|
+| Owner browser flow | PASS: self-seeded Playwright flow uploaded a PDF, received a private signed preview URL, soft-deleted the file, and removed it from the active list |
+| Viewer browser flow | PASS: self-seeded Playwright flow showed an active file but no upload or delete controls |
+| Arabic/RTL file surfaces | PASS: self-seeded Playwright flow verified `dir="rtl"` plus Arabic Files upload and Settings auto-delete labels |
+| Member/Admin/backend role matrix | PASS: quickstart backend suites covered Member upload/link permissions, Admin/Owner delete, Viewer forbiddance, and Owner-only auto-delete setting |
+
+Non-blocking warnings observed: pytest cache write permission warnings in the
+sandbox, Next.js middleware deprecation warning during Playwright startup, and
+Node `NO_COLOR`/`FORCE_COLOR` warning during Playwright startup.

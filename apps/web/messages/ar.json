@@ -21,7 +21,7 @@
     "settings": "الإعدادات",
     "signOut": "تسجيل الخروج",
     "workspaceRole": "دورك: {role}",
-    "memberCount": "{count, plural, one {عضو واحد} two {عضوان} few {# أعضاء} many {# عضوا} other {# عضو}}",
+    "memberCount": "{count, plural, one {عضو واحد} two {عضوان} few {# أعضاء} many {# عضوًا} other {# عضو}}",
     "workspaceTypePersonal": "شخصية",
     "workspaceTypeTeam": "جماعية",
     "switchWorkspace": "تبديل مساحة العمل",
@@ -34,14 +34,14 @@
     "signIn": "تسجيل الدخول",
     "signUp": "إنشاء حساب",
     "resetPassword": "إعادة تعيين كلمة المرور",
-    "resetAction": "إرسال رابط التعيين",
+    "resetAction": "إرسال رابط إعادة التعيين",
     "needAccount": "تحتاج إلى حساب؟",
     "haveAccount": "لديك حساب؟",
     "forgotPassword": "نسيت كلمة المرور؟",
     "signInTitle": "تسجيل الدخول",
     "signUpTitle": "إنشاء حسابك",
     "resetTitle": "إعادة تعيين كلمة المرور",
-    "resetSent": "إذا كان الحساب موجودا، فسيتم إرسال رابط إعادة التعيين.",
+    "resetSent": "إذا كان الحساب موجودًا، فسيتم إرسال رابط إعادة التعيين.",
     "confirmEmailSent": "تحقق من بريدك الإلكتروني لتأكيد حسابك قبل تسجيل الدخول."
   },
   "dashboard": {
@@ -54,9 +54,9 @@
     "categoryBreakdown": "تفصيل التصنيفات",
     "recentActivity": "آخر النشاطات",
     "pendingAi": "{count} عنصر بانتظار مراجعة الذكاء الاصطناعي",
-    "aiUnavailable": "مراجعة الذكاء الاصطناعي غير مفعلة حاليا.",
+    "aiUnavailable": "مراجعة الذكاء الاصطناعي غير مفعّلة حاليًا.",
     "emptyTitle": "لا توجد سجلات مؤكدة بعد",
-    "emptyDescription": "أضف دخلا أو مصروفا لعرض صورتك المالية.",
+    "emptyDescription": "أضف دخلًا أو مصروفًا لعرض صورتك المالية.",
     "addIncome": "إضافة دخل",
     "addExpense": "إضافة مصروف",
     "uncategorized": "غير مصنف"
@@ -80,9 +80,9 @@
     "viewerBlocked": "دورك الحالي يسمح بعرض مساحة العمل فقط ولا يسمح بتعديل السجلات.",
     "incomeBlocked": "إدارة الدخل متاحة للمالك والمشرف فقط.",
     "confirmDelete": "تأكيد الحذف",
-    "validationAmount": "أدخل مبلغا أكبر من صفر.",
-    "validationDate": "أدخل تاريخا صحيحا.",
-    "categoryPlaceholder": "اختر تصنيفا"
+    "validationAmount": "أدخل مبلغًا أكبر من صفر.",
+    "validationDate": "أدخل تاريخًا صحيحًا.",
+    "categoryPlaceholder": "اختر تصنيفًا"
   },
   "categories": {
     "title": "التصنيفات",
@@ -105,7 +105,7 @@
     "title": "التقارير",
     "subtitle": "الفترة الحالية: {start} إلى {end}",
     "emptyTitle": "لا توجد سجلات مؤكدة لهذه الفترة",
-    "emptyDescription": "أضف دخلا أو مصروفا لعرض تقرير هذه الفترة."
+    "emptyDescription": "أضف دخلًا أو مصروفًا لعرض تقرير هذه الفترة."
   },
   "settings": {
     "title": "الإعدادات",
@@ -113,7 +113,7 @@
     "language": "اللغة",
     "languageDescription": "اختر لغة الواجهة.",
     "aiTitle": "مراجعة الذكاء الاصطناعي",
-    "aiDescription": "ميزات الذكاء الاصطناعي اختيارية وغير مفعلة حاليا. يمكنك إضافة وتأكيد الدخل والمصروفات يدويا بدونها."
+    "aiDescription": "الذكاء الاصطناعي اختياري وغير مفعّل حاليًا. يمكنك إضافة الدخل والمصروفات وتأكيدها يدويًا بدونه."
   },
   "files": {
     "title": "الملفات",
@@ -148,12 +148,12 @@
     },
     "autoDelete": {
       "label": "الحذف التلقائي بعد الاستخراج",
-      "description": "حذف الملفات الأصلية بعد نجاح استخراج الذكاء الاصطناعي في مرحلة لاحقة."
+      "description": "عند توفر الاستخراج، احذف الملفات الأصلية فقط بعد نجاح الاستخراج."
     },
     "errors": {
       "unsupportedFileType": "ارفع ملف PNG أو JPEG أو WebP أو PDF.",
       "fileTooLarge": "يجب ألا يتجاوز حجم الملف 10 م.ب.",
-      "emptyFile": "ارفع ملفا غير فارغ.",
+      "emptyFile": "ارفع ملفًا غير فارغ.",
       "forbidden": "دورك الحالي لا يسمح بتنفيذ هذا الإجراء على الملفات.",
       "notFound": "الملف غير موجود.",
       "fileDeleted": "تم حذف هذا الملف.",
@@ -166,7 +166,7 @@
   "errors": {
     "generic": "حدث خطأ ما.",
     "requestFailed": "فشل الطلب. حاول مرة أخرى.",
-    "unauthenticated": "سجل الدخول للمتابعة.",
+    "unauthenticated": "سجّل الدخول للمتابعة.",
     "notFound": "مساحة العمل غير موجودة."
   }
 }

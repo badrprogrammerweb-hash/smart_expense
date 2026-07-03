@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, NoReturn
 from urllib.parse import quote
 from uuid import UUID
 
@@ -61,20 +61,36 @@ def _sanitized_response_body(response: httpx.Response) -> str:
         body = response.text
     except httpx.HTTPError:
         return "<unavailable>"
+    return _redact_secret(body)[:500]
+
+
+def _redact_secret(value: str) -> str:
     service_key = get_settings().supabase_service_role_key
     if service_key:
-        body = body.replace(service_key, "<redacted>")
-    return body[:500]
+        value = value.replace(service_key, "<redacted>")
+    return value
 
 
-def _raise_storage_error(operation: str, response: httpx.Response) -> None:
+def _raise_storage_response_error(
+    operation: str, response: httpx.Response, reason: str = "unexpected_status"
+) -> NoReturn:
     logger.warning(
-        "Supabase Storage %s failed with status %s: %s",
+        "Supabase Storage %s failed (%s) with status %s: %s",
         operation,
+        reason,
         response.status_code,
         _sanitized_response_body(response),
     )
     raise StorageError(f"Storage {operation} failed with status {response.status_code}.")
+
+
+def _raise_storage_transport_error(operation: str, exc: httpx.HTTPError) -> NoReturn:
+    logger.warning(
+        "Supabase Storage %s request failed: %s",
+        operation,
+        _redact_secret(str(exc))[:500],
+    )
+    raise StorageError(f"Storage {operation} request failed.") from exc
 
 
 @dataclass(frozen=True)
@@ -89,29 +105,40 @@ class SupabaseStorageClient:
 
     async def put_object(self, key: str, content: bytes, content_type: str) -> None:
         key = _validate_object_key(key)
-        async with httpx.AsyncClient(timeout=30, trust_env=False) as client:
-            response = await client.put(
-                _object_url(self._base_url, key),
-                headers={**_service_headers(content_type), "x-upsert": "false"},
-                content=content,
-            )
+        try:
+            async with httpx.AsyncClient(timeout=30, trust_env=False) as client:
+                response = await client.put(
+                    _object_url(self._base_url, key),
+                    headers={**_service_headers(content_type), "x-upsert": "false"},
+                    content=content,
+                )
+        except httpx.HTTPError as exc:
+            _raise_storage_transport_error("put_object", exc)
         if response.status_code not in {200, 201}:
-            _raise_storage_error("put_object", response)
+            _raise_storage_response_error("put_object", response)
 
     async def sign_url(self, key: str, ttl: int = DEFAULT_SIGNED_URL_TTL_SECONDS) -> SignedUrl:
         key = _validate_object_key(key)
         ttl = min(max(ttl, 1), DEFAULT_SIGNED_URL_TTL_SECONDS)
-        async with httpx.AsyncClient(timeout=10, trust_env=False) as client:
-            response = await client.post(
-                _sign_url(self._base_url, key),
-                headers=_service_headers("application/json"),
-                json={"expiresIn": ttl},
-            )
+        try:
+            async with httpx.AsyncClient(timeout=10, trust_env=False) as client:
+                response = await client.post(
+                    _sign_url(self._base_url, key),
+                    headers=_service_headers("application/json"),
+                    json={"expiresIn": ttl},
+                )
+        except httpx.HTTPError as exc:
+            _raise_storage_transport_error("sign_url", exc)
         if response.status_code != 200:
-            _raise_storage_error("sign_url", response)
+            _raise_storage_response_error("sign_url", response)
 
-        payload = response.json()
-        signed_url = _extract_signed_url(payload)
+        try:
+            payload = response.json()
+            signed_url = _extract_signed_url(payload)
+        except ValueError:
+            _raise_storage_response_error("sign_url", response, "invalid_json")
+        except StorageError as exc:
+            _raise_storage_response_error("sign_url", response, str(exc))
         if signed_url.startswith("/"):
             # Supabase returns a path relative to the storage service root
             # (e.g. "/object/sign/receipts/<key>?token=..."), which is mounted
@@ -122,15 +149,18 @@ class SupabaseStorageClient:
 
     async def remove_object(self, key: str) -> None:
         key = _validate_object_key(key)
-        async with httpx.AsyncClient(timeout=10, trust_env=False) as client:
-            response = await client.request(
-                "DELETE",
-                _bucket_url(self._base_url),
-                headers=_service_headers("application/json"),
-                json={"prefixes": [key]},
-            )
+        try:
+            async with httpx.AsyncClient(timeout=10, trust_env=False) as client:
+                response = await client.request(
+                    "DELETE",
+                    _bucket_url(self._base_url),
+                    headers=_service_headers("application/json"),
+                    json={"prefixes": [key]},
+                )
+        except httpx.HTTPError as exc:
+            _raise_storage_transport_error("remove_object", exc)
         if response.status_code not in {200, 204}:
-            _raise_storage_error("remove_object", response)
+            _raise_storage_response_error("remove_object", response)
 
 
 def _extract_signed_url(payload: dict[str, Any]) -> str:

@@ -144,6 +144,12 @@ to touch, they don't substitute for one.
   allowed for `owner`/`admin` on any expense, or for a `member` only when
   `created_by = auth.uid()`, covering edit and soft-delete. Viewers cannot
   create or modify expense records. No `DELETE` policy exists.
+- **`files`**: receipt/invoice metadata is workspace-scoped and readable by
+  any workspace member, including Viewer. `INSERT` is allowed for
+  `owner`/`admin`/`member`; `UPDATE` supports link/detach and soft-delete
+  metadata, with finer action rules enforced in FastAPI before any Storage
+  call. No SQL `DELETE` grant or policy exists; deleting a file soft-deletes
+  metadata and keeps the row for history.
 
 ## Triggers
 
@@ -171,6 +177,45 @@ to touch, they don't substitute for one.
   rejects a category from another workspace (`category_not_in_workspace`)
   or an archived category (`category_archived`) when a category is newly
   assigned or changed.
+
+## Receipt and invoice Storage
+
+Phase 6 adds one private Supabase Storage bucket:
+
+- Bucket id/name: `receipts`.
+- Public access: disabled. The app must never use public URLs for receipts or
+  invoices.
+- Object key convention: `{workspace_id}/{file_id}`. Both segments are UUIDs
+  generated or read from trusted database rows; no user-controlled filename or
+  path segment is stored in the object key.
+- Metadata: `public.files.storage_path` stores the same key, while display
+  name, content type, size, uploader, linked expense, and soft-delete history
+  remain in Postgres.
+- Access path: browsers upload bytes to FastAPI, not directly to Storage.
+  FastAPI validates membership, role, magic-byte content type, and size before
+  calling Storage with the service-role key.
+- Preview/download: FastAPI verifies the caller can read the workspace file and
+  then mints a short-lived signed URL, capped at 300 seconds.
+- Delete: FastAPI verifies Owner/Admin, soft-deletes the metadata row, and
+  removes the object from the bucket. The metadata row is retained for history.
+
+The Storage RLS policies on `storage.objects` are a defense-in-depth backstop:
+they scope direct object operations to authenticated members of the workspace
+encoded in the first key segment. They are not the primary authorization layer,
+because the backend uses the service-role key for object operations and must
+perform its own role checks first.
+
+Required backend environment variables for this path are the same local values
+printed by `npx supabase status` and copied into `apps/api/.env`:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_DB_URL`
+- `SUPABASE_JWT_SECRET`
+
+Only `apps/api` may use `SUPABASE_SERVICE_ROLE_KEY`. Frontend env files use
+the anon key (`NEXT_PUBLIC_SUPABASE_ANON_KEY`) for Auth only and must never
+contain the service-role key.
 
 ## Local development
 

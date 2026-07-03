@@ -157,11 +157,11 @@ component/permission/i18n patterns under `[locale]/w/[workspaceId]`.
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T031 [P] Complete and proofread en/ar i18n strings for all file surfaces and verify RTL layout of the files page, upload, and settings toggle
-- [ ] T032 [P] Playwright e2e `apps/web/e2e/files.spec.ts`: sign in → upload → see in list → preview → delete happy path, plus Viewer sees no upload/delete controls
-- [ ] T033 Run `quickstart.md` validation end to end (all six pytest suites + the frontend test/e2e commands + the manual role smoke matrix) and record results
-- [ ] T034 [P] Document the `receipts` private bucket, key convention, and env expectations in `supabase/README.md`
-- [ ] T035 Review storage error handling and logging in `apps/api/app/services/storage.py` for consistent error codes and no service-role-key/secret leakage (reuse the `_sanitized_*` pattern)
+- [X] T031 [P] Complete and proofread en/ar i18n strings for all file surfaces and verify RTL layout of the files page, upload, and settings toggle
+- [X] T032 [P] Playwright e2e `apps/web/e2e/files.spec.ts`: sign in → upload → see in list → preview → delete happy path, plus Viewer sees no upload/delete controls
+- [X] T033 Run `quickstart.md` validation end to end (all six pytest suites + the frontend test/e2e commands + the manual role smoke matrix) and record results
+- [X] T034 [P] Document the `receipts` private bucket, key convention, and env expectations in `supabase/README.md`
+- [X] T035 Review storage error handling and logging in `apps/api/app/services/storage.py` for consistent error codes and no service-role-key/secret leakage (reuse the `_sanitized_*` pattern)
 
 ---
 
