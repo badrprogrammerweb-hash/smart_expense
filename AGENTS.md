@@ -1,5 +1,5 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/006-receipt-invoice-storage/plan.md` (Phase 6 — Receipt and Invoice Storage).
+`specs/007-byok-ai-settings/plan.md` (Phase 7 — BYOK AI Settings).
 <!-- SPECKIT END -->
