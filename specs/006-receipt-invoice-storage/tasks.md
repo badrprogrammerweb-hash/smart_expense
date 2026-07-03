@@ -82,14 +82,14 @@ component/permission/i18n patterns under `[locale]/w/[workspaceId]`.
 
 ### Tests for User Story 2
 
-- [ ] T014 [P] [US2] Backend test `apps/api/tests/test_files_access_privacy.py`: list `200`; `download-url` `200` with `expires_in≤300`; non-member → `404`; anonymous → `401` (FR-008–011; SC-002). (Deleted-file `410` is covered in US4/T023.)
-- [ ] T015 [P] [US2] Backend test `apps/api/tests/test_files_isolation.py`: list/get/download-url/link/delete against a file in another workspace all → `404` for every role (FR-024; SC-002)
+- [X] T014 [P] [US2] Backend test `apps/api/tests/test_files_access_privacy.py`: list `200`; `download-url` `200` with `expires_in≤300`; non-member → `404`; anonymous → `401` (FR-008–011; SC-002). (Deleted-file `410` is covered in US4/T023.)
+- [X] T015 [P] [US2] Backend test `apps/api/tests/test_files_isolation.py`: list/get/download-url/link/delete against a file in another workspace all → `404` for every role (FR-024; SC-002)
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Implement list (active-only), get-metadata (incl. deleted rows), and `download-url` (active-only, else `410`) in `apps/api/app/services/files.py` + `apps/api/app/routes/files.py`, minting signed URLs via `services/storage.py` after authorization
-- [ ] T017 [P] [US2] Frontend `apps/web/components/files/FileList.tsx` + `FileRow.tsx`: columns name/type/size/upload time/uploader/linked-expense badge; preview/download uses `download-url`; wire into the files page with an empty state
-- [ ] T018 [P] [US2] Frontend test `apps/web/components/files/__tests__/file-list.test.tsx`: rows render metadata, empty state shows, preview/download triggers the client call
+- [X] T016 [US2] Implement list (active-only), get-metadata (incl. deleted rows), and `download-url` (active-only, else `410`) in `apps/api/app/services/files.py` + `apps/api/app/routes/files.py`, minting signed URLs via `services/storage.py` after authorization
+- [X] T017 [P] [US2] Frontend `apps/web/components/files/FileList.tsx` + `FileRow.tsx`: columns name/type/size/upload time/uploader/linked-expense badge; preview/download uses `download-url`; wire into the files page with an empty state
+- [X] T018 [P] [US2] Frontend test `apps/web/components/files/__tests__/file-list.test.tsx`: rows render metadata, empty state shows, preview/download triggers the client call
 
 **Checkpoint**: Private listing and access work and are independently testable.
 

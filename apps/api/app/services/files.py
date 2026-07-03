@@ -12,7 +12,7 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import database_unavailable_exception
-from app.schemas.files import FileMetadata
+from app.schemas.files import FileListResponse, FileMetadata, SignedUrlResponse
 from app.services import storage
 
 
@@ -65,6 +65,14 @@ def storage_unavailable() -> HTTPException:
         status.HTTP_503_SERVICE_UNAVAILABLE,
         "storage_unavailable",
         "File storage is temporarily unavailable.",
+    )
+
+
+def file_deleted() -> HTTPException:
+    return error(
+        status.HTTP_410_GONE,
+        "file_deleted",
+        "This file has been deleted.",
     )
 
 
@@ -251,3 +259,85 @@ async def upload_file(
     if row is None:
         raise not_found()
     return _file_metadata_from_row(row)
+
+
+async def _file_row(session: AsyncSession, workspace_id: UUID, file_id: UUID):
+    try:
+        result = await session.execute(
+            text(
+                """
+                select id, original_filename, content_type, size_bytes, expense_id,
+                       uploaded_by, status, created_at, deleted_at, deleted_by,
+                       storage_path
+                from public.files
+                where workspace_id = :workspace_id
+                  and id = :file_id
+                """
+            ),
+            {"workspace_id": str(workspace_id), "file_id": str(file_id)},
+        )
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+
+    row = result.first()
+    if row is None:
+        raise not_found()
+    return row
+
+
+async def list_files(
+    session: AsyncSession,
+    workspace_id: UUID,
+    user_id: UUID,
+) -> FileListResponse:
+    await workspace_role(session, workspace_id, user_id)
+
+    try:
+        result = await session.execute(
+            text(
+                """
+                select id, original_filename, content_type, size_bytes, expense_id,
+                       uploaded_by, status, created_at, deleted_at, deleted_by
+                from public.files
+                where workspace_id = :workspace_id
+                  and status = 'active'
+                order by created_at desc, id desc
+                """
+            ),
+            {"workspace_id": str(workspace_id)},
+        )
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+
+    return FileListResponse(files=[_file_metadata_from_row(row) for row in result])
+
+
+async def get_file_metadata(
+    session: AsyncSession,
+    workspace_id: UUID,
+    user_id: UUID,
+    file_id: UUID,
+) -> FileMetadata:
+    await workspace_role(session, workspace_id, user_id)
+    return _file_metadata_from_row(await _file_row(session, workspace_id, file_id))
+
+
+async def get_download_url(
+    session: AsyncSession,
+    workspace_id: UUID,
+    user_id: UUID,
+    file_id: UUID,
+) -> SignedUrlResponse:
+    await workspace_role(session, workspace_id, user_id)
+    row = await _file_row(session, workspace_id, file_id)
+    if row.status == "deleted":
+        raise file_deleted()
+
+    ttl = storage.DEFAULT_SIGNED_URL_TTL_SECONDS
+    try:
+        signed_url = await storage.sign_url(row.storage_path, ttl)
+    except storage.StorageError as exc:
+        raise storage_unavailable() from exc
+
+    expires_in = max(1, min(signed_url.expires_in, ttl))
+    return SignedUrlResponse(url=signed_url.url, expires_in=expires_in)

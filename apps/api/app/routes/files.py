@@ -12,8 +12,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser, get_current_user
 from app.db import get_rls_session
-from app.schemas.files import FileMetadata
-from app.services.files import MAX_FILE_SIZE_BYTES, require_upload_permission, upload_file
+from app.schemas.files import FileListResponse, FileMetadata, SignedUrlResponse
+from app.services.files import (
+    MAX_FILE_SIZE_BYTES,
+    get_download_url,
+    get_file_metadata,
+    list_files,
+    require_upload_permission,
+    upload_file,
+)
 
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/files", tags=["files"])
@@ -118,6 +125,14 @@ async def _parse_upload(request: Request) -> ParsedUpload:
     return ParsedUpload(filename=filename, content=content, expense_id=expense_id)
 
 
+def _not_implemented() -> HTTPException:
+    return _request_error(
+        status.HTTP_501_NOT_IMPLEMENTED,
+        "not_implemented",
+        "This file operation is not available yet.",
+    )
+
+
 @router.post("", response_model=FileMetadata, status_code=status.HTTP_201_CREATED)
 async def upload_workspace_file(
     workspace_id: UUID,
@@ -139,3 +154,43 @@ async def upload_workspace_file(
         parsed.content,
         parsed.expense_id,
     )
+
+
+@router.get("", response_model=FileListResponse)
+async def list_workspace_files(
+    workspace_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_rls_session),
+) -> FileListResponse:
+    return await list_files(session, workspace_id, current_user.user_id)
+
+
+@router.get("/{file_id}", response_model=FileMetadata)
+async def get_workspace_file(
+    workspace_id: UUID,
+    file_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_rls_session),
+) -> FileMetadata:
+    return await get_file_metadata(session, workspace_id, current_user.user_id, file_id)
+
+
+@router.get("/{file_id}/download-url", response_model=SignedUrlResponse)
+async def get_workspace_file_download_url(
+    workspace_id: UUID,
+    file_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_rls_session),
+) -> SignedUrlResponse:
+    return await get_download_url(session, workspace_id, current_user.user_id, file_id)
+
+
+@router.delete("/{file_id}", response_model=FileMetadata)
+async def delete_workspace_file(
+    workspace_id: UUID,
+    file_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_rls_session),
+) -> FileMetadata:
+    await get_file_metadata(session, workspace_id, current_user.user_id, file_id)
+    raise _not_implemented()
