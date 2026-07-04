@@ -1,9 +1,12 @@
-param(
+﻿param(
   [Parameter(Mandatory=$true)]
   [int]$Phase,
 
   [Parameter(Mandatory=$true)]
   [string]$SpecPath,
+
+  [Parameter(Mandatory=$false)]
+  [string]$TaskScope,
 
   [switch]$DryRun
 )
@@ -13,6 +16,9 @@ $ErrorActionPreference = "Continue"
 $Root = "D:\claude\smart_expense"
 $SkillPath = "D:\claude\smart_expense\.agents\skills\speckit-implement\SKILL.md"
 $NextPhase = $Phase + 1
+if (-not $DryRun -and [string]::IsNullOrWhiteSpace($TaskScope)) {
+  throw "TaskScope is required. Example: -TaskScope 'Phase 1: Setup only, T001-T003'"
+}
 
 Set-Location $Root
 
@@ -27,9 +33,38 @@ if ($DryRun) {
   $CodexPrompt = "Say CODEX_OK only."
   $ClaudePrompt = "Say CLAUDE_OK only."
 } else {
-  $CodexPrompt = "Read and follow this skill file: $SkillPath. Execute only Phase $Phase tasks from $SpecPath. Follow the tasks exactly. Do not skip tests. Do not continue to Phase $NextPhase. Stop after Phase $Phase is complete with a summary."
+  $CodexPrompt = @"
+Read and follow this skill file: $SkillPath.
 
-  $ClaudePrompt = "Review completed Phase $Phase from $SpecPath. If you find any real bug, missing requirement, test gap, security issue, or mismatch with the spec/tasks, fix it directly, run the relevant tests, and summarize changes. Do not continue to Phase $NextPhase."
+Project feature phase: Phase $Phase.
+Task file: $SpecPath.
+
+Execute ONLY this selected task scope:
+$TaskScope
+
+Rules:
+- Do not implement, mark complete, edit, or touch any task outside the selected scope.
+- Do not continue to later phases, stories, or tasks in tasks.md.
+- Follow the selected tasks exactly.
+- Run only the relevant verification for this selected scope.
+- Stop after this selected scope is complete.
+- Summarize changed files and verification.
+"@
+
+  $ClaudePrompt = @"
+Review ONLY this completed selected task scope for project Phase ${Phase}:
+$TaskScope
+
+Task file:
+$SpecPath
+
+Rules:
+- Do not implement, mark complete, edit, or touch any task outside the selected scope.
+- Do not continue to later phases, stories, or tasks in tasks.md.
+- If there is a real bug, missing requirement, test gap, security issue, or mismatch with the selected scope, fix it directly.
+- Run the relevant verification.
+- Summarize review result, fixes, and verification.
+"@
 }
 
 Write-Host ""
