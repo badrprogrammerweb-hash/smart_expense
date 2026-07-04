@@ -16,6 +16,7 @@
     "incomes": "Incomes",
     "expenses": "Expenses",
     "files": "Files",
+    "extractions": "AI reviews",
     "categories": "Categories",
     "reports": "Reports",
     "settings": "Settings",
@@ -218,16 +219,24 @@
     },
     "review": {
       "title": "Review extraction",
+      "previewTitle": "Receipt preview",
+      "previewUnavailable": "Preview is unavailable.",
       "amount": "Amount",
       "date": "Date",
       "vendor": "Vendor",
+      "category": "Category",
+      "description": "Description",
       "suggestedCategory": "Suggested category",
       "extractedCurrency": "Detected currency",
       "autoDeleteNotice": "This file will be removed after you confirm, because auto-delete is on for this workspace."
     },
     "queue": {
       "title": "Pending review",
-      "emptyState": "No extractions waiting for review."
+      "emptyState": "No extractions waiting for review.",
+      "file": "File",
+      "status": "Status",
+      "triggeredAt": "Triggered",
+      "actions": "Actions"
     },
     "errors": {
       "aiNotConfigured": "Configure an AI provider key before triggering extraction.",

@@ -16,6 +16,7 @@
     "incomes": "الدخل",
     "expenses": "المصروفات",
     "files": "الملفات",
+    "extractions": "مراجعات الذكاء",
     "categories": "التصنيفات",
     "reports": "التقارير",
     "settings": "الإعدادات",
@@ -218,16 +219,24 @@
     },
     "review": {
       "title": "مراجعة الاستخراج",
+      "previewTitle": "معاينة الإيصال",
+      "previewUnavailable": "المعاينة غير متاحة.",
       "amount": "المبلغ",
       "date": "التاريخ",
       "vendor": "التاجر",
+      "category": "التصنيف",
+      "description": "الوصف",
       "suggestedCategory": "التصنيف المقترح",
       "extractedCurrency": "العملة المكتشفة",
       "autoDeleteNotice": "سيُحذف هذا الملف بعد التأكيد، لأن الحذف التلقائي مفعّل لمساحة العمل هذه."
     },
     "queue": {
       "title": "بانتظار المراجعة",
-      "emptyState": "لا توجد عمليات استخراج بانتظار المراجعة."
+      "emptyState": "لا توجد عمليات استخراج بانتظار المراجعة.",
+      "file": "الملف",
+      "status": "الحالة",
+      "triggeredAt": "بدأ في",
+      "actions": "الإجراءات"
     },
     "errors": {
       "aiNotConfigured": "أعدّ مفتاح مزوّد الذكاء الاصطناعي قبل بدء الاستخراج.",

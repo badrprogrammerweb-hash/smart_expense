@@ -17,13 +17,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser
 from app.db import database_unavailable_exception, open_rls_session
 from app.schemas.ai_settings import AiProvider
-from app.schemas.extractions import ExtractionDraft, ExtractionRead, FailureReason
+from app.schemas.extractions import (
+    ConfirmExtractionRequest,
+    ExtractionDraft,
+    ExtractionRead,
+    ExtractionStatus,
+    FailureReason,
+)
 from app.services import ai_providers, storage
 
 
 TRIGGER_ROLES = frozenset({"owner", "admin", "member"})
 STALE_PROCESSING_INTERVAL = "2 minutes"
-DRAFT_VISIBLE_STATUSES = frozenset({"ready_for_review", "confirmed"})
+DRAFT_VISIBLE_STATUSES = frozenset({"ready_for_review", "confirmed", "discarded"})
 DISCARDABLE_STATUSES = frozenset({"ready_for_review", "failed"})
 
 
@@ -55,6 +61,30 @@ def extraction_in_progress() -> HTTPException:
     )
 
 
+def already_resolved() -> HTTPException:
+    return error(
+        status.HTTP_409_CONFLICT,
+        "already_resolved",
+        "This extraction has already been resolved.",
+    )
+
+
+def invalid_request() -> HTTPException:
+    return error(
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        "invalid_request",
+        "Check the amount and date and try again.",
+    )
+
+
+def storage_unavailable() -> HTTPException:
+    return error(
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+        "storage_unavailable",
+        "File storage is temporarily unavailable.",
+    )
+
+
 def _sqlstate(exc: DBAPIError) -> str | None:
     source = getattr(exc, "orig", None)
     for attr in ("sqlstate", "pgcode"):
@@ -62,6 +92,24 @@ def _sqlstate(exc: DBAPIError) -> str | None:
         if value:
             return str(value)
     return None
+
+
+def _is_already_resolved_error(exc: DBAPIError) -> bool:
+    return "already_resolved" in str(exc).lower()
+
+
+def _is_validation_error(exc: DBAPIError) -> bool:
+    message = str(exc).lower()
+    return any(
+        token in message
+        for token in (
+            "invalid_amount",
+            "invalid_date",
+            "category_not_in_workspace",
+            "category_archived",
+            "violates check constraint",
+        )
+    )
 
 
 async def workspace_role(session: AsyncSession, workspace_id: UUID, user_id: UUID) -> str:
@@ -98,6 +146,23 @@ async def _self_heal_stale_processing(session: AsyncSession, file_id: UUID) -> N
             """
         ),
         {"file_id": str(file_id)},
+    )
+
+
+async def _self_heal_stale_processing_for_workspace(
+    session: AsyncSession, workspace_id: UUID
+) -> None:
+    await session.execute(
+        text(
+            f"""
+            update public.ai_extractions
+            set status = 'failed', failure_reason = 'timeout', updated_at = now()
+            where workspace_id = :workspace_id
+              and status = 'processing'
+              and triggered_at < now() - interval '{STALE_PROCESSING_INTERVAL}'
+            """
+        ),
+        {"workspace_id": str(workspace_id)},
     )
 
 
@@ -227,7 +292,7 @@ async def _persist_terminal_state(
     )
 
 
-async def _extraction_row(session: AsyncSession, extraction_id: UUID):
+async def _extraction_row(session: AsyncSession, workspace_id: UUID, extraction_id: UUID):
     result = await session.execute(
         text(
             """
@@ -236,10 +301,11 @@ async def _extraction_row(session: AsyncSession, extraction_id: UUID):
                    triggered_by, triggered_at, confirmed_by, confirmed_at,
                    discarded_by, discarded_at, expense_id
             from public.ai_extractions
-            where id = :id
+            where workspace_id = :workspace_id
+              and id = :id
             """
         ),
-        {"id": str(extraction_id)},
+        {"workspace_id": str(workspace_id), "id": str(extraction_id)},
     )
     row = result.first()
     if row is None:
@@ -329,6 +395,132 @@ async def trigger_extraction(
 
     async with open_rls_session(current_user) as session:
         await _persist_terminal_state(session, extraction_id, outcome)
-        row = await _extraction_row(session, extraction_id)
+        row = await _extraction_row(session, workspace_id, extraction_id)
 
     return _extraction_read_from_row(row, user_id, role)
+
+
+async def list_extractions(
+    session: AsyncSession,
+    workspace_id: UUID,
+    user_id: UUID,
+    status_filter: ExtractionStatus | None = None,
+) -> list[ExtractionRead]:
+    role = await workspace_role(session, workspace_id, user_id)
+    await _self_heal_stale_processing_for_workspace(session, workspace_id)
+
+    clauses = ["workspace_id = :workspace_id"]
+    params: dict[str, object] = {"workspace_id": str(workspace_id)}
+    if status_filter is not None:
+        clauses.append("status = :status")
+        params["status"] = status_filter.value
+
+    try:
+        result = await session.execute(
+            text(
+                f"""
+                select id, workspace_id, file_id, provider, status, amount_minor,
+                       extracted_currency, occurred_on, vendor_name, suggested_category,
+                       failure_reason, triggered_by, triggered_at, confirmed_by,
+                       confirmed_at, discarded_by, discarded_at, expense_id
+                from public.ai_extractions
+                where {" and ".join(clauses)}
+                order by triggered_at desc, id desc
+                """
+            ),
+            params,
+        )
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+
+    return [_extraction_read_from_row(row, user_id, role) for row in result]
+
+
+async def get_extraction(
+    session: AsyncSession,
+    workspace_id: UUID,
+    extraction_id: UUID,
+    user_id: UUID,
+) -> ExtractionRead:
+    role = await workspace_role(session, workspace_id, user_id)
+    await _self_heal_stale_processing_for_workspace(session, workspace_id)
+    row = await _extraction_row(session, workspace_id, extraction_id)
+    return _extraction_read_from_row(row, user_id, role)
+
+
+async def confirm_extraction(
+    workspace_id: UUID,
+    extraction_id: UUID,
+    request: ConfirmExtractionRequest,
+    current_user: CurrentUser,
+) -> ExtractionRead:
+    remove_storage_path: str | None = None
+    async with open_rls_session(current_user) as session:
+        role = await workspace_role(session, workspace_id, current_user.user_id)
+        row = await _extraction_row(session, workspace_id, extraction_id)
+        if row.status != "ready_for_review":
+            raise already_resolved()
+        can_confirm = role in {"owner", "admin"} or (
+            role == "member" and str(row.triggered_by) == str(current_user.user_id)
+        )
+        if not can_confirm:
+            raise forbidden()
+
+        # Validated here (after authorization), not as an early return, so an
+        # unauthorized caller always sees 403/404/409 rather than a 422 that
+        # would leak "this request would otherwise have been processed."
+        if request.amount_minor <= 0:
+            raise invalid_request()
+
+        try:
+            result = await session.execute(
+                text(
+                    """
+                    select expense_id, should_delete_binary, storage_path
+                    from public.confirm_ai_extraction(
+                        cast(:extraction_id as uuid),
+                        :amount_minor,
+                        :occurred_on,
+                        cast(:category_id as uuid),
+                        :merchant_name,
+                        :description
+                    )
+                    """
+                ),
+                {
+                    "extraction_id": str(extraction_id),
+                    "amount_minor": request.amount_minor,
+                    "occurred_on": request.occurred_on,
+                    "category_id": str(request.category_id) if request.category_id else None,
+                    "merchant_name": request.merchant_name,
+                    "description": request.description,
+                },
+            )
+        except DBAPIError as exc:
+            sqlstate = _sqlstate(exc)
+            if sqlstate == "P0002":
+                raise not_found() from exc
+            if sqlstate == "42501":
+                raise forbidden() from exc
+            if _is_already_resolved_error(exc):
+                raise already_resolved() from exc
+            if _is_validation_error(exc):
+                raise invalid_request() from exc
+            raise database_unavailable_exception(exc) from exc
+
+        rpc_row = result.first()
+        if rpc_row is None:
+            raise database_unavailable_exception()
+        if rpc_row.should_delete_binary and rpc_row.storage_path:
+            remove_storage_path = str(rpc_row.storage_path)
+
+    if remove_storage_path is not None:
+        try:
+            await storage.remove_object(remove_storage_path)
+        except storage.StorageError as exc:
+            raise storage_unavailable() from exc
+
+    async with open_rls_session(current_user) as session:
+        role = await workspace_role(session, workspace_id, current_user.user_id)
+        row = await _extraction_row(session, workspace_id, extraction_id)
+        return _extraction_read_from_row(row, current_user.user_id, role)
