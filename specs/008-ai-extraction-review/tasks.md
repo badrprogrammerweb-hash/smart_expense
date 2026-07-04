@@ -67,15 +67,15 @@ handled only server-side, for the duration of one extraction call, and is
 
 ### Tests for User Story 1
 
-- [ ] T011 [P] [US1] Backend test `apps/api/tests/test_extraction_trigger.py`: happy path (stubbed provider) → `200` `ready_for_review` with draft fields; no BYOK configured → `409 ai_not_configured`, no row created; file already has an active extraction or `expense_id` set → `409 extraction_in_progress`; Viewer → `403` (FR-001–FR-005, FR-003a)
+- [X] T011 [P] [US1] Backend test `apps/api/tests/test_extraction_trigger.py`: happy path (stubbed provider) → `200` `ready_for_review` with draft fields; no BYOK configured → `409 ai_not_configured`, no row created; file already has an active extraction or `expense_id` set → `409 extraction_in_progress`; Viewer → `403` (FR-001–FR-005, FR-003a)
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Implement precondition checks in `apps/api/app/services/extractions.py`: role resolution, the lazy stale-`processing` self-heal (research Decision 8), the active-extraction and linked-file blocking checks (FR-002, FR-003, FR-003a)
-- [ ] T013 [US1] Implement the three-phase trigger orchestration in `apps/api/app/services/extractions.py` (research Decision 7): Session 1 calls `get_workspace_ai_key_for_extraction` and inserts the `processing` row; no session held while `storage.get_object` + `ai_providers.extract_receipt` run; Session 2 persists the terminal state
-- [ ] T014 [US1] Implement `POST /workspaces/{workspace_id}/files/{file_id}/extractions` in `apps/api/app/routes/extractions.py`, returning the terminal `ExtractionRead` per `contracts/extraction-api.md`
-- [ ] T015 [P] [US1] Frontend `apps/web/components/extraction/TriggerExtractionButton.tsx`: gated by `canTriggerExtraction`, shows a loading state for the duration of the call, calls `lib/api/extractions.ts`, surfaces `409`/`403` as clear messages; mounted into the existing files list (`apps/web/app/[locale]/w/[workspaceId]/files/page.tsx`)
-- [ ] T016 [P] [US1] Frontend test `apps/web/components/extraction/__tests__/trigger-extraction-button.test.tsx`: hidden/disabled for Viewer, shows a loading state during the call, renders the terminal ready/failed result
+- [X] T012 [US1] Implement precondition checks in `apps/api/app/services/extractions.py`: role resolution, the lazy stale-`processing` self-heal (research Decision 8), the active-extraction and linked-file blocking checks (FR-002, FR-003, FR-003a)
+- [X] T013 [US1] Implement the three-phase trigger orchestration in `apps/api/app/services/extractions.py` (research Decision 7): Session 1 calls `get_workspace_ai_key_for_extraction` and inserts the `processing` row; no session held while `storage.get_object` + `ai_providers.extract_receipt` run; Session 2 persists the terminal state
+- [X] T014 [US1] Implement `POST /workspaces/{workspace_id}/files/{file_id}/extractions` in `apps/api/app/routes/extractions.py`, returning the terminal `ExtractionRead` per `contracts/extraction-api.md`
+- [X] T015 [P] [US1] Frontend `apps/web/components/extraction/TriggerExtractionButton.tsx`: gated by `canTriggerExtraction`, shows a loading state for the duration of the call, calls `lib/api/extractions.ts`, surfaces `409`/`403` as clear messages; mounted into the existing files list (`apps/web/app/[locale]/w/[workspaceId]/files/page.tsx`)
+- [X] T016 [P] [US1] Frontend test `apps/web/components/extraction/__tests__/trigger-extraction-button.test.tsx`: hidden/disabled for Viewer, shows a loading state during the call, renders the terminal ready/failed result
 
 **Checkpoint**: Triggering extraction works end to end and is independently testable.
 
