@@ -18,7 +18,7 @@ test.describe("locale and RTL", () => {
     await page.getByRole("link", { name: "Settings" }).click();
     await page.waitForURL(/\/en\/w\/.+\/settings$/);
     await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
-    await expect(page.getByRole("heading", { name: "AI review" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "AI settings" })).toBeVisible();
     await expect(page.getByText("AI is optional and not yet configured.", { exact: false })).toBeVisible();
 
     // Switching does not require a manual page reload: the same client
@@ -58,7 +58,7 @@ test.describe("locale and RTL", () => {
     await page.waitForURL(/\/en\/w\/.+\/settings$/);
     await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "AI review" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "AI settings" })).toBeVisible();
   });
 
   test("the chosen language survives sign-out and steers the signed-out root redirect", async ({ page }) => {

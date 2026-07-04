@@ -115,6 +115,36 @@
     "aiTitle": "مراجعة الذكاء الاصطناعي",
     "aiDescription": "الذكاء الاصطناعي اختياري وغير مفعّل حاليًا. يمكنك إضافة الدخل والمصروفات وتأكيدها يدويًا بدونه."
   },
+  "aiSettings": {
+    "title": "إعدادات الذكاء الاصطناعي",
+    "providerLabel": "المزود",
+    "keyLabel": "مفتاح API",
+    "replaceKeyLabel": "مفتاح API جديد",
+    "replaceAction": "استبدال المفتاح",
+    "removeAction": "حذف المفتاح",
+    "removeTitle": "حذف مفتاح الذكاء الاصطناعي؟",
+    "removeDescription": "سيتم حذف المفتاح المخزن من Vault وستعود مساحة العمل إلى حالة غير مهيأة.",
+    "manualFirstNote": "حفظ المفتاح لا يشغّل أي عمل بالذكاء الاصطناعي في هذه المرحلة.",
+    "providers": {
+      "gemini": "Gemini",
+      "openai": "OpenAI"
+    },
+    "status": {
+      "configured": "مهيأ",
+      "notConfigured": "غير مهيأ",
+      "noKeyHint": "لا يوجد مفتاح مزود مخزن لهذه مساحة العمل.",
+      "updated": "تم التحديث في {date} بواسطة {user}",
+      "unknownUser": "مستخدم غير معروف"
+    },
+    "formatHints": {
+      "gemini": "مفاتيح Gemini تبدأ بـ AIza وطولها من 35 إلى 45 حرفًا.",
+      "openai": "مفاتيح OpenAI تبدأ بـ sk- وطولها 20 حرفًا أو أكثر."
+    },
+    "errors": {
+      "requiredKey": "أدخل مفتاح API.",
+      "invalidKeyFormat": "استخدم مفتاحًا يطابق تنسيق المزود المحدد."
+    }
+  },
   "files": {
     "title": "الملفات",
     "emptyState": "لا توجد ملفات إيصالات أو فواتير بعد.",

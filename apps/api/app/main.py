@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 from app.core.config import get_settings
 from app.core.logging import configure_logging
+from app.routes.ai_settings import router as ai_settings_router
 from app.routes.categories import router as categories_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.expenses import router as expenses_router
@@ -87,3 +88,4 @@ app.include_router(expenses_router)
 app.include_router(categories_router)
 app.include_router(files_router)
 app.include_router(dashboard_router)
+app.include_router(ai_settings_router)

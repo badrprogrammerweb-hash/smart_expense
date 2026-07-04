@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-import { AiOptionalNotice } from "@/components/settings/AiOptionalNotice";
+import { AiSettingsCard } from "@/components/settings/AiSettingsCard";
 import { AutoDeleteToggle } from "@/components/settings/AutoDeleteToggle";
 import { LanguageSwitcher } from "@/components/settings/LanguageSwitcher";
 import { useWorkspaceContext } from "@/lib/workspace-context";
@@ -38,7 +38,7 @@ export default function SettingsPage() {
         role={role}
         workspaceId={workspaceId}
       />
-      <AiOptionalNotice />
+      <AiSettingsCard role={role} workspaceId={workspaceId} />
     </div>
   );
 }
