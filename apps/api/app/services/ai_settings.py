@@ -50,12 +50,6 @@ def invalid_key_format(provider: AiProvider | str) -> HTTPException:
     )
 
 
-def _redact_secret(value: str, secret: str | None) -> str:
-    if secret:
-        return value.replace(secret, "<redacted>")
-    return value
-
-
 def _masked_hint(key_last4: str | None) -> str | None:
     if not key_last4:
         return None

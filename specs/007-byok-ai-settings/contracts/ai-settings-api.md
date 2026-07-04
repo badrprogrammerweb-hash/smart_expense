@@ -10,15 +10,19 @@ these endpoints** (FR-007, FR-009; SC-002).
 
 ## Error envelope (shared)
 
-Errors use the existing shape: `HTTP <status>` with body
-`{ "detail": { "code": "<code>", "message": "<human message>" } }`.
+Errors use the app-wide envelope produced by the global exception handlers in
+`app/main.py`: `HTTP <status>` with body
+`{ "error": { "code": "<code>", "message": "<human message>" } }`. (Route/service
+code raises `HTTPException(detail={"code", "message"})`; the handler rewrites
+`detail` → `error`. Pydantic request-validation failures are also emitted in this
+same `{ "error": { … } }` shape.)
 
 | Status | `code` | When |
 |--------|--------|------|
-| 401 | `unauthorized` | Missing/invalid token (handled by `get_current_user`). |
+| 401 | `unauthenticated` | Missing/invalid token (handled by `get_current_user`). |
 | 404 | `not_found` | Workspace does not exist **or** caller is not a member (existence is not leaked — mirrors `routes/workspaces.py`). |
 | 403 | `forbidden` | Caller is a member but **not the Owner** (PUT/DELETE only). |
-| 422 | `invalid_request` / `invalid_key_format` | Body invalid (see PUT). Nothing is stored. |
+| 422 | `invalid_request` / `invalid_key_format` | Body invalid (see PUT): `invalid_request` for missing/unsupported provider or missing `api_key` (Pydantic), `invalid_key_format` for a failed shape check. Nothing is stored. |
 | 503 | `database_unavailable` | DB/RPC unreachable (existing `database_unavailable_exception`). |
 
 ## Model: `AiSettingsStatus` (response for all three endpoints)
