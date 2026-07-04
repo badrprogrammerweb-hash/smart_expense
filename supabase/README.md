@@ -217,6 +217,40 @@ Only `apps/api` may use `SUPABASE_SERVICE_ROLE_KEY`. Frontend env files use
 the anon key (`NEXT_PUBLIC_SUPABASE_ANON_KEY`) for Auth only and must never
 contain the service-role key.
 
+## BYOK AI Settings
+
+Phase 7 adds `public.workspace_ai_settings`, a one-row-per-workspace metadata
+table for optional AI provider keys. The table stores only non-secret fields:
+`provider` (`gemini` or `openai`), `vault_secret_id`, `key_last4`, `updated_by`,
+`created_at`, and `updated_at`. The raw key is never stored in `public` tables.
+
+The raw provider key is stored in Supabase Vault as a secret named
+`workspace_ai_key:{workspace_id}`. Clients and normal authenticated database
+roles are never granted access to `vault.decrypted_secrets`; this phase only
+writes, replaces, and deletes the secret.
+
+All writes go through two `SECURITY DEFINER` functions:
+
+- `public.set_workspace_ai_key(workspace_id, provider, api_key)` checks that
+  `auth.uid()` is the workspace Owner, then creates a Vault secret on first
+  configuration or updates the existing `vault_secret_id` in place on replace or
+  provider switch. It returns only provider, last-4 hint, updater, and timestamp.
+- `public.clear_workspace_ai_key(workspace_id)` checks Owner role, deletes the
+  Vault secret if present, deletes the metadata row, and is safe to call when no
+  configuration exists.
+
+`authenticated` receives `SELECT` on `workspace_ai_settings` and `EXECUTE` on
+those two RPCs only. Direct `INSERT`, `UPDATE`, and `DELETE` grants are revoked
+so the app cannot bypass the RPC Owner checks. The migration must run as, or set
+function ownership to, a role with Vault privileges (locally `postgres`) so the
+definer context can call `vault.create_secret`, `vault.update_secret`, and delete
+from `vault.secrets`.
+
+FastAPI accesses this feature through the regular authenticated RLS session. The
+backend performs a second Owner check before calling the write RPCs, uses
+Pydantic `SecretStr` for inbound keys, validates key shape without any provider
+network call, and never logs or returns the raw key.
+
 ## Local development
 
 ```bash

@@ -25,6 +25,10 @@ export function canEditAutoDelete(role: WorkspaceRole) {
   return role === "owner";
 }
 
+export function canManageAiSettings(role: WorkspaceRole) {
+  return role === "owner";
+}
+
 export function canEditOrDeleteExpense(
   record: Pick<ExpenseRecord, "created_by">,
   role: WorkspaceRole,

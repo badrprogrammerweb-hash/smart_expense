@@ -115,6 +115,36 @@
     "aiTitle": "AI review",
     "aiDescription": "AI is optional and not yet configured. You can add and confirm income and expenses manually without it."
   },
+  "aiSettings": {
+    "title": "AI settings",
+    "providerLabel": "Provider",
+    "keyLabel": "API key",
+    "replaceKeyLabel": "New API key",
+    "replaceAction": "Replace key",
+    "removeAction": "Remove key",
+    "removeTitle": "Remove AI key?",
+    "removeDescription": "The stored key will be deleted from Vault and this workspace will return to not configured.",
+    "manualFirstNote": "Saving a key does not trigger AI work in this phase.",
+    "providers": {
+      "gemini": "Gemini",
+      "openai": "OpenAI"
+    },
+    "status": {
+      "configured": "Configured",
+      "notConfigured": "Not configured",
+      "noKeyHint": "No provider key is stored for this workspace.",
+      "updated": "Updated {date} by {user}",
+      "unknownUser": "unknown user"
+    },
+    "formatHints": {
+      "gemini": "Gemini keys start with AIza and are 35-45 characters.",
+      "openai": "OpenAI keys start with sk- and are at least 20 characters."
+    },
+    "errors": {
+      "requiredKey": "Enter an API key.",
+      "invalidKeyFormat": "Use a key that matches the selected provider format."
+    }
+  },
   "files": {
     "title": "Files",
     "emptyState": "No receipt or invoice files yet.",
