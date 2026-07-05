@@ -112,12 +112,12 @@ handled only server-side, for the duration of one extraction call, and is
 
 ### Tests for User Story 3
 
-- [ ] T024 [P] [US3] Backend test `apps/api/tests/test_extraction_discard.py`: discard from `ready_for_review` and from `failed`, by the triggering Member and by Owner/Admin (any triggerer) → `200`, no expense, file unaffected and re-triggerable; discard by a non-triggering Member or by a Viewer → `403`; discard of an already-resolved extraction → `409 already_resolved` (FR-017, FR-018)
+- [X] T024 [P] [US3] Backend test `apps/api/tests/test_extraction_discard.py`: discard from `ready_for_review` and from `failed`, by the triggering Member and by Owner/Admin (any triggerer) → `200`, no expense, file unaffected and re-triggerable; discard by a non-triggering Member or by a Viewer → `403`; discard of an already-resolved extraction → `409 already_resolved` (FR-017, FR-018)
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] Implement discard orchestration (plain RLS-governed `UPDATE ... WHERE status IN ('ready_for_review','failed')`, research Decision 10) in `apps/api/app/services/extractions.py` and `POST /workspaces/{workspace_id}/extractions/{extraction_id}/discard` in `apps/api/app/routes/extractions.py`
-- [ ] T026 [P] [US3] Frontend `apps/web/components/extraction/DiscardExtractionDialog.tsx`: gated by `can_discard`, wired into both the review screen (T021) and the pending-review queue (T022)
+- [X] T025 [US3] Implement discard orchestration (plain RLS-governed `UPDATE ... WHERE status IN ('ready_for_review','failed')`, research Decision 10) in `apps/api/app/services/extractions.py` and `POST /workspaces/{workspace_id}/extractions/{extraction_id}/discard` in `apps/api/app/routes/extractions.py`
+- [X] T026 [P] [US3] Frontend `apps/web/components/extraction/DiscardExtractionDialog.tsx`: gated by `can_discard`, wired into both the review screen (T021) and the pending-review queue (T022)
 
 **Checkpoint**: Discard works end to end and is independently testable.
 

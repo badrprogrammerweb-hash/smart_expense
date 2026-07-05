@@ -524,3 +524,58 @@ async def confirm_extraction(
         role = await workspace_role(session, workspace_id, current_user.user_id)
         row = await _extraction_row(session, workspace_id, extraction_id)
         return _extraction_read_from_row(row, current_user.user_id, role)
+
+
+async def discard_extraction(
+    workspace_id: UUID,
+    extraction_id: UUID,
+    current_user: CurrentUser,
+) -> ExtractionRead:
+    async with open_rls_session(current_user) as session:
+        role = await workspace_role(session, workspace_id, current_user.user_id)
+        row = await _extraction_row(session, workspace_id, extraction_id)
+        if row.status not in DISCARDABLE_STATUSES:
+            raise already_resolved()
+
+        can_discard = role in {"owner", "admin"} or (
+            role == "member" and str(row.triggered_by) == str(current_user.user_id)
+        )
+        if not can_discard:
+            raise forbidden()
+
+        try:
+            result = await session.execute(
+                text(
+                    """
+                    update public.ai_extractions
+                    set status = 'discarded',
+                        failure_reason = null,
+                        discarded_by = :discarded_by,
+                        discarded_at = now(),
+                        updated_at = now()
+                    where workspace_id = :workspace_id
+                      and id = :id
+                      and status in ('ready_for_review', 'failed')
+                    returning id, workspace_id, file_id, provider, status, amount_minor,
+                              extracted_currency, occurred_on, vendor_name,
+                              suggested_category, failure_reason, triggered_by,
+                              triggered_at, confirmed_by, confirmed_at,
+                              discarded_by, discarded_at, expense_id
+                    """
+                ),
+                {
+                    "workspace_id": str(workspace_id),
+                    "id": str(extraction_id),
+                    "discarded_by": str(current_user.user_id),
+                },
+            )
+        except DBAPIError as exc:
+            if _sqlstate(exc) == "42501":
+                raise forbidden() from exc
+            raise database_unavailable_exception(exc) from exc
+
+        discarded = result.first()
+        if discarded is None:
+            raise already_resolved()
+
+        return _extraction_read_from_row(discarded, current_user.user_id, role)

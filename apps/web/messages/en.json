@@ -213,9 +213,13 @@
     "actions": {
       "trigger": "Extract with AI",
       "retry": "Retry extraction",
+      "review": "Review",
       "confirm": "Confirm extraction",
       "discard": "Discard extraction",
       "confirmDiscard": "Confirm discard"
+    },
+    "discard": {
+      "description": "No expense will be created, and the file will stay available."
     },
     "review": {
       "title": "Review extraction",

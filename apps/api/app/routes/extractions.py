@@ -12,6 +12,7 @@ from app.db import get_rls_session
 from app.schemas.extractions import ConfirmExtractionRequest, ExtractionRead, ExtractionStatus
 from app.services.extractions import (
     confirm_extraction,
+    discard_extraction,
     get_extraction,
     list_extractions,
     trigger_extraction,
@@ -58,3 +59,12 @@ async def confirm_workspace_extraction(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> ExtractionRead:
     return await confirm_extraction(workspace_id, extraction_id, request, current_user)
+
+
+@router.post("/extractions/{extraction_id}/discard", response_model=ExtractionRead)
+async def discard_workspace_extraction(
+    workspace_id: UUID,
+    extraction_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+) -> ExtractionRead:
+    return await discard_extraction(workspace_id, extraction_id, current_user)

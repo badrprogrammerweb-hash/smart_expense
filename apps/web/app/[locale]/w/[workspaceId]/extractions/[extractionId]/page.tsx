@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
+import { DiscardExtractionDialog } from "@/components/extraction/DiscardExtractionDialog";
 import { ExtractionReviewForm } from "@/components/extraction/ExtractionReviewForm";
 import { getCategories } from "@/lib/api/categories";
 import { getExtraction } from "@/lib/api/extractions";
@@ -57,12 +58,19 @@ export default function ExtractionReviewPage() {
           <EmptyState title={t("review.previewUnavailable")} />
         )}
       </section>
-      <ExtractionReviewForm
-        categories={categories.data?.categories ?? []}
-        extraction={extraction.data}
-        workspaceId={workspaceId}
-        onConfirmed={() => void extraction.refetch()}
-      />
+      <div className="space-y-4">
+        <ExtractionReviewForm
+          categories={categories.data?.categories ?? []}
+          extraction={extraction.data}
+          workspaceId={workspaceId}
+          onConfirmed={() => void extraction.refetch()}
+        />
+        <DiscardExtractionDialog
+          extraction={extraction.data}
+          workspaceId={workspaceId}
+          onDiscarded={() => void extraction.refetch()}
+        />
+      </div>
     </div>
   );
 }

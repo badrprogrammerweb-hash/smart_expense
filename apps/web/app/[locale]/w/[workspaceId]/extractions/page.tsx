@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 
 import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
+import { DiscardExtractionDialog } from "@/components/extraction/DiscardExtractionDialog";
 import { ExtractionStatusBadge } from "@/components/extraction/ExtractionStatusBadge";
 import { listExtractions } from "@/lib/api/extractions";
 import { useWorkspaceContext } from "@/lib/workspace-context";
@@ -16,8 +17,8 @@ export default function ExtractionsPage() {
   const errors = useTranslations("errors");
   const { workspaceId } = useWorkspaceContext();
   const extractions = useQuery({
-    queryKey: ["extractions", workspaceId, "ready_for_review"],
-    queryFn: () => listExtractions(workspaceId, "ready_for_review"),
+    queryKey: ["extractions", workspaceId, "reviewable"],
+    queryFn: () => listExtractions(workspaceId),
     enabled: Boolean(workspaceId),
   });
 
@@ -42,7 +43,9 @@ export default function ExtractionsPage() {
     );
   }
 
-  const records = extractions.data ?? [];
+  const records = (extractions.data ?? []).filter((extraction) =>
+    ["ready_for_review", "failed"].includes(extraction.status),
+  );
   if (records.length === 0) {
     return <EmptyState title={t("queue.emptyState")} />;
   }
@@ -59,7 +62,7 @@ export default function ExtractionsPage() {
               <th className="w-64 px-4 py-3 font-medium">{t("queue.file")}</th>
               <th className="w-48 px-4 py-3 font-medium">{t("queue.status")}</th>
               <th className="w-48 px-4 py-3 font-medium">{t("queue.triggeredAt")}</th>
-              <th className="w-40 px-4 py-3 font-medium">{t("queue.actions")}</th>
+              <th className="w-64 px-4 py-3 font-medium">{t("queue.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -76,12 +79,19 @@ export default function ExtractionsPage() {
                   }).format(new Date(extraction.triggered_at))}
                 </td>
                 <td className="px-4 py-3">
-                  <Link
-                    className="inline-flex h-9 items-center rounded-md border px-3 text-sm no-underline hover:bg-muted"
-                    href={`/${locale}/w/${workspaceId}/extractions/${extraction.id}`}
-                  >
-                    {t("actions.confirm")}
-                  </Link>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      className="inline-flex h-9 items-center rounded-md border px-3 text-sm no-underline hover:bg-muted"
+                      href={`/${locale}/w/${workspaceId}/extractions/${extraction.id}`}
+                    >
+                      {t("actions.review")}
+                    </Link>
+                    <DiscardExtractionDialog
+                      extraction={extraction}
+                      workspaceId={workspaceId}
+                      onDiscarded={() => void extractions.refetch()}
+                    />
+                  </div>
                 </td>
               </tr>
             ))}
