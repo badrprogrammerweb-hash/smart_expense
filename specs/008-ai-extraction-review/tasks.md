@@ -131,12 +131,12 @@ handled only server-side, for the duration of one extraction call, and is
 
 ### Tests for User Story 4
 
-- [ ] T027 [P] [US4] Backend test `apps/api/tests/test_extraction_error_handling.py`: stubbed 401/403 → `invalid_key`; stubbed 429 → `rate_limited`; simulated timeout → `timeout`; corrupt/unreadable file bytes → `unreadable_file`; non-JSON/schema-mismatched provider response → `malformed_response`; each case leaves the file unchanged and a following trigger succeeds; zero occurrences of raw provider error content or the API key in the response or logs (FR-019–FR-022; SC-005)
+- [X] T027 [P] [US4] Backend test `apps/api/tests/test_extraction_error_handling.py`: stubbed 401/403 → `invalid_key`; stubbed 429 → `rate_limited`; simulated timeout → `timeout`; corrupt/unreadable file bytes → `unreadable_file`; non-JSON/schema-mismatched provider response → `malformed_response`; each case leaves the file unchanged and a following trigger succeeds; zero occurrences of raw provider error content or the API key in the response or logs (FR-019–FR-022; SC-005)
 
 ### Implementation for User Story 4
 
-- [ ] T028 [US4] Harden `apps/api/app/services/ai_providers.py`'s error classification and the 45s timeout handling per `research.md` Decision 6, and confirm `apps/api/app/services/extractions.py` never persists or logs anything beyond the fixed `failure_reason` values
-- [ ] T029 [P] [US4] Frontend: surface `failure_reason` as a clear, translated message (not raw provider text) with a retry action (reusing `TriggerExtractionButton`) in `ExtractionStatusBadge.tsx` and the files list
+- [X] T028 [US4] Harden `apps/api/app/services/ai_providers.py`'s error classification and the 45s timeout handling per `research.md` Decision 6, and confirm `apps/api/app/services/extractions.py` never persists or logs anything beyond the fixed `failure_reason` values
+- [X] T029 [P] [US4] Frontend: surface `failure_reason` as a clear, translated message (not raw provider text) with a retry action (reusing `TriggerExtractionButton`) in `ExtractionStatusBadge.tsx` and the files list
 
 **Checkpoint**: All error paths are safe, classified, and non-destructive, and is independently testable.
 

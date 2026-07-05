@@ -10,11 +10,18 @@ import messages from "@/messages/en.json";
 const getFileDownloadUrlMock = vi.hoisted(() => vi.fn());
 const deleteFileMock = vi.hoisted(() => vi.fn());
 const listFilesMock = vi.hoisted(() => vi.fn());
+const listExtractionsMock = vi.hoisted(() => vi.fn());
+const triggerExtractionMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/api/files", () => ({
   deleteFile: deleteFileMock,
   getFileDownloadUrl: getFileDownloadUrlMock,
   listFiles: listFilesMock,
+}));
+
+vi.mock("@/lib/api/extractions", () => ({
+  listExtractions: listExtractionsMock,
+  triggerExtraction: triggerExtractionMock,
 }));
 
 function renderWithProviders(ui: ReactNode) {
@@ -48,6 +55,8 @@ describe("FileList", () => {
     deleteFileMock.mockReset();
     getFileDownloadUrlMock.mockReset();
     listFilesMock.mockReset();
+    listExtractionsMock.mockReset().mockResolvedValue([]);
+    triggerExtractionMock.mockReset();
   });
 
   afterEach(() => {
@@ -100,5 +109,39 @@ describe("FileList", () => {
     fireEvent.click(screen.getByRole("button", { name: "Download receipt.pdf" }));
 
     await waitFor(() => expect(getFileDownloadUrlMock).toHaveBeenCalledTimes(2));
+  });
+
+  it("surfaces a failed extraction's classified reason with a retry action", async () => {
+    const unlinkedFile = { ...receiptFile, id: "file-2", expense_id: null };
+    listFilesMock.mockResolvedValue({ files: [unlinkedFile] });
+    listExtractionsMock.mockResolvedValue([
+      {
+        id: "extraction-1",
+        workspace_id: "workspace-1",
+        file_id: "file-2",
+        provider: "openai",
+        status: "failed",
+        draft: null,
+        failure_reason: "invalid_key",
+        triggered_by: "user-1",
+        triggered_at: "2026-07-04T10:00:00.000Z",
+        confirmed_by: null,
+        confirmed_at: null,
+        discarded_by: null,
+        discarded_at: null,
+        expense_id: null,
+        can_edit: false,
+        can_discard: true,
+      },
+    ]);
+
+    renderWithProviders(<FileList workspaceId="workspace-1" role="member" />);
+
+    expect(await screen.findByText("Failed")).toBeInTheDocument();
+    expect(
+      screen.getByText("The configured AI key was rejected by the provider."),
+    ).toBeInTheDocument();
+    // Retry reuses the same trigger control, never raw provider text.
+    expect(screen.getByRole("button", { name: "Extract with AI" })).toBeInTheDocument();
   });
 });

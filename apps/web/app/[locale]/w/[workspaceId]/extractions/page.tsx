@@ -70,7 +70,10 @@ export default function ExtractionsPage() {
               <tr className="border-b last:border-b-0" key={extraction.id}>
                 <td className="px-4 py-3 text-sm">{extraction.file_id.slice(0, 8)}</td>
                 <td className="px-4 py-3">
-                  <ExtractionStatusBadge status={extraction.status} />
+                  <ExtractionStatusBadge
+                    failureReason={extraction.failure_reason}
+                    status={extraction.status}
+                  />
                 </td>
                 <td className="px-4 py-3 text-sm">
                   {new Intl.DateTimeFormat(locale, {
