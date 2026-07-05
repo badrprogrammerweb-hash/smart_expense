@@ -215,7 +215,10 @@ begin
       from public.workspaces where id = v_workspace_id;
 
     if v_auto_delete then
-        select storage_path into v_storage_path from public.files where id = v_file_id;
+        -- Qualified with the table alias: bare `storage_path` is ambiguous
+        -- with this function's own `storage_path` OUT parameter (implicit
+        -- plpgsql variable from `returns table (..., storage_path text)`).
+        select f.storage_path into v_storage_path from public.files f where f.id = v_file_id;
         update public.files
            set status = 'deleted', deleted_at = now(), deleted_by = auth.uid()
          where id = v_file_id;

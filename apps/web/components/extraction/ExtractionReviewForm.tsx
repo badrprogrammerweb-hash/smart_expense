@@ -16,6 +16,7 @@ type ExtractionReviewFormProps = {
   workspaceId: string;
   extraction: ExtractionRecord;
   categories: Category[];
+  autoDeleteAfterExtraction?: boolean;
   onConfirmed?: (extraction: ExtractionRecord) => void;
 };
 
@@ -42,6 +43,7 @@ export function ExtractionReviewForm({
   workspaceId,
   extraction,
   categories,
+  autoDeleteAfterExtraction = false,
   onConfirmed,
 }: ExtractionReviewFormProps) {
   const t = useTranslations("extraction");
@@ -131,6 +133,11 @@ export function ExtractionReviewForm({
         {draft.extracted_currency && (
           <p className="mt-1 text-sm text-muted-foreground">
             {t("review.extractedCurrency")}: {draft.extracted_currency}
+          </p>
+        )}
+        {autoDeleteAfterExtraction && (
+          <p className="mt-2 rounded-md bg-muted p-2 text-sm text-muted-foreground">
+            {t("review.autoDeleteNotice")}
           </p>
         )}
       </div>

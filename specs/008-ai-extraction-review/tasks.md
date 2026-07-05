@@ -150,11 +150,11 @@ handled only server-side, for the duration of one extraction call, and is
 
 ### Tests for User Story 5
 
-- [ ] T030 [P] [US5] Backend test `apps/api/tests/test_extraction_auto_delete.py`: **as a Member confirming an extraction they personally triggered** (the discriminating case — Phase 6 normally restricts file deletion to Owner/Admin, so this only works because `confirm_ai_extraction`'s `SECURITY DEFINER` bypasses `files` RLS; research Decision 9), with auto-delete on → file binary removed, file row soft-deleted, expense created; confirm with auto-delete off → file binary retained; failed and discarded extractions under auto-delete on → file untouched in both cases (FR-017, FR-021, FR-023, FR-024; SC-006)
+- [X] T030 [P] [US5] Backend test `apps/api/tests/test_extraction_auto_delete.py`: **as a Member confirming an extraction they personally triggered** (the discriminating case — Phase 6 normally restricts file deletion to Owner/Admin, so this only works because `confirm_ai_extraction`'s `SECURITY DEFINER` bypasses `files` RLS; research Decision 9), with auto-delete on → file binary removed, file row soft-deleted, expense created; confirm with auto-delete off → file binary retained; failed and discarded extractions under auto-delete on → file untouched in both cases (FR-017, FR-021, FR-023, FR-024; SC-006)
 
 ### Implementation for User Story 5
 
-- [ ] T031 [US5] Frontend: in `ExtractionReviewForm.tsx` (T021), show a short notice ("this file will be removed after you confirm, because auto-delete is on for this workspace") when the workspace's `auto_delete_after_extraction` setting is enabled, reusing the existing Phase 6 setting value; the backend behavior itself is already implemented by T019 against the RPC's `should_delete_binary`/`storage_path` result — this task verifies (via the T030 test) and surfaces it in the UI
+- [X] T031 [US5] Frontend: in `ExtractionReviewForm.tsx` (T021), show a short notice ("this file will be removed after you confirm, because auto-delete is on for this workspace") when the workspace's `auto_delete_after_extraction` setting is enabled, reusing the existing Phase 6 setting value; the backend behavior itself is already implemented by T019 against the RPC's `should_delete_binary`/`storage_path` result — this task verifies (via the T030 test) and surfaces it in the UI
 
 **Checkpoint**: Auto-delete integration is correct and independently testable.
 

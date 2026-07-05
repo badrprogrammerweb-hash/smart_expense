@@ -121,4 +121,33 @@ describe("ExtractionReviewForm", () => {
     expect(screen.queryByRole("button", { name: "Confirm extraction" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Amount")).not.toBeInTheDocument();
   });
+
+  it("shows the auto-delete notice only when the workspace setting is enabled", () => {
+    renderWithProviders(
+      <ExtractionReviewForm
+        autoDeleteAfterExtraction
+        categories={[]}
+        extraction={editableExtraction}
+        workspaceId="workspace-1"
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "This file will be removed after you confirm, because auto-delete is on for this workspace.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("hides the auto-delete notice when the workspace setting is disabled", () => {
+    renderWithProviders(
+      <ExtractionReviewForm categories={[]} extraction={editableExtraction} workspaceId="workspace-1" />,
+    );
+
+    expect(
+      screen.queryByText(
+        "This file will be removed after you confirm, because auto-delete is on for this workspace.",
+      ),
+    ).not.toBeInTheDocument();
+  });
 });
