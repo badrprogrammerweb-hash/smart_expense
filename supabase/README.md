@@ -251,6 +251,97 @@ backend performs a second Owner check before calling the write RPCs, uses
 Pydantic `SecretStr` for inbound keys, validates key shape without any provider
 network call, and never logs or returns the raw key.
 
+## AI Extraction and Review
+
+Phase 8 adds `public.ai_extractions`, one row per extraction **attempt** on a
+receipt/invoice file (a file may accumulate many rows over time; at most one
+`processing`/`ready_for_review` row per file, enforced by the partial unique
+index `ai_extractions_one_active_per_file`). Columns: `workspace_id`,
+`file_id`, `provider` (`gemini`/`openai`, copied from
+`workspace_ai_settings.provider` at trigger time so a later provider switch
+doesn't relabel history), `status` (`processing` → `ready_for_review` |
+`failed`, then terminal `confirmed` or `discarded`), the draft fields
+(`amount_minor`, `extracted_currency`, `occurred_on`, `vendor_name`,
+`suggested_category`), `failure_reason` (set only when `status = 'failed'`,
+one of a fixed enum — never the raw provider error), `triggered_by`/
+`triggered_at`, `confirmed_by`/`confirmed_at`, `discarded_by`/`discarded_at`,
+and `expense_id` (set only on confirm). No new columns on `files` or
+`workspaces`; both are only read/updated through columns they already had
+(`files.expense_id`/`status`, `workspaces.auto_delete_after_extraction`).
+
+RLS: any workspace member (including Viewer) may `SELECT`. `INSERT` is
+restricted to `owner`/`admin`/`member` with `triggered_by = auth.uid()`,
+requires the target file to be active/unlinked/in-workspace, and requires
+BYOK to be configured (defense-in-depth alongside the backend's own checks).
+`UPDATE` covers both the system's own processing→terminal write and discard:
+`owner`/`admin` on any row, `member` only on a row they triggered. No
+`DELETE` policy — extraction rows are permanent history, matching
+`expenses`/`files`.
+
+Two `SECURITY DEFINER` functions, owned by the same Vault-privileged role as
+the Phase 7 BYOK functions (locally `postgres`), `EXECUTE` granted to
+`authenticated` only:
+
+- `public.get_workspace_ai_key_for_extraction(workspace_id)` — the **first**
+  function in this project to read `vault.decrypted_secrets`. Checks the
+  caller is `owner`/`admin`/`member` (raises `42501` otherwise, explicitly
+  null-checking the role so a non-member's `NULL` can't silently bypass the
+  check), then joins `workspace_ai_settings` to `vault.decrypted_secrets` and
+  returns `(provider, api_key)`. Zero rows means BYOK isn't configured — the
+  function does not raise for that case, only for unauthorized access. The
+  decrypted key is returned to the backend only; it lives in Python process
+  memory for the duration of one extraction call and is never logged,
+  returned to a client, or persisted outside Vault.
+- `public.confirm_ai_extraction(extraction_id, amount_minor, occurred_on,
+  category_id, merchant_name, description)` — atomically validates
+  ownership (`owner`/`admin` any row, `member` only their own), validates
+  `amount_minor > 0` and `occurred_on is not null`, inserts the `expenses`
+  row (`currency` hardcoded `'SAR'` regardless of the extraction's detected
+  currency), links `files.expense_id`, soft-deletes the file when the
+  workspace's `auto_delete_after_extraction` is on, and marks the extraction
+  `confirmed` — all in one transaction, guarded by `where status =
+  'ready_for_review'` so a duplicate/concurrent confirm is a no-op rather
+  than a second expense. Returns `(expense_id, should_delete_binary,
+  storage_path)`; the backend removes the Storage object (if
+  `should_delete_binary`) only **after** this transaction commits. This
+  function's write to `files` is the one place a Member gains a capability
+  they don't otherwise have (Phase 6 restricts file deletion to Owner/Admin)
+  — reachable only through a valid, own-triggered `ready_for_review`
+  extraction, and only because `SECURITY DEFINER` bypasses `files` RLS
+  (`files` has no `FORCE ROW LEVEL SECURITY`).
+
+Discard, and the trigger flow's own processing→terminal write, are plain
+RLS-governed `UPDATE`s (no RPC) — the least-privilege surface is kept to
+just the two operations above that genuinely need elevated rights (a Vault
+read; an atomic cross-table write with a cross-role authorization rule).
+
+### Provider REST calls (`apps/api/app/services/ai_providers.py`)
+
+No vendor SDK (`google-generativeai`, `openai`) is added — Gemini's
+`generateContent` and OpenAI's `chat/completions` endpoints are called
+directly over the already-present `httpx` client, mirroring how
+`services/storage.py` calls Supabase Storage's REST surface. Both requests
+ask for structured JSON output matching a fixed schema (`amount_minor`,
+`currency`, `occurred_on`, `vendor_name`, `suggested_category`, all
+optional) via Gemini's `responseSchema`/`responseMimeType` and OpenAI's
+`response_format: {type: "json_schema", ...}`. The decrypted key is sent as
+a request **header** (Gemini: `x-goog-api-key`; OpenAI: `Authorization:
+Bearer`), never as a URL query parameter, since a URL is far more likely to
+end up in a log line than a header. A response that isn't valid JSON, or
+doesn't parse into the expected all-optional-fields shape, is a
+`malformed_response` failure — never partially trusted. HTTP-level signals
+(never provider response body content) decide the failure classification:
+401/403 → `invalid_key`, 429 → `rate_limited`, a timeout or connection error
+→ `timeout`, anything else → `provider_error`. Storage-fetch failure ahead
+of the provider call is classified `unreadable_file`. The 45-second
+`httpx` client timeout is the same bound described in the API contract.
+
+### Configuration
+
+No new environment variables. The BYOK key is read entirely through
+`get_workspace_ai_key_for_extraction`; no provider API key is ever set as
+backend configuration.
+
 ## Local development
 
 ```bash
