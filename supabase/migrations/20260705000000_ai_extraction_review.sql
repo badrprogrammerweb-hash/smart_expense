@@ -158,10 +158,17 @@ declare
     v_auto_delete    boolean;
     v_storage_path   text;
 begin
+    -- `for update` locks the row so a second concurrent confirm call (e.g. a
+    -- double-click or two admins racing) blocks here until the first commits,
+    -- then re-reads the now-committed status and hits the already_resolved
+    -- check below instead of racing past it and inserting a duplicate
+    -- expense (mirrors Phase 7's set_workspace_ai_key/clear_workspace_ai_key
+    -- locking pattern for the same race shape).
     select workspace_id, file_id, status, triggered_by
       into v_workspace_id, v_file_id, v_status, v_triggered_by
       from public.ai_extractions
-     where id = p_extraction_id;
+     where id = p_extraction_id
+     for update;
 
     v_role := public.workspace_role_for(v_workspace_id, auth.uid());
 

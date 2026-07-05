@@ -177,7 +177,8 @@ begin
     select workspace_id, file_id, status, triggered_by
       into v_workspace_id, v_file_id, v_status, v_triggered_by
       from public.ai_extractions
-     where id = p_extraction_id;
+     where id = p_extraction_id
+     for update;
 
     v_role := public.workspace_role_for(v_workspace_id, auth.uid());
 

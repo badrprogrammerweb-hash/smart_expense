@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 from sqlalchemy import text
 
@@ -136,6 +138,51 @@ async def test_confirm_by_triggering_member_creates_one_sar_expense_and_links_fi
     assert str(row.file_expense_id) == confirmed["expense_id"]
     assert row.extraction_status == "confirmed"
     assert str(row.extraction_expense_id) == confirmed["expense_id"]
+    assert await _expense_count(db_connection, workspace_id) == 1
+
+
+async def test_concurrent_confirm_does_not_create_duplicate_expenses(
+    api_client, signup_user, db_connection, monkeypatch
+) -> None:
+    """Many simultaneous confirm calls on the same extraction (double-click,
+    duplicate retry, or two admins racing) must yield exactly one expense.
+    Regression test for the missing `for update` row lock in
+    confirm_ai_extraction -- without it, calls could read 'ready_for_review'
+    before any of them commit and each insert their own expense row.
+
+    A single unlocked plpgsql call executes far too fast (sub-millisecond,
+    no I/O) for two concurrent requests to reliably collide inside its tiny
+    read-then-write window -- verified empirically: with only 2 concurrent
+    calls against a deliberately-unlocked copy of this RPC, 10/10 local runs
+    still came back [200, 409] (no duplicate), a false negative. Firing 30
+    concurrent calls instead reliably reproduced multiple 200s (i.e. more
+    than one expense) against the unlocked RPC in every trial, so 30 is used
+    here as the smallest concurrency that actually exercises the race rather
+    than one that merely looks like it does.
+    """
+    owner = await signup_user("extract-confirm-race-owner")
+    member = await signup_user("extract-confirm-race-member")
+    workspace = await create_team_workspace(api_client, owner)
+    workspace_id = workspace["id"]
+    assert (await add_member(api_client, owner, workspace_id, member, "member")).status_code == 201
+    await _configure_ai(api_client, owner, workspace_id)
+    _stub_storage(monkeypatch)
+    _stub_extraction(monkeypatch)
+
+    extraction = await _ready_extraction(api_client, member, workspace_id, "race-confirm.pdf")
+
+    async def confirm():
+        return await api_client.post(
+            f"/workspaces/{workspace_id}/extractions/{extraction['id']}/confirm",
+            headers=member.auth_header,
+            json={"amount_minor": 4200, "occurred_on": "2026-07-03"},
+        )
+
+    responses = await asyncio.gather(*(confirm() for _ in range(30)))
+    statuses = [response.status_code for response in responses]
+    assert statuses.count(200) == 1, statuses
+    assert statuses.count(409) == 29, statuses
+
     assert await _expense_count(db_connection, workspace_id) == 1
 
 
