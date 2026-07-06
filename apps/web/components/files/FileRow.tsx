@@ -4,10 +4,14 @@ import { Download, Eye } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { DeleteFileDialog } from "@/components/files/DeleteFileDialog";
+import { ExtractionStatusBadge } from "@/components/extraction/ExtractionStatusBadge";
+import { TriggerExtractionButton } from "@/components/extraction/TriggerExtractionButton";
+import type { ExtractionRecord } from "@/lib/api/extractions";
 import type { FileMetadata } from "@/lib/api/files";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 
 type FileRowProps = {
+  extraction?: ExtractionRecord;
   file: FileMetadata;
   isOpening: boolean;
   onDownload: (file: FileMetadata) => void;
@@ -46,6 +50,7 @@ function formatDate(value: string, locale: string) {
 }
 
 export function FileRow({
+  extraction,
   file,
   isOpening,
   onDownload,
@@ -110,6 +115,15 @@ export function FileRow({
             <Download className="h-4 w-4" aria-hidden="true" />
             {t("actions.download")}
           </button>
+          {extraction && (
+            <ExtractionStatusBadge
+              failureReason={extraction.failure_reason}
+              status={extraction.status}
+            />
+          )}
+          {file.status === "active" && !file.expense_id && (
+            <TriggerExtractionButton fileId={file.id} role={role} workspaceId={workspaceId} />
+          )}
           <DeleteFileDialog file={file} role={role} workspaceId={workspaceId} />
         </div>
       </td>

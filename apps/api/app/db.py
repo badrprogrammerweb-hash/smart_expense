@@ -1,6 +1,7 @@
 import json
 import logging
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import text
@@ -46,9 +47,8 @@ def database_unavailable_exception(exc: DBAPIError | None = None) -> HTTPExcepti
     )
 
 
-async def get_rls_session(
-    current_user: CurrentUser = Depends(get_current_user),
-) -> AsyncIterator[AsyncSession]:
+@asynccontextmanager
+async def open_rls_session(current_user: CurrentUser) -> AsyncIterator[AsyncSession]:
     session_factory = get_session_factory()
     async with session_factory() as session:
         async with session.begin():
@@ -69,3 +69,10 @@ async def get_rls_session(
                     logger.warning("RLS session setup failed: %s", _sanitized_db_error(exc))
                 raise database_unavailable_exception(exc) from exc
             yield session
+
+
+async def get_rls_session(
+    current_user: CurrentUser = Depends(get_current_user),
+) -> AsyncIterator[AsyncSession]:
+    async with open_rls_session(current_user) as session:
+        yield session

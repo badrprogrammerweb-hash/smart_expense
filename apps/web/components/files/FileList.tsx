@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
 import { FileRow } from "@/components/files/FileRow";
+import { listExtractions, type ExtractionRecord } from "@/lib/api/extractions";
 import { getFileDownloadUrl, listFiles, type FileMetadata } from "@/lib/api/files";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 
@@ -13,6 +14,17 @@ type FileListProps = {
   role: WorkspaceRole;
   workspaceId: string;
 };
+
+function latestExtractionByFileId(extractions: ExtractionRecord[]) {
+  const byFileId = new Map<string, ExtractionRecord>();
+  for (const extraction of extractions) {
+    const current = byFileId.get(extraction.file_id);
+    if (!current || extraction.triggered_at > current.triggered_at) {
+      byFileId.set(extraction.file_id, extraction);
+    }
+  }
+  return byFileId;
+}
 
 export function FileList({ role, workspaceId }: FileListProps) {
   const t = useTranslations("files");
@@ -25,6 +37,14 @@ export function FileList({ role, workspaceId }: FileListProps) {
     queryFn: () => listFiles(workspaceId),
     enabled: Boolean(workspaceId),
   });
+  // Non-blocking: a file row simply shows no extraction badge until this
+  // resolves, so its own loading/error state never blocks the file list.
+  const extractions = useQuery({
+    queryKey: ["extractions", workspaceId],
+    queryFn: () => listExtractions(workspaceId),
+    enabled: Boolean(workspaceId),
+  });
+  const extractionByFileId = latestExtractionByFileId(extractions.data ?? []);
 
   async function openSignedUrl(file: FileMetadata) {
     setOpeningFileId(file.id);
@@ -90,6 +110,7 @@ export function FileList({ role, workspaceId }: FileListProps) {
           <tbody>
             {records.map((file) => (
               <FileRow
+                extraction={extractionByFileId.get(file.id)}
                 file={file}
                 isOpening={openingFileId === file.id}
                 key={file.id}

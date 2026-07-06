@@ -1,4 +1,5 @@
 import type { ExpenseRecord } from "@/lib/api/expenses";
+import type { ExtractionRecord } from "@/lib/api/extractions";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 
 export function canManageIncome(role: WorkspaceRole) {
@@ -39,4 +40,20 @@ export function canEditOrDeleteExpense(
   }
 
   return role === "member" && Boolean(currentUserId) && record.created_by === currentUserId;
+}
+
+export function canTriggerExtraction(role: WorkspaceRole) {
+  return role === "owner" || role === "admin" || role === "member";
+}
+
+export function canActOnExtraction(
+  record: Pick<ExtractionRecord, "triggered_by">,
+  role: WorkspaceRole,
+  currentUserId: string | null | undefined,
+) {
+  if (role === "owner" || role === "admin") {
+    return true;
+  }
+
+  return role === "member" && Boolean(currentUserId) && record.triggered_by === currentUserId;
 }

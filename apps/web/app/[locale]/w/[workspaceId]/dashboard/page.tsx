@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
@@ -9,6 +10,7 @@ import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { SummaryCards } from "@/components/dashboard/SummaryCards";
 import { useDashboard } from "@/hooks/use-dashboard";
+import { getAiSettings } from "@/lib/api/ai-settings";
 import { canCreateExpense, canManageIncome } from "@/lib/permissions";
 import { useWorkspaceContext } from "@/lib/workspace-context";
 
@@ -19,6 +21,11 @@ export default function DashboardPage() {
   const errors = useTranslations("errors");
   const { workspaceId, role } = useWorkspaceContext();
   const dashboard = useDashboard(workspaceId);
+  const aiSettings = useQuery({
+    queryKey: ["ai-settings", workspaceId],
+    queryFn: () => getAiSettings(workspaceId),
+    enabled: Boolean(workspaceId),
+  });
   const canAddIncome = canManageIncome(role);
   const canAddExpense = canCreateExpense(role);
 
@@ -79,7 +86,12 @@ export default function DashboardPage() {
       <SummaryCards locale={locale} period={data.period} summary={data.summary} />
       {isEmpty && <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
-        <RecentActivity locale={locale} pendingAiCount={data.pending_ai_count} records={data.recent_records} />
+        <RecentActivity
+          aiConfigured={aiSettings.data?.configured}
+          locale={locale}
+          pendingAiCount={data.pending_ai_count}
+          records={data.recent_records}
+        />
         <CategoryBreakdown locale={locale} items={data.category_breakdown} />
       </div>
     </div>

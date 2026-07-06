@@ -9,10 +9,12 @@ import { toDisplayAmount } from "@/lib/money";
 export function RecentActivity({
   records,
   pendingAiCount,
+  aiConfigured,
   locale,
 }: {
   records: RecentRecord[];
   pendingAiCount: number;
+  aiConfigured: boolean | undefined;
   locale: string;
 }) {
   const t = useTranslations("dashboard");
@@ -26,11 +28,9 @@ export function RecentActivity({
           {t("pendingAi", { count: pendingAiCount })}
         </p>
       </div>
-      {/* No workspace can have AI configured before Phase 7 (BYOK settings) exists, so
-          `pendingAiCount === 0` is currently always true and always means "not configured."
-          Once Phase 8 makes a nonzero-but-caught-up count possible, this must switch to a
-          real "is AI configured" flag instead of inferring it from the count. */}
-      {pendingAiCount === 0 && <p className="mt-2 text-xs text-muted-foreground">{t("aiUnavailable")}</p>}
+      {aiConfigured === false && (
+        <p className="mt-2 text-xs text-muted-foreground">{t("aiUnavailable")}</p>
+      )}
       {records.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">{t("emptyDescription")}</p>
       ) : (

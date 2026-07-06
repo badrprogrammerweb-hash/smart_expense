@@ -153,4 +153,15 @@ async def get_recent_records(
 
 
 async def get_pending_ai_count(workspace_id: UUID, conn) -> int:
-    return 0
+    result = await conn.execute(
+        text(
+            """
+            select count(*)
+            from public.ai_extractions
+            where workspace_id = :workspace_id
+              and status = 'ready_for_review'
+            """
+        ),
+        {"workspace_id": str(workspace_id)},
+    )
+    return int(result.scalar_one())

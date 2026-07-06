@@ -117,6 +117,20 @@ class SupabaseStorageClient:
         if response.status_code not in {200, 201}:
             _raise_storage_response_error("put_object", response)
 
+    async def get_object(self, key: str) -> bytes:
+        key = _validate_object_key(key)
+        try:
+            async with httpx.AsyncClient(timeout=30, trust_env=False) as client:
+                response = await client.get(
+                    _object_url(self._base_url, key),
+                    headers=_service_headers(),
+                )
+        except httpx.HTTPError as exc:
+            _raise_storage_transport_error("get_object", exc)
+        if response.status_code != 200:
+            _raise_storage_response_error("get_object", response)
+        return response.content
+
     async def sign_url(self, key: str, ttl: int = DEFAULT_SIGNED_URL_TTL_SECONDS) -> SignedUrl:
         key = _validate_object_key(key)
         ttl = min(max(ttl, 1), DEFAULT_SIGNED_URL_TTL_SECONDS)
@@ -172,6 +186,10 @@ def _extract_signed_url(payload: dict[str, Any]) -> str:
 
 async def put_object(key: str, content: bytes, content_type: str) -> None:
     await SupabaseStorageClient().put_object(key, content, content_type)
+
+
+async def get_object(key: str) -> bytes:
+    return await SupabaseStorageClient().get_object(key)
 
 
 async def sign_url(key: str, ttl: int = DEFAULT_SIGNED_URL_TTL_SECONDS) -> SignedUrl:

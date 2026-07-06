@@ -16,6 +16,7 @@
     "incomes": "Incomes",
     "expenses": "Expenses",
     "files": "Files",
+    "extractions": "AI reviews",
     "categories": "Categories",
     "reports": "Reports",
     "settings": "Settings",
@@ -191,6 +192,66 @@
       "linkFailed": "File link failed.",
       "downloadFailed": "Download link failed.",
       "deleteFailed": "File deletion failed."
+    }
+  },
+  "extraction": {
+    "status": {
+      "processing": "Processing",
+      "ready_for_review": "Ready for review",
+      "failed": "Failed",
+      "confirmed": "Confirmed",
+      "discarded": "Discarded"
+    },
+    "failureReasons": {
+      "invalid_key": "The configured AI key was rejected by the provider.",
+      "rate_limited": "The AI provider is rate-limiting requests. Try again shortly.",
+      "timeout": "The AI provider did not respond in time.",
+      "unreadable_file": "The file could not be read for extraction.",
+      "malformed_response": "The AI provider returned an unexpected response.",
+      "provider_error": "The AI provider returned an error."
+    },
+    "actions": {
+      "trigger": "Extract with AI",
+      "retry": "Retry extraction",
+      "review": "Review",
+      "confirm": "Confirm extraction",
+      "discard": "Discard extraction",
+      "confirmDiscard": "Confirm discard"
+    },
+    "discard": {
+      "description": "No expense will be created, and the file will stay available."
+    },
+    "review": {
+      "title": "Review extraction",
+      "previewTitle": "Receipt preview",
+      "previewUnavailable": "Preview is unavailable.",
+      "amount": "Amount",
+      "date": "Date",
+      "vendor": "Vendor",
+      "category": "Category",
+      "description": "Description",
+      "suggestedCategory": "Suggested category",
+      "extractedCurrency": "Detected currency",
+      "autoDeleteNotice": "This file will be removed after you confirm, because auto-delete is on for this workspace."
+    },
+    "queue": {
+      "title": "Pending review",
+      "emptyState": "No extractions waiting for review.",
+      "file": "File",
+      "status": "Status",
+      "triggeredAt": "Triggered",
+      "actions": "Actions"
+    },
+    "errors": {
+      "aiNotConfigured": "Configure an AI provider key before triggering extraction.",
+      "extractionInProgress": "This file already has an extraction in progress.",
+      "alreadyResolved": "This extraction has already been resolved.",
+      "forbidden": "Your current role cannot perform this extraction action.",
+      "notFound": "Extraction not found.",
+      "invalidRequest": "Check the amount and date and try again.",
+      "triggerFailed": "Triggering extraction failed.",
+      "confirmFailed": "Confirming the extraction failed.",
+      "discardFailed": "Discarding the extraction failed."
     }
   },
   "errors": {
