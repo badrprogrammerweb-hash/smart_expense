@@ -103,10 +103,79 @@
     "validationName": "Enter a workspace name."
   },
   "reports": {
+    "periodSelector": {
+      "label": "Reporting period",
+      "current_month": "Current month",
+      "previous_month": "Previous month",
+      "start": "Start date",
+      "end": "End date",
+      "applyCustom": "Apply custom range",
+      "invalidRange": "End date must be on or after the start date.",
+      "rangeTooLarge": "Choose a range of 366 days or less."
+    },
+    "trend": {
+      "title": "Spending trend",
+      "empty": "No trend data for this period."
+    },
+    "topMerchants": {
+      "title": "Top merchants",
+      "empty": "No merchant spending for this period."
+    },
+    "teamActivity": {
+      "title": "Team activity",
+      "empty": "No confirmed team records for this period."
+    },
+    "pendingReview": {
+      "title": "Pending review",
+      "count": "{count} AI extraction {count, plural, one {result} other {results}} awaiting review"
+    },
     "title": "Reports",
     "subtitle": "Current period: {start} to {end}",
     "emptyTitle": "No confirmed records this period",
     "emptyDescription": "Add income or an expense to see a report for this period."
+  },
+  "summary": {
+    "title": "Spending summary",
+    "empty": "No confirmed records in this period yet.",
+    "trendUp": "Spending increased versus the previous comparable period.",
+    "trendDown": "Spending decreased versus the previous comparable period.",
+    "trendFlat": "Spending stayed roughly the same versus the previous comparable period."
+  },
+  "history": {
+    "title": "Activity history",
+    "emptyTitle": "No activity yet",
+    "emptyDescription": "Only activity from this phase onward appears here.",
+    "loadMore": "Load more",
+    "notAuthorized": "Only owners and admins can view activity history.",
+    "events": {
+      "income_created": "Income added",
+      "income_updated": "Income updated",
+      "income_deleted": "Income deleted",
+      "expense_created": "Expense added",
+      "expense_updated": "Expense updated",
+      "expense_deleted": "Expense deleted",
+      "category_created": "Category added",
+      "category_updated": "Category updated",
+      "category_archived": "Category archived",
+      "file_uploaded": "File uploaded",
+      "file_deleted": "File deleted",
+      "extraction_started": "AI extraction started",
+      "extraction_completed": "AI extraction completed",
+      "extraction_failed": "AI extraction failed",
+      "ai_draft_confirmed": "AI draft confirmed",
+      "member_added": "Member added",
+      "member_removed": "Member removed",
+      "role_changed": "Role changed",
+      "setting_changed": "Setting changed"
+    }
+  },
+  "aiSummary": {
+    "title": "AI spending summary",
+    "request": "Generate AI summary",
+    "loading": "Generating summary...",
+    "unavailable": "AI summaries are available after an owner configures an AI key.",
+    "notAuthorized": "Your current role cannot request an AI summary.",
+    "error": "The AI summary could not be generated. The rest of the report is still available."
   },
   "settings": {
     "title": "Settings",

@@ -5,8 +5,10 @@ import {
   canDeleteFile,
   canEditAutoDelete,
   canEditOrDeleteExpense,
+  canRequestAiSummary,
   canManageIncome,
   canUploadFile,
+  canViewHistory,
 } from "@/lib/permissions";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 
@@ -54,6 +56,24 @@ describe("permission matrix", () => {
       owner: true,
       admin: false,
       member: false,
+      viewer: false,
+    });
+  });
+
+  it("allows history viewing only for owner and admin", () => {
+    expect(Object.fromEntries(roles.map((role) => [role, canViewHistory(role)]))).toEqual({
+      owner: true,
+      admin: true,
+      member: false,
+      viewer: false,
+    });
+  });
+
+  it("allows AI summary requests for owner, admin, and member only", () => {
+    expect(Object.fromEntries(roles.map((role) => [role, canRequestAiSummary(role)]))).toEqual({
+      owner: true,
+      admin: true,
+      member: true,
       viewer: false,
     });
   });

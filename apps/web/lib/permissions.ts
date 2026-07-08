@@ -30,6 +30,14 @@ export function canManageAiSettings(role: WorkspaceRole) {
   return role === "owner";
 }
 
+export function canViewHistory(role: WorkspaceRole) {
+  return role === "owner" || role === "admin";
+}
+
+export function canRequestAiSummary(role: WorkspaceRole) {
+  return role === "owner" || role === "admin" || role === "member";
+}
+
 export function canEditOrDeleteExpense(
   record: Pick<ExpenseRecord, "created_by">,
   role: WorkspaceRole,

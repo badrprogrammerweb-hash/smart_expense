@@ -32,11 +32,11 @@ Monolith: backend `apps/api/`, frontend `apps/web/`, database `supabase/migratio
 
 **Purpose**: Schemas, permission helpers, and i18n scaffolding shared across stories.
 
-- [ ] T001 [P] Add `canViewHistory(role)` (owner/admin) and `canRequestAiSummary(role)` (owner/admin/member) to `apps/web/lib/permissions.ts`
-- [ ] T002 [P] Add en/ar i18n message scaffolding for the `reports`, `summary`, `history`, and `aiSummary` sections in `apps/web/messages/en.json` and `apps/web/messages/ar.json`
-- [ ] T003 [P] Create backend report response schemas (`ReportPeriod`, `TrendPoint`, `MerchantTotal`, `TeamActivityItem`, `SpendingSummary`, `ReportData`) in `apps/api/app/schemas/reports.py`
-- [ ] T004 [P] Create backend history schemas (`ActivityEventType` enum mirroring the data-model CHECK set, `ActivityHistoryItem`, `HistoryPage`) in `apps/api/app/schemas/history.py`
-- [ ] T005 [P] Create backend AI-summary schemas (`AiSummaryRequest`, `AiSummaryResponse`, `AiSummaryFailure`) in `apps/api/app/schemas/ai_summary.py`
+- [X] T001 [P] Add `canViewHistory(role)` (owner/admin) and `canRequestAiSummary(role)` (owner/admin/member) to `apps/web/lib/permissions.ts`
+- [X] T002 [P] Add en/ar i18n message scaffolding for the `reports`, `summary`, `history`, and `aiSummary` sections in `apps/web/messages/en.json` and `apps/web/messages/ar.json`
+- [X] T003 [P] Create backend report response schemas (`ReportPeriod`, `TrendPoint`, `MerchantTotal`, `TeamActivityItem`, `SpendingSummary`, `ReportData`) in `apps/api/app/schemas/reports.py`
+- [X] T004 [P] Create backend history schemas (`ActivityEventType` enum mirroring the data-model CHECK set, `ActivityHistoryItem`, `HistoryPage`) in `apps/api/app/schemas/history.py`
+- [X] T005 [P] Create backend AI-summary schemas (`AiSummaryRequest`, `AiSummaryResponse`, `AiSummaryFailure`) in `apps/api/app/schemas/ai_summary.py`
 
 ---
 
@@ -46,12 +46,12 @@ Monolith: backend `apps/api/`, frontend `apps/web/`, database `supabase/migratio
 
 **⚠️ CRITICAL**: No report/summary story work can begin until this phase is complete.
 
-- [ ] T006 Implement period parsing/validation in `apps/api/app/services/reports.py`: `current_month` from `dashboard.get_current_period()` (UTC+3), `previous_month` from the month before, and `custom` `start`/`end`; reject `end < start` and any span > 366 days (FR-002, FR-012)
-- [ ] T007 Implement the reuse layer in `apps/api/app/services/reports.py`: import and call `dashboard.get_income_total`, `get_expense_total`, `get_category_breakdown`, `get_recent_records`, `get_pending_ai_count` for the resolved period and assemble the base `ReportData` (summary, category_breakdown, recent_records, pending_review_count) — do NOT re-query totals (SC-001) (depends on T003, T006)
-- [ ] T008 Implement `GET /workspaces/{workspace_id}/reports` in `apps/api/app/routes/reports.py` with membership check (all roles), query params (`period`/`start`/`end`), and the standard error envelope; register `reports_router` in `apps/api/app/main.py` (depends on T007)
-- [ ] T009 [P] Frontend reports API client `getReport(workspaceId, period)` in `apps/web/lib/api/reports.ts`
-- [ ] T010 [P] Frontend `use-reports` hook with period state in `apps/web/hooks/use-reports.ts` (depends on T009)
-- [ ] T011 [P] Frontend `PeriodSelector` component (current month / previous month / custom range; validates end ≥ start and span ≤ 366 days) in `apps/web/components/reports/PeriodSelector.tsx`
+- [X] T006 Implement period parsing/validation in `apps/api/app/services/reports.py`: `current_month` from `dashboard.get_current_period()` (UTC+3), `previous_month` from the month before, and `custom` `start`/`end`; reject `end < start` and any span > 366 days (FR-002, FR-012)
+- [X] T007 Implement the reuse layer in `apps/api/app/services/reports.py`: import and call `dashboard.get_income_total`, `get_expense_total`, `get_category_breakdown`, `get_recent_records`, `get_pending_ai_count` for the resolved period and assemble the base `ReportData` (summary, category_breakdown, recent_records, pending_review_count) — do NOT re-query totals (SC-001) (depends on T003, T006)
+- [X] T008 Implement `GET /workspaces/{workspace_id}/reports` in `apps/api/app/routes/reports.py` with membership check (all roles), query params (`period`/`start`/`end`), and the standard error envelope; register `reports_router` in `apps/api/app/main.py` (depends on T007)
+- [X] T009 [P] Frontend reports API client `getReport(workspaceId, period)` in `apps/web/lib/api/reports.ts`
+- [X] T010 [P] Frontend `use-reports` hook with period state in `apps/web/hooks/use-reports.ts` (depends on T009)
+- [X] T011 [P] Frontend `PeriodSelector` component (current month / previous month / custom range; validates end ≥ start and span ≤ 366 days) in `apps/web/components/reports/PeriodSelector.tsx`
 
 **Checkpoint**: The reports endpoint returns period-scoped, dashboard-reconciled base figures; the frontend can fetch and select periods.
 
