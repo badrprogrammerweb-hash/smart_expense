@@ -65,22 +65,22 @@ Monolith: backend `apps/api/`, frontend `apps/web/`, database `supabase/migratio
 
 ### Tests for User Story 1 ⚠️ (write first, ensure they FAIL)
 
-- [ ] T012 [P] [US1] Reconciliation test — report `summary.*` equals dashboard totals for equivalent periods, with deleted/draft/pending rows present, in `apps/api/tests/test_reports_reconciliation.py` (SC-001)
-- [ ] T013 [P] [US1] Confirmed-only test — deleted/draft/pending/failed/cancelled excluded from summary, category breakdown, trend, and top merchants, in `apps/api/tests/test_reports_confirmed_only.py` (SC-002)
-- [ ] T014 [P] [US1] Period test — presets + custom range, daily-vs-monthly switch at 31 days, and rejection of `end < start` / span > 366 days, in `apps/api/tests/test_reports_period.py` (FR-009, FR-012, SC-003)
-- [ ] T015 [P] [US1] Top-merchants test — only expenses with a non-blank `merchant_name` aggregated; blanks excluded from merchant totals but counted in expense total, in `apps/api/tests/test_reports_top_merchants.py` (FR-008)
-- [ ] T016 [P] [US1] Empty-state test — a period with no confirmed records returns empty lists and zero totals with 200, not an error, in `apps/api/tests/test_reports_empty_state.py` (SC-009)
-- [ ] T017 [P] [US1] Isolation test — cross-workspace and unauthenticated reports access denied, in `apps/api/tests/test_reports_isolation.py` (FR-030, FR-033)
+- [X] T012 [P] [US1] Reconciliation test — report `summary.*` equals dashboard totals for equivalent periods, with deleted/draft/pending rows present, in `apps/api/tests/test_reports_reconciliation.py` (SC-001)
+- [X] T013 [P] [US1] Confirmed-only test — deleted/draft/pending/failed/cancelled excluded from summary, category breakdown, trend, and top merchants, in `apps/api/tests/test_reports_confirmed_only.py` (SC-002)
+- [X] T014 [P] [US1] Period test — presets + custom range, daily-vs-monthly switch at 31 days, and rejection of `end < start` / span > 366 days, in `apps/api/tests/test_reports_period.py` (FR-009, FR-012, SC-003)
+- [X] T015 [P] [US1] Top-merchants test — only expenses with a non-blank `merchant_name` aggregated; blanks excluded from merchant totals but counted in expense total, in `apps/api/tests/test_reports_top_merchants.py` (FR-008)
+- [X] T016 [P] [US1] Empty-state test — a period with no confirmed records returns empty lists and zero totals with 200, not an error, in `apps/api/tests/test_reports_empty_state.py` (SC-009)
+- [X] T017 [P] [US1] Isolation test — cross-workspace and unauthenticated reports access denied, in `apps/api/tests/test_reports_isolation.py` (FR-030, FR-033)
 
 ### Implementation for User Story 1
 
-- [ ] T018 [US1] Implement `get_spending_trend` (daily when span ≤ 31 days else monthly; per-bucket income/expense/period-net remaining) in `apps/api/app/services/reports.py` (Decision 3, FR-009)
-- [ ] T019 [US1] Implement `get_top_merchants` (confirmed expenses grouped by non-blank `merchant_name`, top 5 by total) in `apps/api/app/services/reports.py` (FR-008)
-- [ ] T020 [US1] Wire `spending_trend`, `top_merchants`, and `recent_records` into `ReportData` in `apps/api/app/services/reports.py` and the reports route (depends on T018, T019)
-- [ ] T021 [P] [US1] Frontend `SpendingTrendChart` (dependency-free CSS/SVG bars, CategoryBreakdown style) in `apps/web/components/reports/SpendingTrendChart.tsx`
-- [ ] T022 [P] [US1] Frontend `TopMerchants` component (SAR-formatted list) in `apps/web/components/reports/TopMerchants.tsx`
-- [ ] T023 [US1] Rewire `apps/web/components/reports/ReportSummary.tsx` and `apps/web/app/[locale]/w/[workspaceId]/reports/page.tsx` to consume `use-reports`, mount `PeriodSelector`, and render SummaryCards, CategoryBreakdown, `SpendingTrendChart`, `TopMerchants`, and recent records for the selected period (depends on T010, T011, T021, T022)
-- [ ] T024 [P] [US1] Frontend reports e2e — period select, confirmed-only figures, empty state — in `apps/web/tests/e2e/reports.spec.ts` (extend existing)
+- [X] T018 [US1] Implement `get_spending_trend` (daily when span ≤ 31 days else monthly; per-bucket income/expense/period-net remaining) in `apps/api/app/services/reports.py` (Decision 3, FR-009)
+- [X] T019 [US1] Implement `get_top_merchants` (confirmed expenses grouped by non-blank `merchant_name`, top 5 by total) in `apps/api/app/services/reports.py` (FR-008)
+- [X] T020 [US1] Wire `spending_trend`, `top_merchants`, and `recent_records` into `ReportData` in `apps/api/app/services/reports.py` and the reports route (depends on T018, T019)
+- [X] T021 [P] [US1] Frontend `SpendingTrendChart` (dependency-free CSS/SVG bars, CategoryBreakdown style) in `apps/web/components/reports/SpendingTrendChart.tsx`
+- [X] T022 [P] [US1] Frontend `TopMerchants` component (SAR-formatted list) in `apps/web/components/reports/TopMerchants.tsx`
+- [X] T023 [US1] Rewire `apps/web/components/reports/ReportSummary.tsx` and `apps/web/app/[locale]/w/[workspaceId]/reports/page.tsx` to consume `use-reports`, mount `PeriodSelector`, and render SummaryCards, CategoryBreakdown, `SpendingTrendChart`, `TopMerchants`, and recent records for the selected period (depends on T010, T011, T021, T022)
+- [X] T024 [P] [US1] Frontend reports e2e — period select, confirmed-only figures, empty state — in `apps/web/tests/e2e/reports.spec.ts` (extend existing)
 
 **Checkpoint**: US1 is a fully functional, independently testable MVP report.
 
@@ -94,14 +94,14 @@ Monolith: backend `apps/api/`, frontend `apps/web/`, database `supabase/migratio
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T025 [P] [US2] Backend test for `spending_summary` — correct totals, top category, and `trend_direction` (up/down/flat), including the empty-period neutral case — in `apps/api/tests/test_reports_summary.py` (FR-013, FR-014)
+- [X] T025 [P] [US2] Backend test for `spending_summary` — correct totals, top category, and `trend_direction` (up/down/flat), including the empty-period neutral case — in `apps/api/tests/test_reports_summary.py` (FR-013, FR-014)
 
 ### Implementation for User Story 2
 
-- [ ] T026 [US2] Implement `spending_summary` computation (period totals, top category, `trend_direction` vs the previous comparable period) and include it in `ReportData` in `apps/api/app/services/reports.py` (FR-013, FR-014)
-- [ ] T027 [P] [US2] Frontend `PlainLanguageSummary` component rendering the structured summary into localized narrative (EN/AR, RTL, SAR) in `apps/web/components/reports/PlainLanguageSummary.tsx`
-- [ ] T028 [US2] Mount `PlainLanguageSummary` in `ReportSummary.tsx` and add the en/ar narrative strings in `apps/web/messages/*.json` (depends on T027)
-- [ ] T029 [P] [US2] Frontend unit test for `PlainLanguageSummary` EN + AR rendering in `apps/web/tests/unit/plain-language-summary.test.tsx` (FR-015, SC-007)
+- [X] T026 [US2] Implement `spending_summary` computation (period totals, top category, `trend_direction` vs the previous comparable period) and include it in `ReportData` in `apps/api/app/services/reports.py` (FR-013, FR-014)
+- [X] T027 [P] [US2] Frontend `PlainLanguageSummary` component rendering the structured summary into localized narrative (EN/AR, RTL, SAR) in `apps/web/components/reports/PlainLanguageSummary.tsx`
+- [X] T028 [US2] Mount `PlainLanguageSummary` in `ReportSummary.tsx` and add the en/ar narrative strings in `apps/web/messages/*.json` (depends on T027)
+- [X] T029 [P] [US2] Frontend unit test for `PlainLanguageSummary` EN + AR rendering in `apps/web/tests/unit/plain-language-summary.test.tsx` (FR-015, SC-007)
 
 **Checkpoint**: US1 and US2 both work independently.
 

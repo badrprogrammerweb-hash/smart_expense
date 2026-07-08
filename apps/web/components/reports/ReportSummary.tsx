@@ -4,8 +4,13 @@ import { useTranslations } from "next-intl";
 
 import { CategoryBreakdown } from "@/components/dashboard/CategoryBreakdown";
 import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
+import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { SummaryCards } from "@/components/dashboard/SummaryCards";
-import { useDashboard } from "@/hooks/use-dashboard";
+import { PeriodSelector } from "@/components/reports/PeriodSelector";
+import { PlainLanguageSummary } from "@/components/reports/PlainLanguageSummary";
+import { SpendingTrendChart } from "@/components/reports/SpendingTrendChart";
+import { TopMerchants } from "@/components/reports/TopMerchants";
+import { useReports } from "@/hooks/use-reports";
 
 type ReportSummaryProps = {
   workspaceId: string;
@@ -16,20 +21,20 @@ export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
   const t = useTranslations("reports");
   const common = useTranslations("common");
   const errors = useTranslations("errors");
-  const dashboard = useDashboard(workspaceId);
+  const reports = useReports(workspaceId);
 
-  if (dashboard.isLoading) {
+  if (reports.isLoading) {
     return <p className="text-sm text-muted-foreground">{common("loading")}</p>;
   }
 
-  if (dashboard.isError || !dashboard.data) {
+  if (reports.isError || !reports.data) {
     return (
       <ErrorState
         title={errors("requestFailed")}
         action={
           <button
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-            onClick={() => void dashboard.refetch()}
+            onClick={() => void reports.refetch()}
             type="button"
           >
             {common("retry")}
@@ -39,7 +44,7 @@ export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
     );
   }
 
-  const data = dashboard.data;
+  const data = reports.data;
   const isEmpty =
     data.category_breakdown.length === 0 &&
     data.summary.total_income_minor === 0 &&
@@ -53,12 +58,23 @@ export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
           {t("subtitle", { start: data.period.start, end: data.period.end })}
         </p>
       </div>
-      {/* Same components the dashboard renders, fed the same dashboard response
-          (no separate report API call) — figures can't drift from the dashboard
-          by construction, satisfying FR-028. */}
+      <PeriodSelector onChange={reports.setPeriod} value={reports.period} />
       <SummaryCards locale={locale} period={data.period} summary={data.summary} />
+      <PlainLanguageSummary locale={locale} summary={data.spending_summary} />
       {isEmpty && <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />}
-      <CategoryBreakdown locale={locale} items={data.category_breakdown} />
+      <div className="grid gap-6 xl:grid-cols-2">
+        <CategoryBreakdown locale={locale} items={data.category_breakdown} />
+        <SpendingTrendChart locale={locale} points={data.spending_trend} />
+      </div>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <TopMerchants locale={locale} merchants={data.top_merchants} />
+        <RecentActivity
+          aiConfigured={undefined}
+          locale={locale}
+          pendingAiCount={data.pending_review_count}
+          records={data.recent_records}
+        />
+      </div>
     </div>
   );
 }

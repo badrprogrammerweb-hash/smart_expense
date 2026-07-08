@@ -5,11 +5,22 @@ from datetime import date, timedelta
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
 from app.db import database_unavailable_exception
 from app.schemas.dashboard import FinancialSummary
-from app.schemas.reports import ReportData, ReportPeriod, ReportPreset, SpendingSummary
+from app.schemas.reports import (
+    MerchantTotal,
+    ReportData,
+    ReportPeriod,
+    ReportPreset,
+    SpendingSummary,
+    TopCategorySummary,
+    TrendDirection,
+    TrendGranularity,
+    TrendPoint,
+)
 from app.services import dashboard
 
 
@@ -78,6 +89,151 @@ def previous_comparable_period(period: ReportPeriod) -> tuple[date, date]:
     return previous_start, previous_end
 
 
+async def get_spending_trend(
+    workspace_id: UUID,
+    period_start: date,
+    period_end: date,
+    conn,
+) -> list[TrendPoint]:
+    span_days = (period_end - period_start).days + 1
+    granularity = TrendGranularity.DAY if span_days <= 31 else TrendGranularity.MONTH
+    bucket_expression = (
+        "occurred_on"
+        if granularity == TrendGranularity.DAY
+        else "date_trunc('month', occurred_on::timestamp)::date"
+    )
+
+    result = await conn.execute(
+        text(
+            f"""
+            select
+                bucket,
+                coalesce(sum(income_minor), 0) as income_minor,
+                coalesce(sum(expense_minor), 0) as expense_minor
+            from (
+                select
+                    {bucket_expression} as bucket,
+                    amount_minor as income_minor,
+                    0::bigint as expense_minor
+                from public.incomes
+                where workspace_id = :workspace_id
+                  and status = 'confirmed'
+                  and occurred_on between :period_start and :period_end
+
+                union all
+
+                select
+                    {bucket_expression} as bucket,
+                    0::bigint as income_minor,
+                    amount_minor as expense_minor
+                from public.expenses
+                where workspace_id = :workspace_id
+                  and status = 'confirmed'
+                  and occurred_on between :period_start and :period_end
+            ) records
+            group by bucket
+            order by bucket asc
+            """
+        ),
+        {
+            "workspace_id": str(workspace_id),
+            "period_start": period_start,
+            "period_end": period_end,
+        },
+    )
+
+    points: list[TrendPoint] = []
+    for row in result:
+        income_minor = int(row.income_minor or 0)
+        expense_minor = int(row.expense_minor or 0)
+        points.append(
+            TrendPoint(
+                bucket=row.bucket,
+                granularity=granularity,
+                income_minor=income_minor,
+                expense_minor=expense_minor,
+                remaining_minor=income_minor - expense_minor,
+            )
+        )
+    return points
+
+
+async def get_top_merchants(
+    workspace_id: UUID,
+    period_start: date,
+    period_end: date,
+    conn,
+    limit: int = 5,
+) -> list[MerchantTotal]:
+    result = await conn.execute(
+        text(
+            """
+            select
+                btrim(merchant_name) as merchant_name,
+                sum(amount_minor) as total_minor,
+                count(*) as record_count
+            from public.expenses
+            where workspace_id = :workspace_id
+              and status = 'confirmed'
+              and occurred_on between :period_start and :period_end
+              and merchant_name is not null
+              and btrim(merchant_name) <> ''
+            group by btrim(merchant_name)
+            order by total_minor desc, merchant_name asc
+            limit :limit
+            """
+        ),
+        {
+            "workspace_id": str(workspace_id),
+            "period_start": period_start,
+            "period_end": period_end,
+            "limit": limit,
+        },
+    )
+
+    return [
+        MerchantTotal(
+            merchant_name=row.merchant_name,
+            total_minor=int(row.total_minor),
+            count=int(row.record_count),
+        )
+        for row in result
+    ]
+
+
+def _trend_direction(current_expenses: int, previous_expenses: int) -> TrendDirection:
+    if current_expenses > previous_expenses:
+        return TrendDirection.UP
+    if current_expenses < previous_expenses:
+        return TrendDirection.DOWN
+    return TrendDirection.FLAT
+
+
+def _spending_summary(
+    income_total: int,
+    expense_total: int,
+    previous_expense_total: int,
+    category_breakdown,
+) -> SpendingSummary:
+    top_category = None
+    if category_breakdown:
+        first_category = category_breakdown[0]
+        top_category = TopCategorySummary(
+            category_id=first_category.category_id,
+            category_name=first_category.category_name,
+            total_minor=first_category.total_minor,
+            currency=first_category.currency,
+        )
+
+    return SpendingSummary(
+        total_income_minor=income_total,
+        total_expenses_minor=expense_total,
+        remaining_balance_minor=income_total - expense_total,
+        top_category=top_category,
+        trend_direction=_trend_direction(expense_total, previous_expense_total),
+    )
+
+
 async def get_report_data(
     workspace_id: UUID,
     report_period: ReportPeriod,
@@ -94,10 +250,20 @@ async def get_report_data(
         category_breakdown = await dashboard.get_category_breakdown(
             workspace_id, report_period.start, report_period.end, session
         )
+        spending_trend = await get_spending_trend(
+            workspace_id, report_period.start, report_period.end, session
+        )
+        top_merchants = await get_top_merchants(
+            workspace_id, report_period.start, report_period.end, session
+        )
         recent_records = await dashboard.get_recent_records(
             workspace_id, report_period.start, report_period.end, recent_limit, session
         )
         pending_review_count = await dashboard.get_pending_ai_count(workspace_id, session)
+        previous_start, previous_end = previous_comparable_period(report_period)
+        previous_expense_total = await dashboard.get_expense_total(
+            workspace_id, previous_start, previous_end, session
+        )
     except DBAPIError as exc:
         raise database_unavailable_exception(exc) from exc
 
@@ -112,15 +278,12 @@ async def get_report_data(
         period=report_period,
         summary=summary,
         category_breakdown=category_breakdown,
-        spending_trend=[],
-        top_merchants=[],
+        spending_trend=spending_trend,
+        top_merchants=top_merchants,
         recent_records=recent_records,
         team_activity=[],
         pending_review_count=pending_review_count,
-        spending_summary=SpendingSummary(
-            total_income_minor=income_total,
-            total_expenses_minor=expense_total,
-            remaining_balance_minor=income_total - expense_total,
-            top_category=None,
+        spending_summary=_spending_summary(
+            income_total, expense_total, previous_expense_total, category_breakdown
         ),
     )

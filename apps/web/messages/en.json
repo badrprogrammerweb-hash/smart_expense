@@ -137,6 +137,9 @@
   "summary": {
     "title": "Spending summary",
     "empty": "No confirmed records in this period yet.",
+    "totals": "Income was {income}, expenses were {expenses}, leaving {remaining}.",
+    "topCategory": "Top category: {category} at {amount}.",
+    "noTopCategory": "No spending category stood out in this period.",
     "trendUp": "Spending increased versus the previous comparable period.",
     "trendDown": "Spending decreased versus the previous comparable period.",
     "trendFlat": "Spending stayed roughly the same versus the previous comparable period."
