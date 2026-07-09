@@ -61,8 +61,8 @@ can fill them incrementally.
 
 **⚠️ CRITICAL**: No backend acceptance test can run until T005 exists.
 
-- [ ] T005 Create `apps/api/tests/acceptance/conftest.py`: a deterministic seed fixture (reusing the existing `apps/api/tests/conftest.py` `requires_supabase` / real local-Auth patterns) that builds **two workspaces owned by different users**, one member of workspace A per role (Owner/Admin/Member/Viewer), confirmed income + expenses, plus deleted, edited, draft/pending, and failed-AI records — with teardown; exposes helpers to sign in as each user/role (blocks US1, US3)
-- [ ] T006 [P] Add an AI-provider stub fixture in `apps/api/tests/acceptance/conftest.py` (inject an `httpx` transport per the Phase 8 stub pattern) so AI paths return deterministic success/error responses and never make a live external call (FR-024) (depends on T005)
+- [X] T005 Create `apps/api/tests/acceptance/conftest.py`: a deterministic seed fixture (reusing the existing `apps/api/tests/conftest.py` `requires_supabase` / real local-Auth patterns) that builds **two workspaces owned by different users**, one member of workspace A per role (Owner/Admin/Member/Viewer), confirmed income + expenses, plus deleted, edited, draft/pending, and failed-AI records — with teardown; exposes helpers to sign in as each user/role (blocks US1, US3)
+- [X] T006 [P] Add an AI-provider stub fixture in `apps/api/tests/acceptance/conftest.py` (inject an `httpx` transport per the Phase 8 stub pattern) so AI paths return deterministic success/error responses and never make a live external call (FR-024) (depends on T005)
 
 **Checkpoint**: A shared, deterministic multi-workspace/multi-role world is seedable and AI calls are stubbed.
 
