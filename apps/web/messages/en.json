@@ -124,11 +124,13 @@
     },
     "teamActivity": {
       "title": "Team activity",
-      "empty": "No confirmed team records for this period."
+      "empty": "No confirmed team records for this period.",
+      "recordCount": "{count, plural, one {# confirmed record} other {# confirmed records}}"
     },
     "pendingReview": {
       "title": "Pending review",
-      "count": "{count} AI extraction {count, plural, one {result} other {results}} awaiting review"
+      "count": "{count} AI extraction {count, plural, one {result} other {results}} awaiting review",
+      "empty": "No AI extractions awaiting review."
     },
     "title": "Reports",
     "subtitle": "Current period: {start} to {end}",

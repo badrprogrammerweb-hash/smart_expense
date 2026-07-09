@@ -7,8 +7,10 @@ import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { SummaryCards } from "@/components/dashboard/SummaryCards";
 import { PeriodSelector } from "@/components/reports/PeriodSelector";
+import { PendingReviewSummary } from "@/components/reports/PendingReviewSummary";
 import { PlainLanguageSummary } from "@/components/reports/PlainLanguageSummary";
 import { SpendingTrendChart } from "@/components/reports/SpendingTrendChart";
+import { TeamActivitySummary } from "@/components/reports/TeamActivitySummary";
 import { TopMerchants } from "@/components/reports/TopMerchants";
 import { useReports } from "@/hooks/use-reports";
 
@@ -61,6 +63,10 @@ export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
       <PeriodSelector onChange={reports.setPeriod} value={reports.period} />
       <SummaryCards locale={locale} period={data.period} summary={data.summary} />
       <PlainLanguageSummary locale={locale} summary={data.spending_summary} />
+      <div className="grid gap-6 xl:grid-cols-2">
+        <TeamActivitySummary items={data.team_activity} />
+        <PendingReviewSummary count={data.pending_review_count} />
+      </div>
       {isEmpty && <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />}
       <div className="grid gap-6 xl:grid-cols-2">
         <CategoryBreakdown locale={locale} items={data.category_breakdown} />

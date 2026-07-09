@@ -147,14 +147,14 @@ Monolith: backend `apps/api/`, frontend `apps/web/`, database `supabase/migratio
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T044 [P] [US4] Backend test — `team_activity` per-member counts for the period (graceful single-member case) and `pending_review_count` equals `dashboard.get_pending_ai_count` — in `apps/api/tests/test_reports_team_activity.py` (FR-016, FR-017, FR-018)
+- [X] T044 [P] [US4] Backend test — `team_activity` per-member counts for the period (graceful single-member case) and `pending_review_count` equals `dashboard.get_pending_ai_count` — in `apps/api/tests/test_reports_team_activity.py` (FR-016, FR-017, FR-018)
 
 ### Implementation for User Story 4
 
-- [ ] T045 [US4] Implement `get_team_activity` (per-member confirmed income+expense counts created within the period, grouped by `created_by`, graceful for single-member) and include it in `ReportData` in `apps/api/app/services/reports.py` (FR-016, FR-018)
-- [ ] T046 [P] [US4] Frontend `TeamActivitySummary` component in `apps/web/components/reports/TeamActivitySummary.tsx`
-- [ ] T047 [P] [US4] Frontend `PendingReviewSummary` component (reads `pending_review_count`) in `apps/web/components/reports/PendingReviewSummary.tsx`
-- [ ] T048 [US4] Mount `TeamActivitySummary` and `PendingReviewSummary` in `ReportSummary.tsx` and add en/ar strings (depends on T046, T047)
+- [X] T045 [US4] Implement `get_team_activity` (per-member confirmed income+expense counts created within the period, grouped by `created_by`, graceful for single-member) and include it in `ReportData` in `apps/api/app/services/reports.py` (FR-016, FR-018)
+- [X] T046 [P] [US4] Frontend `TeamActivitySummary` component in `apps/web/components/reports/TeamActivitySummary.tsx`
+- [X] T047 [P] [US4] Frontend `PendingReviewSummary` component (reads `pending_review_count`) in `apps/web/components/reports/PendingReviewSummary.tsx`
+- [X] T048 [US4] Mount `TeamActivitySummary` and `PendingReviewSummary` in `ReportSummary.tsx` and add en/ar strings (depends on T046, T047)
 
 **Checkpoint**: US1–US4 all work independently.
 

@@ -16,6 +16,7 @@ from app.schemas.reports import (
     ReportPeriod,
     ReportPreset,
     SpendingSummary,
+    TeamActivityItem,
     TopCategorySummary,
     TrendDirection,
     TrendGranularity,
@@ -201,6 +202,56 @@ async def get_top_merchants(
     ]
 
 
+async def get_team_activity(
+    workspace_id: UUID,
+    period_start: date,
+    period_end: date,
+    conn,
+) -> list[TeamActivityItem]:
+    result = await conn.execute(
+        text(
+            """
+            select
+                records.created_by as user_id,
+                coalesce(nullif(up.display_name, ''), up.email) as display_name,
+                count(*)::int as records_created
+            from (
+                select created_by
+                from public.incomes
+                where workspace_id = :workspace_id
+                  and status = 'confirmed'
+                  and (created_at at time zone 'Asia/Riyadh')::date between :period_start and :period_end
+
+                union all
+
+                select created_by
+                from public.expenses
+                where workspace_id = :workspace_id
+                  and status = 'confirmed'
+                  and (created_at at time zone 'Asia/Riyadh')::date between :period_start and :period_end
+            ) records
+            left join public.user_profiles up on up.id = records.created_by
+            group by records.created_by, up.display_name, up.email
+            order by records_created desc, display_name asc
+            """
+        ),
+        {
+            "workspace_id": str(workspace_id),
+            "period_start": period_start,
+            "period_end": period_end,
+        },
+    )
+
+    return [
+        TeamActivityItem(
+            user_id=row.user_id,
+            display_name=row.display_name,
+            records_created=int(row.records_created),
+        )
+        for row in result
+    ]
+
+
 def _trend_direction(current_expenses: int, previous_expenses: int) -> TrendDirection:
     if current_expenses > previous_expenses:
         return TrendDirection.UP
@@ -256,6 +307,9 @@ async def get_report_data(
         top_merchants = await get_top_merchants(
             workspace_id, report_period.start, report_period.end, session
         )
+        team_activity = await get_team_activity(
+            workspace_id, report_period.start, report_period.end, session
+        )
         recent_records = await dashboard.get_recent_records(
             workspace_id, report_period.start, report_period.end, recent_limit, session
         )
@@ -281,7 +335,7 @@ async def get_report_data(
         spending_trend=spending_trend,
         top_merchants=top_merchants,
         recent_records=recent_records,
-        team_activity=[],
+        team_activity=team_activity,
         pending_review_count=pending_review_count,
         spending_summary=_spending_summary(
             income_total, expense_total, previous_expense_total, category_breakdown
