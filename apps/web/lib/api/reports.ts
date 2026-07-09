@@ -49,6 +49,13 @@ export type SpendingSummary = {
   currency: "SAR";
 };
 
+export type AiSummaryLocale = "en" | "ar";
+
+export type AiSummaryResponse = {
+  locale: AiSummaryLocale;
+  text: string;
+};
+
 export type ReportResponse = {
   workspace_id: string;
   period: ReportPeriod;
@@ -74,4 +81,15 @@ export async function getReport(
   }
 
   return apiFetch<ReportResponse>(`/workspaces/${workspaceId}/reports?${params.toString()}`);
+}
+
+export async function requestAiSummary(
+  workspaceId: string,
+  period: ReportPeriodInput,
+  locale: AiSummaryLocale,
+) {
+  return apiFetch<AiSummaryResponse>(`/workspaces/${workspaceId}/reports/ai-summary`, {
+    method: "POST",
+    body: JSON.stringify({ ...period, locale }),
+  });
 }

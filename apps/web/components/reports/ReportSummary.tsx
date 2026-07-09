@@ -6,6 +6,7 @@ import { CategoryBreakdown } from "@/components/dashboard/CategoryBreakdown";
 import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { SummaryCards } from "@/components/dashboard/SummaryCards";
+import { AiSpendingSummary } from "@/components/reports/AiSpendingSummary";
 import { PeriodSelector } from "@/components/reports/PeriodSelector";
 import { PendingReviewSummary } from "@/components/reports/PendingReviewSummary";
 import { PlainLanguageSummary } from "@/components/reports/PlainLanguageSummary";
@@ -13,6 +14,7 @@ import { SpendingTrendChart } from "@/components/reports/SpendingTrendChart";
 import { TeamActivitySummary } from "@/components/reports/TeamActivitySummary";
 import { TopMerchants } from "@/components/reports/TopMerchants";
 import { useReports } from "@/hooks/use-reports";
+import { useWorkspaceContext } from "@/lib/workspace-context";
 
 type ReportSummaryProps = {
   workspaceId: string;
@@ -24,6 +26,7 @@ export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
   const common = useTranslations("common");
   const errors = useTranslations("errors");
   const reports = useReports(workspaceId);
+  const { role } = useWorkspaceContext();
 
   if (reports.isLoading) {
     return <p className="text-sm text-muted-foreground">{common("loading")}</p>;
@@ -63,6 +66,12 @@ export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
       <PeriodSelector onChange={reports.setPeriod} value={reports.period} />
       <SummaryCards locale={locale} period={data.period} summary={data.summary} />
       <PlainLanguageSummary locale={locale} summary={data.spending_summary} />
+      <AiSpendingSummary
+        locale={locale}
+        period={reports.period}
+        role={role}
+        workspaceId={workspaceId}
+      />
       <div className="grid gap-6 xl:grid-cols-2">
         <TeamActivitySummary items={data.team_activity} />
         <PendingReviewSummary count={data.pending_review_count} />

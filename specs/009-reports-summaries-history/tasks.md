@@ -168,18 +168,18 @@ Monolith: backend `apps/api/`, frontend `apps/web/`, database `supabase/migratio
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T049 [P] [US5] Backend test — BYOK absent → `409 ai_not_configured`; Owner/Admin/Member allowed, Viewer → 403; only confirmed aggregates sent; EN/AR — in `apps/api/tests/test_ai_summary.py` (FR-026/027/028/031)
-- [ ] T050 [P] [US5] Backend test — invalid key / provider failure → safe non-technical error, page unaffected, decrypted key never in any response/log — in `apps/api/tests/test_ai_summary_error_handling.py` (FR-029, SC-008)
+- [X] T049 [P] [US5] Backend test — BYOK absent → `409 ai_not_configured`; Owner/Admin/Member allowed, Viewer → 403; only confirmed aggregates sent; EN/AR — in `apps/api/tests/test_ai_summary.py` (FR-026/027/028/031)
+- [X] T050 [P] [US5] Backend test — invalid key / provider failure → safe non-technical error, page unaffected, decrypted key never in any response/log — in `apps/api/tests/test_ai_summary_error_handling.py` (FR-029, SC-008)
 
 ### Implementation for User Story 5
 
-- [ ] T051 [US5] Add `summarize_spending(provider, api_key, aggregates, locale)` (httpx direct-REST to Gemini/OpenAI, structured result or safe failure) to `apps/api/app/services/ai_providers.py` beside `extract_receipt`
-- [ ] T052 [US5] Implement the AI-summary service in `apps/api/app/services/ai_summary.py`: build confirmed aggregates via the reports service, fetch the key via the Phase 8 `get_workspace_ai_key_for_extraction` RPC, call `summarize_spending`, and map failures — send aggregates only, never raw rows (depends on T051)
-- [ ] T053 [US5] Implement `POST /workspaces/{workspace_id}/reports/ai-summary` in `apps/api/app/routes/reports.py` (Owner/Admin/Member only → 403 Viewer, 409 `ai_not_configured`, 502/400 safe errors) (depends on T005, T052)
-- [ ] T054 [P] [US5] Frontend reports API client `requestAiSummary(workspaceId, period, locale)` in `apps/web/lib/api/reports.ts` (extend)
-- [ ] T055 [P] [US5] Frontend `AiSpendingSummary` component — on-demand button gated by `canRequestAiSummary` and BYOK presence (via `use-ai-settings`), safe error state, hidden for Viewer — in `apps/web/components/reports/AiSpendingSummary.tsx`
-- [ ] T056 [US5] Mount `AiSpendingSummary` in `ReportSummary.tsx` (only when BYOK configured) and add en/ar strings (depends on T055)
-- [ ] T057 [P] [US5] Frontend unit test for `AiSpendingSummary` — no key → absent; Viewer → absent; error state — in `apps/web/tests/unit/ai-spending-summary.test.tsx`
+- [X] T051 [US5] Add `summarize_spending(provider, api_key, aggregates, locale)` (httpx direct-REST to Gemini/OpenAI, structured result or safe failure) to `apps/api/app/services/ai_providers.py` beside `extract_receipt`
+- [X] T052 [US5] Implement the AI-summary service in `apps/api/app/services/ai_summary.py`: build confirmed aggregates via the reports service, fetch the key via the Phase 8 `get_workspace_ai_key_for_extraction` RPC, call `summarize_spending`, and map failures — send aggregates only, never raw rows (depends on T051)
+- [X] T053 [US5] Implement `POST /workspaces/{workspace_id}/reports/ai-summary` in `apps/api/app/routes/reports.py` (Owner/Admin/Member only → 403 Viewer, 409 `ai_not_configured`, 502/400 safe errors) (depends on T005, T052)
+- [X] T054 [P] [US5] Frontend reports API client `requestAiSummary(workspaceId, period, locale)` in `apps/web/lib/api/reports.ts` (extend)
+- [X] T055 [P] [US5] Frontend `AiSpendingSummary` component — on-demand button gated by `canRequestAiSummary` and BYOK presence (via `use-ai-settings`), safe error state, hidden for Viewer — in `apps/web/components/reports/AiSpendingSummary.tsx`
+- [X] T056 [US5] Mount `AiSpendingSummary` in `ReportSummary.tsx` (only when BYOK configured) and add en/ar strings (depends on T055)
+- [X] T057 [P] [US5] Frontend unit test for `AiSpendingSummary` — no key → absent; Viewer → absent; error state — in `apps/web/tests/unit/ai-spending-summary.test.tsx`
 
 **Checkpoint**: All five user stories are independently functional.
 

@@ -13,7 +13,9 @@ changing any functional requirement.
 from __future__ import annotations
 
 import base64
+import json
 from datetime import date
+from typing import Any
 
 import httpx
 from pydantic import BaseModel, ValidationError
@@ -39,6 +41,12 @@ EXTRACTION_PROMPT = (
     "and a short spending category suggestion (suggested_category) from this "
     "receipt or invoice. Respond with a field left null if it cannot be "
     "determined."
+)
+
+SUMMARY_SYSTEM_PROMPT = (
+    "You write concise spending summaries for a Saudi expense-tracking app. "
+    "Use plain language, do not give financial advice, and base the answer "
+    "only on the confirmed aggregate JSON supplied by the app."
 )
 
 RESPONSE_SCHEMA = {
@@ -69,6 +77,14 @@ class ExtractionFailure(BaseModel):
     failure_reason: FailureReason
 
 
+class AiSummaryProviderError(Exception):
+    """A safe provider failure for the AI spending summary path."""
+
+
+class AiSummaryInvalidKeyError(AiSummaryProviderError):
+    """The provider rejected the configured BYOK key."""
+
+
 def _classify_http_error(status_code: int) -> FailureReason:
     if status_code in (401, 403):
         return FailureReason.INVALID_KEY
@@ -82,6 +98,24 @@ def _parse_extracted_fields(raw_text: str) -> ExtractedFields | ExtractionFailur
         return ExtractedFields.model_validate_json(raw_text)
     except ValidationError:
         return ExtractionFailure(failure_reason=FailureReason.MALFORMED_RESPONSE)
+
+
+def _summary_error_for_status(status_code: int) -> AiSummaryProviderError:
+    if status_code in (401, 403):
+        return AiSummaryInvalidKeyError()
+    return AiSummaryProviderError()
+
+
+def _summary_user_prompt(aggregates: dict[str, Any], locale: str) -> str:
+    language = "Arabic" if locale == "ar" else "English"
+    payload = json.dumps(aggregates, ensure_ascii=False, separators=(",", ":"))
+    return (
+        f"Write a short {language} spending summary for this reporting period. "
+        "Mention the totals, largest category if present, trend direction, "
+        "notable merchant/team/pending-review aggregates if useful, and avoid "
+        "advice or unsupported claims.\n\n"
+        f"Confirmed aggregate JSON:\n{payload}"
+    )
 
 
 async def _extract_gemini(
@@ -196,3 +230,86 @@ async def extract_receipt(
     if provider is AiProvider.GEMINI:
         return await _extract_gemini(api_key, file_bytes, content_type)
     return await _extract_openai(api_key, file_bytes, content_type)
+
+
+async def _summarize_gemini(api_key: str, aggregates: dict[str, Any], locale: str) -> str:
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {"text": SUMMARY_SYSTEM_PROMPT},
+                    {"text": _summary_user_prompt(aggregates, locale)},
+                ]
+            }
+        ]
+    }
+    try:
+        async with httpx.AsyncClient(timeout=PROVIDER_TIMEOUT_SECONDS, trust_env=False) as client:
+            response = await client.post(
+                GEMINI_ENDPOINT, headers={"x-goog-api-key": api_key}, json=payload
+            )
+    except httpx.HTTPError as exc:
+        raise AiSummaryProviderError() from exc
+
+    if response.status_code != 200:
+        raise _summary_error_for_status(response.status_code)
+
+    try:
+        body = response.json()
+        text = body["candidates"][0]["content"]["parts"][0]["text"]
+    except (ValueError, KeyError, IndexError, TypeError) as exc:
+        raise AiSummaryProviderError() from exc
+
+    if not isinstance(text, str) or not text.strip():
+        raise AiSummaryProviderError()
+    return text.strip()
+
+
+async def _summarize_openai(api_key: str, aggregates: dict[str, Any], locale: str) -> str:
+    payload = {
+        "model": OPENAI_MODEL,
+        "messages": [
+            {"role": "system", "content": SUMMARY_SYSTEM_PROMPT},
+            {"role": "user", "content": _summary_user_prompt(aggregates, locale)},
+        ],
+    }
+    try:
+        async with httpx.AsyncClient(timeout=PROVIDER_TIMEOUT_SECONDS, trust_env=False) as client:
+            response = await client.post(
+                OPENAI_ENDPOINT,
+                headers={"Authorization": f"Bearer {api_key}"},
+                json=payload,
+            )
+    except httpx.HTTPError as exc:
+        raise AiSummaryProviderError() from exc
+
+    if response.status_code != 200:
+        raise _summary_error_for_status(response.status_code)
+
+    try:
+        body = response.json()
+        text = body["choices"][0]["message"]["content"]
+    except (ValueError, KeyError, IndexError, TypeError) as exc:
+        raise AiSummaryProviderError() from exc
+
+    if not isinstance(text, str) or not text.strip():
+        raise AiSummaryProviderError()
+    return text.strip()
+
+
+async def summarize_spending(
+    provider: AiProvider,
+    api_key: str,
+    aggregates: dict[str, Any],
+    locale: str,
+) -> str:
+    """Generate a plain-language summary from aggregate report data only.
+
+    The decrypted `api_key` is used for this one outbound request and is
+    never logged, returned, or persisted. Provider internals are collapsed
+    into safe exception classes so callers can return non-technical errors.
+    """
+
+    if provider is AiProvider.GEMINI:
+        return await _summarize_gemini(api_key, aggregates, locale)
+    return await _summarize_openai(api_key, aggregates, locale)
