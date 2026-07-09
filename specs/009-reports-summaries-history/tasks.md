@@ -117,23 +117,23 @@ Monolith: backend `apps/api/`, frontend `apps/web/`, database `supabase/migratio
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T030 [P] [US3] Trigger test — each tracked mutation writes exactly one entry with correct `event_type`, `actor_user_id` (`auth.uid()`), entity reference, and timestamp; a no-op `updated_at`-only change writes nothing — in `apps/api/tests/test_history_triggers.py` (SC-004, FR-019/020/021)
-- [ ] T031 [P] [US3] Forward-only test — pre-existing rows are not backfilled; only post-migration mutations appear — in `apps/api/tests/test_history_forward_only.py` (FR-022)
-- [ ] T032 [P] [US3] Access + pagination + isolation test — Owner/Admin read newest-first keyset pages; Member/Viewer 403; non-member 404; cross-workspace denied — in `apps/api/tests/test_history_access.py` (FR-024/025/032, FR-030)
+- [X] T030 [P] [US3] Trigger test — each tracked mutation writes exactly one entry with correct `event_type`, `actor_user_id` (`auth.uid()`), entity reference, and timestamp; a no-op `updated_at`-only change writes nothing — in `apps/api/tests/test_history_triggers.py` (SC-004, FR-019/020/021)
+- [X] T031 [P] [US3] Forward-only test — pre-existing rows are not backfilled; only post-migration mutations appear — in `apps/api/tests/test_history_forward_only.py` (FR-022)
+- [X] T032 [P] [US3] Access + pagination + isolation test — Owner/Admin read newest-first keyset pages; Member/Viewer 403; non-member 404; cross-workspace denied — in `apps/api/tests/test_history_access.py` (FR-024/025/032, FR-030)
 
 ### Implementation for User Story 3
 
-- [ ] T033 [US3] Create migration `supabase/migrations/20260708000000_reports_history.sql` with the `activity_history` table, the `(workspace_id, created_at desc, id desc)` index, and the `event_type` CHECK set (per contracts/history-schema.md)
-- [ ] T034 [US3] Add the `public.record_activity()` SECURITY DEFINER trigger function with the event-type mapping and the "meaningful change only" (OLD/NEW compare, ignore bare `updated_at`) logic to the migration (data-model mapping table)
-- [ ] T035 [US3] Add AFTER INSERT/UPDATE/DELETE row triggers on `incomes`, `expenses`, `categories`, `files`, `ai_extractions`, `workspace_memberships`, `workspaces` (auto_delete column only), and `workspace_ai_settings` to the migration (depends on T034)
-- [ ] T036 [US3] Add RLS (Owner/Admin `select` via `workspace_role_for`) and grants (no insert/update/delete to `authenticated`; select only) to the migration (depends on T033)
-- [ ] T037 [US3] Implement `list_history(workspace_id, limit, before, session)` (newest-first keyset, page size ≤ 50) in `apps/api/app/services/history.py`
-- [ ] T038 [US3] Implement `GET /workspaces/{workspace_id}/history` in `apps/api/app/routes/history.py` (Owner/Admin only → 403 Member/Viewer, 404 non-member, keyset pagination) and register `history_router` in `apps/api/app/main.py` (depends on T004, T037)
-- [ ] T039 [P] [US3] Frontend history API client `listHistory(workspaceId, {limit, before})` in `apps/web/lib/api/history.ts`
-- [ ] T040 [P] [US3] Frontend `use-history` paginated hook in `apps/web/hooks/use-history.ts` (depends on T039)
-- [ ] T041 [P] [US3] Frontend `HistoryList` and `HistoryEmptyState` components (i18n event labels; what/who/when) in `apps/web/components/history/`
-- [ ] T042 [US3] Frontend history route page gated by `canViewHistory` in `apps/web/app/[locale]/w/[workspaceId]/history/page.tsx` (depends on T040, T041)
-- [ ] T043 [P] [US3] Frontend history e2e — Owner sees events newest-first; Viewer denied — in `apps/web/tests/e2e/history.spec.ts`
+- [X] T033 [US3] Create migration `supabase/migrations/20260708000000_reports_history.sql` with the `activity_history` table, the `(workspace_id, created_at desc, id desc)` index, and the `event_type` CHECK set (per contracts/history-schema.md)
+- [X] T034 [US3] Add the `public.record_activity()` SECURITY DEFINER trigger function with the event-type mapping and the "meaningful change only" (OLD/NEW compare, ignore bare `updated_at`) logic to the migration (data-model mapping table)
+- [X] T035 [US3] Add AFTER INSERT/UPDATE/DELETE row triggers on `incomes`, `expenses`, `categories`, `files`, `ai_extractions`, `workspace_memberships`, `workspaces` (auto_delete column only), and `workspace_ai_settings` to the migration (depends on T034)
+- [X] T036 [US3] Add RLS (Owner/Admin `select` via `workspace_role_for`) and grants (no insert/update/delete to `authenticated`; select only) to the migration (depends on T033)
+- [X] T037 [US3] Implement `list_history(workspace_id, limit, before, session)` (newest-first keyset, page size ≤ 50) in `apps/api/app/services/history.py`
+- [X] T038 [US3] Implement `GET /workspaces/{workspace_id}/history` in `apps/api/app/routes/history.py` (Owner/Admin only → 403 Member/Viewer, 404 non-member, keyset pagination) and register `history_router` in `apps/api/app/main.py` (depends on T004, T037)
+- [X] T039 [P] [US3] Frontend history API client `listHistory(workspaceId, {limit, before})` in `apps/web/lib/api/history.ts`
+- [X] T040 [P] [US3] Frontend `use-history` paginated hook in `apps/web/hooks/use-history.ts` (depends on T039)
+- [X] T041 [P] [US3] Frontend `HistoryList` and `HistoryEmptyState` components (i18n event labels; what/who/when) in `apps/web/components/history/`
+- [X] T042 [US3] Frontend history route page gated by `canViewHistory` in `apps/web/app/[locale]/w/[workspaceId]/history/page.tsx` (depends on T040, T041)
+- [X] T043 [P] [US3] Frontend history e2e — Owner sees events newest-first; Viewer denied — in `apps/web/tests/e2e/history.spec.ts`
 
 **Checkpoint**: History works independently and is Owner/Admin-gated.
 

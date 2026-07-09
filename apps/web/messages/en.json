@@ -19,6 +19,7 @@
     "extractions": "AI reviews",
     "categories": "Categories",
     "reports": "Reports",
+    "history": "History",
     "settings": "Settings",
     "signOut": "Sign out",
     "workspaceRole": "{role} role",
@@ -150,6 +151,7 @@
     "emptyDescription": "Only activity from this phase onward appears here.",
     "loadMore": "Load more",
     "notAuthorized": "Only owners and admins can view activity history.",
+    "unknownActor": "Unknown user",
     "events": {
       "income_created": "Income added",
       "income_updated": "Income updated",

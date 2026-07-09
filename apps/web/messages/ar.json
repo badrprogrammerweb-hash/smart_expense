@@ -19,6 +19,7 @@
     "extractions": "مراجعات الذكاء",
     "categories": "التصنيفات",
     "reports": "التقارير",
+    "history": "السجل",
     "settings": "الإعدادات",
     "signOut": "تسجيل الخروج",
     "workspaceRole": "دورك: {role}",
@@ -150,6 +151,7 @@
     "emptyDescription": "يظهر هنا النشاط المسجل من هذه المرحلة فصاعدًا فقط.",
     "loadMore": "تحميل المزيد",
     "notAuthorized": "يمكن للمالك والمشرف فقط عرض سجل النشاط.",
+    "unknownActor": "مستخدم غير معروف",
     "events": {
       "income_created": "تمت إضافة دخل",
       "income_updated": "تم تحديث دخل",

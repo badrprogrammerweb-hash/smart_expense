@@ -13,6 +13,7 @@ from app.routes.expenses import router as expenses_router
 from app.routes.extractions import router as extractions_router
 from app.routes.files import router as files_router
 from app.routes.health import router as health_router
+from app.routes.history import router as history_router
 from app.routes.incomes import router as incomes_router
 from app.routes.reports import router as reports_router
 from app.routes.workspace_members import router as workspace_members_router
@@ -91,5 +92,6 @@ app.include_router(categories_router)
 app.include_router(files_router)
 app.include_router(dashboard_router)
 app.include_router(reports_router)
+app.include_router(history_router)
 app.include_router(ai_settings_router)
 app.include_router(extractions_router)
