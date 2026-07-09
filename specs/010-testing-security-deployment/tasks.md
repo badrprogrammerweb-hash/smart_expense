@@ -74,12 +74,12 @@ can fill them incrementally.
 
 **Independent Test**: Run `pytest apps/api/tests/acceptance/test_acc_financial_accuracy.py apps/api/tests/acceptance/test_acc_tenant_isolation.py`; every accuracy edge state holds and every cross-workspace/unauthenticated attempt is denied. Any failure becomes a findings-register row, not a code fix.
 
-- [ ] T007 [P] [US1] `apps/api/tests/acceptance/test_acc_financial_accuracy.py`: remaining balance = confirmed income − confirmed expenses; zero-income, zero-expense, and negative-balance states; money is integer minor units with no floating-point drift (FR-004, FR-007, FR-008, SC-001) (depends on T005)
-- [ ] T008 [US1] Extend `test_acc_financial_accuracy.py`: editing and deleting income/expenses immediately recalculates totals; deleted records excluded; draft/pending/failed AI records move zero totals; multi-workspace totals are independent (FR-005, FR-006, FR-018) (depends on T007)
-- [ ] T009 [P] [US1] `apps/api/tests/acceptance/test_acc_tenant_isolation.py`: a user of workspace A is denied **read** of workspace B's incomes, expenses, categories, files, reports, and history (FR-009, SC-002) (depends on T005)
-- [ ] T010 [US1] Extend `test_acc_tenant_isolation.py`: cross-workspace **write** denied; unauthenticated requests to protected resources denied; assert denial originates at the backend/RLS, not a frontend check (FR-010, FR-011, FR-012, SC-002) (depends on T009)
-- [ ] T011 [P] [US1] `apps/api/tests/acceptance/test_acc_readiness_smoke.py`: an end-to-end confirmed-only reconciliation smoke over the stitched flow (create → confirm → report equals dashboard) proving the assembled path is consistent (depends on T005)
-- [ ] T012 [US1] Update `contracts/test-coverage-matrix.md` financial-accuracy + tenant-isolation row statuses (`planned → implemented → passing`); for any failing assertion, add a finding to `findings-register.md` with area/severity and set its release-blocker flag (depends on T008, T010, T011)
+- [X] T007 [P] [US1] `apps/api/tests/acceptance/test_acc_financial_accuracy.py`: remaining balance = confirmed income − confirmed expenses; zero-income, zero-expense, and negative-balance states; money is integer minor units with no floating-point drift (FR-004, FR-007, FR-008, SC-001) (depends on T005)
+- [X] T008 [US1] Extend `test_acc_financial_accuracy.py`: editing and deleting income/expenses immediately recalculates totals; deleted records excluded; draft/pending/failed AI records move zero totals; multi-workspace totals are independent (FR-005, FR-006, FR-018) (depends on T007)
+- [X] T009 [P] [US1] `apps/api/tests/acceptance/test_acc_tenant_isolation.py`: a user of workspace A is denied **read** of workspace B's incomes, expenses, categories, files, reports, and history (FR-009, SC-002) (depends on T005)
+- [X] T010 [US1] Extend `test_acc_tenant_isolation.py`: cross-workspace **write** denied; unauthenticated requests to protected resources denied; assert denial originates at the backend/RLS, not a frontend check (FR-010, FR-011, FR-012, SC-002) (depends on T009)
+- [X] T011 [P] [US1] `apps/api/tests/acceptance/test_acc_readiness_smoke.py`: an end-to-end confirmed-only reconciliation smoke over the stitched flow (create → confirm → report equals dashboard) proving the assembled path is consistent (depends on T005)
+- [X] T012 [US1] Update `contracts/test-coverage-matrix.md` financial-accuracy + tenant-isolation row statuses (`planned → implemented → passing`); for any failing assertion, add a finding to `findings-register.md` with area/severity and set its release-blocker flag (depends on T008, T010, T011)
 
 **Checkpoint**: Financial accuracy and tenant isolation are proven (or every gap is a tracked, severity-rated finding). This is the MVP of the phase.
 

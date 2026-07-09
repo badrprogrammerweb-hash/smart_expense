@@ -9,32 +9,32 @@ Tiers: `backend-integration` (pytest, `apps/api/tests/acceptance/`), `frontend-e
 (Playwright, `apps/web/e2e/`), `frontend-unit` (Vitest, `apps/web/tests/unit/`),
 `manual` (checklist).
 
-| Area | Requirement(s) | Verifier | Tier |
-|------|----------------|----------|------|
-| financial-accuracy | FR-004, SC-001 | `test_acc_financial_accuracy.py::test_remaining_balance_equals_confirmed_income_minus_expenses` | backend-integration |
-| financial-accuracy | FR-007, SC-001 | `test_acc_financial_accuracy.py::test_zero_income_zero_expense_negative_balance` | backend-integration |
-| financial-accuracy | FR-006 | `test_acc_financial_accuracy.py::test_edit_and_delete_recalculate_totals` | backend-integration |
-| financial-accuracy | FR-005, FR-018 | `test_acc_financial_accuracy.py::test_draft_pending_failed_ai_move_zero_totals` | backend-integration |
-| financial-accuracy | FR-008 | `test_acc_financial_accuracy.py::test_money_is_integer_minor_units_no_float_drift` | backend-integration |
-| financial-accuracy | FR-007 | `test_acc_financial_accuracy.py::test_multi_workspace_totals_are_independent` | backend-integration |
-| tenant-isolation | FR-009, SC-002 | `test_acc_tenant_isolation.py::test_cross_workspace_read_denied_all_record_types` | backend-integration |
-| tenant-isolation | FR-010, SC-002 | `test_acc_tenant_isolation.py::test_cross_workspace_write_denied` | backend-integration |
-| tenant-isolation | FR-011, SC-002 | `test_acc_tenant_isolation.py::test_unauthenticated_requests_denied` | backend-integration |
-| tenant-isolation | FR-012 | `test_acc_tenant_isolation.py::test_isolation_enforced_at_backend_or_rls_not_frontend` | backend-integration |
-| role-permissions | FR-013, SC-003 | `test_acc_role_permissions.py::test_owner_admin_member_viewer_action_matrix` | backend-integration |
-| role-permissions | FR-014, SC-003 | `test_acc_role_permissions.py::test_viewer_cannot_modify_any_record` | backend-integration |
-| role-permissions | FR-013 | `acc-role-permissions.spec.ts` (UI surfaces gate by role) | frontend-e2e |
-| file-privacy | FR-015, SC-004 | `test_acc_file_privacy.py::test_files_private_no_public_url` | backend-integration |
-| file-privacy | FR-016, SC-004 | `test_acc_file_privacy.py::test_file_access_scoped_to_membership` | backend-integration |
-| file-privacy | FR-015 | `acc-file-privacy.spec.ts` (no public file URL surfaced) | frontend-e2e |
-| ai-behavior | FR-017, SC-005 | `test_acc_ai_behavior.py::test_byok_key_never_in_response_log_or_error` | backend-integration |
-| ai-behavior | FR-018, SC-005 | `test_acc_ai_behavior.py::test_unconfirmed_ai_moves_zero_totals` | backend-integration |
-| ai-behavior | FR-019 | `test_acc_ai_behavior.py::test_provider_error_and_invalid_key_safe_and_no_data_corruption` | backend-integration |
-| ai-behavior | FR-020 | `test_acc_ai_behavior.py::test_app_fully_usable_with_no_ai_key` | backend-integration |
-| localization | FR-021, SC-006 | `localization-rtl.test.tsx` (dir=rtl/ltr, SAR format, no untranslated keys) | frontend-unit |
-| localization | FR-021, SC-006 | `acc-localization-rtl.spec.ts` (AR/EN core routes) | frontend-e2e |
-| localization | FR-021 | `manual-ar-en-rtl-checklist.md` (visual/RTL pass on core surfaces) | manual |
-| readiness | SC-007 | `test_acc_readiness_smoke.py` + CI green (`.github/workflows/ci.yml`) | backend-integration |
+| Area | Requirement(s) | Verifier | Tier | Status |
+|------|----------------|----------|------|--------|
+| financial-accuracy | FR-004, SC-001 | `test_acc_financial_accuracy.py::test_remaining_balance_equals_confirmed_income_minus_expenses` | backend-integration | passing |
+| financial-accuracy | FR-007, SC-001 | `test_acc_financial_accuracy.py::test_zero_income_zero_expense_negative_balance` | backend-integration | passing |
+| financial-accuracy | FR-006 | `test_acc_financial_accuracy.py::test_edit_and_delete_recalculate_totals` | backend-integration | passing |
+| financial-accuracy | FR-005, FR-018 | `test_acc_financial_accuracy.py::test_draft_pending_failed_ai_move_zero_totals` | backend-integration | passing |
+| financial-accuracy | FR-008 | `test_acc_financial_accuracy.py::test_money_is_integer_minor_units_no_float_drift` | backend-integration | passing |
+| financial-accuracy | FR-007 | `test_acc_financial_accuracy.py::test_multi_workspace_totals_are_independent` | backend-integration | passing |
+| tenant-isolation | FR-009, SC-002 | `test_acc_tenant_isolation.py::test_cross_workspace_read_denied_all_record_types` | backend-integration | passing |
+| tenant-isolation | FR-010, SC-002 | `test_acc_tenant_isolation.py::test_cross_workspace_write_denied` | backend-integration | passing |
+| tenant-isolation | FR-011, SC-002 | `test_acc_tenant_isolation.py::test_unauthenticated_requests_denied` | backend-integration | passing |
+| tenant-isolation | FR-012 | `test_acc_tenant_isolation.py::test_isolation_enforced_at_backend_or_rls_not_frontend` | backend-integration | passing |
+| role-permissions | FR-013, SC-003 | `test_acc_role_permissions.py::test_owner_admin_member_viewer_action_matrix` | backend-integration | planned |
+| role-permissions | FR-014, SC-003 | `test_acc_role_permissions.py::test_viewer_cannot_modify_any_record` | backend-integration | planned |
+| role-permissions | FR-013 | `acc-role-permissions.spec.ts` (UI surfaces gate by role) | frontend-e2e | planned |
+| file-privacy | FR-015, SC-004 | `test_acc_file_privacy.py::test_files_private_no_public_url` | backend-integration | planned |
+| file-privacy | FR-016, SC-004 | `test_acc_file_privacy.py::test_file_access_scoped_to_membership` | backend-integration | planned |
+| file-privacy | FR-015 | `acc-file-privacy.spec.ts` (no public file URL surfaced) | frontend-e2e | planned |
+| ai-behavior | FR-017, SC-005 | `test_acc_ai_behavior.py::test_byok_key_never_in_response_log_or_error` | backend-integration | planned |
+| ai-behavior | FR-018, SC-005 | `test_acc_ai_behavior.py::test_unconfirmed_ai_moves_zero_totals` | backend-integration | planned |
+| ai-behavior | FR-019 | `test_acc_ai_behavior.py::test_provider_error_and_invalid_key_safe_and_no_data_corruption` | backend-integration | planned |
+| ai-behavior | FR-020 | `test_acc_ai_behavior.py::test_app_fully_usable_with_no_ai_key` | backend-integration | planned |
+| localization | FR-021, SC-006 | `localization-rtl.test.tsx` (dir=rtl/ltr, SAR format, no untranslated keys) | frontend-unit | planned |
+| localization | FR-021, SC-006 | `acc-localization-rtl.spec.ts` (AR/EN core routes) | frontend-e2e | planned |
+| localization | FR-021 | `manual-ar-en-rtl-checklist.md` (visual/RTL pass on core surfaces) | manual | planned |
+| readiness | SC-007 | `test_acc_readiness_smoke.py` + CI green (`.github/workflows/ci.yml`) | backend-integration | passing |
 
 **Rules**
 - Every FR in FR-004…FR-021 appears at least once above.
