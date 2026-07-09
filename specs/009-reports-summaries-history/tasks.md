@@ -187,10 +187,10 @@ Monolith: backend `apps/api/`, frontend `apps/web/`, database `supabase/migratio
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T058 [P] Run the `specs/009-reports-summaries-history/quickstart.md` validation end-to-end (steps 1–10)
-- [ ] T059 [P] Verify AR/RTL layout and SAR formatting across all new report/history/AI-summary components
-- [ ] T060 [P] Update `docs/` (API overview + financial calculation rules) to note reports reconcile with the dashboard and history is forward-only/Owner-Admin-only
-- [ ] T061 Confirm no new dependency was added (`apps/api/requirements.txt`, `apps/web/package.json` unchanged from before Phase 9)
+- [X] T058 [P] Run the `specs/009-reports-summaries-history/quickstart.md` validation end-to-end (steps 1–10)
+- [X] T059 [P] Verify AR/RTL layout and SAR formatting across all new report/history/AI-summary components
+- [X] T060 [P] Update `docs/` (API overview + financial calculation rules) to note reports reconcile with the dashboard and history is forward-only/Owner-Admin-only
+- [X] T061 Confirm no new dependency was added (`apps/api/requirements.txt`, `apps/web/package.json` unchanged from before Phase 9)
 
 ---
 

@@ -497,6 +497,15 @@ The backend must calculate:
 * Team activity summaries
 * Pending invoice review counts
 
+### Reconciliation Rule
+
+Report aggregations (income vs. expenses, remaining balance, category
+breakdown, spending trend, top merchants, team activity, pending review
+count) reuse the dashboard's confirmed-only calculation functions verbatim
+rather than re-querying totals independently. Report totals for a workspace
+and period must therefore always equal the dashboard's totals for the same
+workspace and equivalent period.
+
 ### Financial State Rules
 
 Only confirmed records affect totals.
@@ -557,6 +566,13 @@ Every protected API action must:
 * Return consistent errors
 * Preserve financial correctness
 * Respect tenant isolation
+
+### History API Behavior
+
+The history endpoint is forward-only: it records activity starting from
+when history tracking shipped (Phase 9) and never backfills events from
+before that point. Reading history is restricted to the Owner and Admin
+roles; Member and Viewer requests are denied.
 
 ### API Response Principles
 
