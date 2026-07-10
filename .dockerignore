@@ -1,0 +1,56 @@
+# Source-control and local tooling
+.git/
+.github/
+.agents/
+.claude/
+.specify/
+.vscode/
+.idea/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.cert
+*.crt
+*credentials*.json
+secrets/
+
+# JavaScript / Next.js artifacts
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+coverage/
+test-results/
+playwright-report/
+blob-report/
+
+# Python artifacts
+.venv/
+**/.venv/
+venv/
+**/venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+**/.pytest_cache/
+htmlcov/
+.coverage
+
+# Supabase and temporary files
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+.cache/
+**/.cache/
+.npm/
+**/.npm/
+tmp/
+temp/
+*.log
+logs/

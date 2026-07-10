@@ -124,11 +124,11 @@ can fill them incrementally.
 
 **Independent Test**: A person who did not write it follows `docs/deployment.md` + `infra/bunny/*` to build the images and dry-run the deploy with no undocumented steps; every env var/secret/service is listed; Bunny specifics are cited.
 
-- [ ] T024 [P] [US4] `infra/bunny/api.Dockerfile`: slim Python 3.12 `linux/amd64` image installing `apps/api/requirements.txt` and running `uvicorn app.main:app`, configured purely by environment variables (no baked secrets)
-- [ ] T025 [P] [US4] `infra/bunny/web.Dockerfile`: multi-stage Node `linux/amd64` image building and serving `apps/web` (production Next.js server), configured purely by `NEXT_PUBLIC_*` build/runtime env — without modifying `apps/web` application source
-- [ ] T026 [P] [US4] `infra/bunny/magic-containers.md`: platform config notes (registry type, endpoints, container ports, deployment option) with citations to the official Bunny docs and the two VERIFY-at-implementation items (env/secret mechanism, tag selection) flagged, not invented (FR-030)
-- [ ] T027 [US4] `docs/deployment.md`: the repeatable procedure per `contracts/deployment.md` — full env/secret inventory (grounded in `.env.example` + code), external-service list, cited Bunny steps, the production-migration step (`supabase/migrations/` → hosted project), and secret-hygiene note (no committed secrets) (FR-028, FR-029, FR-031) (depends on T024, T025, T026)
-- [ ] T028 [US4] Dry-run validation: build both images locally for `linux/amd64` and confirm each starts; have a non-author read `docs/deployment.md` for completeness (SC-009); record any gap or platform-specific defect as a `deployment`-area finding (FR-030a) (depends on T027)
+- [X] T024 [P] [US4] `infra/bunny/api.Dockerfile`: slim Python 3.12 `linux/amd64` image installing `apps/api/requirements.txt` and running `uvicorn app.main:app`, configured purely by environment variables (no baked secrets)
+- [X] T025 [P] [US4] `infra/bunny/web.Dockerfile`: multi-stage Node `linux/amd64` image building and serving `apps/web` (production Next.js server), configured purely by `NEXT_PUBLIC_*` build/runtime env — without modifying `apps/web` application source
+- [X] T026 [P] [US4] `infra/bunny/magic-containers.md`: platform config notes (registry type, endpoints, container ports, deployment option) with citations to the official Bunny docs and the two VERIFY-at-implementation items (env/secret mechanism, tag selection) flagged, not invented (FR-030)
+- [X] T027 [US4] `docs/deployment.md`: the repeatable procedure per `contracts/deployment.md` — full env/secret inventory (grounded in `.env.example` + code), external-service list, cited Bunny steps, the production-migration step (`supabase/migrations/` → hosted project), and secret-hygiene note (no committed secrets) (FR-028, FR-029, FR-031) (depends on T024, T025, T026)
+- [X] T028 [US4] Dry-run validation: build both images locally for `linux/amd64` and confirm each starts; have a non-author read `docs/deployment.md` for completeness (SC-009); record any gap or platform-specific defect as a `deployment`-area finding (FR-030a) (depends on T027)
 
 **Checkpoint**: Deployment is documented, cited, secret-safe, and repeatable; build config is committed and validated by dry-run.
 
