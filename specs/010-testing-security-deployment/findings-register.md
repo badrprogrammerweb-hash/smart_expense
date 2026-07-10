@@ -22,4 +22,4 @@ This register tracks defects or security weaknesses surfaced by Phase 10 tests o
 | ID | Title | Area | Severity | Source | Reproduction | Status | Remediation (owner/target) | Release-blocker |
 |----|-------|------|----------|--------|--------------|--------|----------------------------|-----------------|
 
-No findings recorded at phase completion.
+| F-001 | Arabic dashboard period range reorders and wraps in RTL | localization | Low | T031 manual AR/EN + RTL checklist | Sign in locally, open `/ar/w/<workspace-id>/dashboard`, and inspect the current-period card; `2026-07-01 - 2026-07-31` displays in the wrong visual order and wraps. | Open | Frontend localization follow-up | no |

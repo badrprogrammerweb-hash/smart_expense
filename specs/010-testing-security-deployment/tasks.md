@@ -140,9 +140,9 @@ can fill them incrementally.
 
 **Independent Test**: Run the localization specs and complete the manual checklist; Arabic is RTL, English is LTR, amounts use SAR, and no untranslated keys appear on core surfaces.
 
-- [ ] T029 [P] [US5] `apps/web/tests/unit/localization-rtl.test.tsx`: assert `dir="rtl"` under Arabic and `dir="ltr"` under English, SAR monetary formatting, and absence of raw untranslated message keys on core surfaces (FR-021, SC-006)
-- [ ] T030 [P] [US5] `apps/web/e2e/acc-localization-rtl.spec.ts`: toggle locale on the core routes (dashboard, income/expense, reports, history, settings, AI review) and assert direction + localized strings + SAR formatting (FR-021, SC-006)
-- [ ] T031 [US5] Execute the manual AR/EN + RTL checklist (`manual-ar-en-rtl-checklist.md`), record pass/fail per surface × locale, and log any visual/RTL defect as a `localization`-area finding (FR-021) (depends on T003, T029, T030)
+- [X] T029 [P] [US5] `apps/web/tests/unit/localization-rtl.test.tsx`: assert `dir="rtl"` under Arabic and `dir="ltr"` under English, SAR monetary formatting, and absence of raw untranslated message keys on core surfaces (FR-021, SC-006)
+- [X] T030 [P] [US5] `apps/web/e2e/acc-localization-rtl.spec.ts`: toggle locale on the core routes (dashboard, income/expense, reports, history, settings, AI review) and assert direction + localized strings + SAR formatting (FR-021, SC-006)
+- [X] T031 [US5] Execute the manual AR/EN + RTL checklist (`manual-ar-en-rtl-checklist.md`), record pass/fail per surface × locale, and log any visual/RTL defect as a `localization`-area finding (FR-021) (depends on T003, T029, T030)
 
 **Checkpoint**: AR/EN + RTL correctness is verified automatically and by a human visual pass (or gaps are tracked findings).
 
