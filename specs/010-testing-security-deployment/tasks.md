@@ -91,11 +91,11 @@ can fill them incrementally.
 
 **Independent Test**: `security-review.md` covers principles VI, VII, IX, X with PASS/FAIL/N-A verdicts, evidence/test cross-references, and a `finding_ref` on every FAIL.
 
-- [ ] T013 [US2] Complete Section VI (Privacy & Security) in `security-review.md`: verdict + evidence for BYOK key secrecy, private files/no public URL, backend-enforced permissions, RLS, no secrets in logs/errors; cross-reference `test_acc_ai_behavior.py`, `test_acc_file_privacy.py`, `test_extraction_secrecy.py`, `test_storage_error_sanitization.py` (FR-025, FR-027)
-- [ ] T014 [US2] Complete Section VII (Multi-Tenant Isolation) in `security-review.md`: verdicts cross-referencing the US1 isolation tests and existing `test_workspace_isolation.py`, `test_files_isolation.py`, `test_reports_isolation.py`, `test_history_access.py` (FR-025) (depends on T010)
-- [ ] T015 [US2] Complete Section IX (Architecture Authority) in `security-review.md`: verify backend owns calculations and authorization (frontend display-only), cross-referencing `test_acc_financial_accuracy.py`, `test_acc_role_permissions.py`, `test_reports_reconciliation.py` (FR-025)
-- [ ] T016 [US2] Complete Section X (Financial Accuracy) in `security-review.md`: integer-money, confirmed-only, edit/delete recalculation, edge-state coverage, cross-referencing the US1 accuracy tests and `test_extraction_totals.py`, `test_income_expense_edit_delete.py` (FR-025) (depends on T008)
-- [ ] T017 [US2] Complete the Findings Summary in `security-review.md` and mirror every FAIL into `findings-register.md` with severity + release-blocker flag; confirm 100% principle coverage (FR-026, FR-027, SC-008) (depends on T013, T014, T015, T016)
+- [X] T013 [US2] Complete Section VI (Privacy & Security) in `security-review.md`: verdict + evidence for BYOK key secrecy, private files/no public URL, backend-enforced permissions, RLS, no secrets in logs/errors; cross-reference `test_acc_ai_behavior.py`, `test_acc_file_privacy.py`, `test_extraction_secrecy.py`, `test_storage_error_sanitization.py` (FR-025, FR-027)
+- [X] T014 [US2] Complete Section VII (Multi-Tenant Isolation) in `security-review.md`: verdicts cross-referencing the US1 isolation tests and existing `test_workspace_isolation.py`, `test_files_isolation.py`, `test_reports_isolation.py`, `test_history_access.py` (FR-025) (depends on T010)
+- [X] T015 [US2] Complete Section IX (Architecture Authority) in `security-review.md`: verify backend owns calculations and authorization (frontend display-only), cross-referencing `test_acc_financial_accuracy.py`, `test_acc_role_permissions.py`, `test_reports_reconciliation.py` (FR-025)
+- [X] T016 [US2] Complete Section X (Financial Accuracy) in `security-review.md`: integer-money, confirmed-only, edit/delete recalculation, edge-state coverage, cross-referencing the US1 accuracy tests and `test_extraction_totals.py`, `test_income_expense_edit_delete.py` (FR-025) (depends on T008)
+- [X] T017 [US2] Complete the Findings Summary in `security-review.md` and mirror every FAIL into `findings-register.md` with severity + release-blocker flag; confirm 100% principle coverage (FR-026, FR-027, SC-008) (depends on T013, T014, T015, T016)
 
 **Checkpoint**: A defensible, test-evidenced security review exists; all weaknesses are tracked findings.
 
