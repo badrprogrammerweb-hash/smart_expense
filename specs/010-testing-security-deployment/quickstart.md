@@ -41,6 +41,16 @@ error and unconfirmed AI moves zero totals. Any failure ⇒ a findings-register 
 (`F-NNN`), **not** a product-code fix. The full existing suite (`pytest tests`) must
 also remain green (this phase adds tests, changes no behavior).
 
+**Determinism note (T033)**: during Phase 10 validation, one run of
+`pytest tests/acceptance -q` was observed to stall (CPU-bound, no product code
+involved, no database locks or blocked queries found on inspection) on a machine that
+had a long-running local Supabase/Docker stack plus concurrent build/test activity.
+Killing the stalled process and re-running from the same environment produced clean,
+identical, deterministic results across three subsequent runs (19 passed, ~102–135s
+each). The documented command is unchanged — if a run ever stalls, kill it and
+re-run rather than waiting; treat a single stall with no reproducing pattern as
+transient local resource contention, not a suite defect.
+
 ## 3. Run the frontend acceptance tests (roles, file privacy, AR/EN + RTL)
 
 ```bash

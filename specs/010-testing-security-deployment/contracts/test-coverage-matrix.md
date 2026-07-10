@@ -31,9 +31,9 @@ Tiers: `backend-integration` (pytest, `apps/api/tests/acceptance/`), `frontend-e
 | ai-behavior | FR-018, SC-005 | `test_acc_ai_behavior.py::test_unconfirmed_ai_moves_zero_totals` | backend-integration | passing |
 | ai-behavior | FR-019 | `test_acc_ai_behavior.py::test_provider_error_and_invalid_key_safe_and_no_data_corruption` | backend-integration | passing |
 | ai-behavior | FR-020 | `test_acc_ai_behavior.py::test_app_fully_usable_with_no_ai_key` | backend-integration | passing |
-| localization | FR-021, SC-006 | `localization-rtl.test.tsx` (dir=rtl/ltr, SAR format, no untranslated keys) | frontend-unit | planned |
-| localization | FR-021, SC-006 | `acc-localization-rtl.spec.ts` (AR/EN core routes) | frontend-e2e | planned |
-| localization | FR-021 | `manual-ar-en-rtl-checklist.md` (visual/RTL pass on core surfaces) | manual | planned |
+| localization | FR-021, SC-006 | `localization-rtl.test.tsx` (dir=rtl/ltr, SAR format, no untranslated keys) | frontend-unit | passing |
+| localization | FR-021, SC-006 | `acc-localization-rtl.spec.ts` (AR/EN core routes) | frontend-e2e | passing |
+| localization | FR-021 | `manual-ar-en-rtl-checklist.md` (visual/RTL pass on core surfaces) | manual | implemented |
 | readiness | SC-007 | `test_acc_readiness_smoke.py` + CI green (`.github/workflows/ci.yml`) | backend-integration | passing |
 
 **Rules**
