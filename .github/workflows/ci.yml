@@ -63,7 +63,9 @@ jobs:
 
       - name: Run backend tests
         working-directory: apps/api
-        run: pytest -q
+        env:
+          PYTHONPATH: ${{ github.workspace }}/apps/api
+        run: python -m pytest tests/ -q
 
       - name: Run frontend unit tests
         run: npm run test --workspace=@smart-expense/web
