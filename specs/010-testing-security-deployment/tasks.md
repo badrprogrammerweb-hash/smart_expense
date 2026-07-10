@@ -107,12 +107,12 @@ can fill them incrementally.
 
 **Independent Test**: Run the US3 backend + frontend specs; each role is confined to its intended actions, files stay private, and AI behaves safely with the key never leaked.
 
-- [ ] T018 [P] [US3] `apps/api/tests/acceptance/test_acc_role_permissions.py`: full Owner/Admin/Member/Viewer allow-deny matrix across income/expenses/categories/files/settings/AI/history; Viewer makes zero successful modifications (FR-013, FR-014, SC-003) (depends on T005)
-- [ ] T019 [P] [US3] `apps/api/tests/acceptance/test_acc_file_privacy.py`: files private by default with no public URL; access scoped to workspace membership; non-member and unauthenticated denied (FR-015, FR-016, SC-004) (depends on T005)
-- [ ] T020 [P] [US3] `apps/api/tests/acceptance/test_acc_ai_behavior.py`: BYOK key never in any API response/log/error; unconfirmed AI moves zero totals; provider error + invalid key produce a safe non-technical error with no data corruption; app fully usable with no key (FR-017, FR-018, FR-019, FR-020, SC-005) (depends on T005, T006)
-- [ ] T021 [P] [US3] `apps/web/e2e/acc-role-permissions.spec.ts`: role-gated UI surfaces deny/allow correctly (Viewer read-only) end-to-end (FR-013)
-- [ ] T022 [P] [US3] `apps/web/e2e/acc-file-privacy.spec.ts`: the UI never surfaces a public file URL for a financial document (FR-015)
-- [ ] T023 [US3] Update `contracts/test-coverage-matrix.md` role/file/AI row statuses and log any failures as findings with severity + release-blocker flag (depends on T018, T019, T020, T021, T022)
+- [X] T018 [P] [US3] `apps/api/tests/acceptance/test_acc_role_permissions.py`: full Owner/Admin/Member/Viewer allow-deny matrix across income/expenses/categories/files/settings/AI/history; Viewer makes zero successful modifications (FR-013, FR-014, SC-003) (depends on T005)
+- [X] T019 [P] [US3] `apps/api/tests/acceptance/test_acc_file_privacy.py`: files private by default with no public URL; access scoped to workspace membership; non-member and unauthenticated denied (FR-015, FR-016, SC-004) (depends on T005)
+- [X] T020 [P] [US3] `apps/api/tests/acceptance/test_acc_ai_behavior.py`: BYOK key never in any API response/log/error; unconfirmed AI moves zero totals; provider error + invalid key produce a safe non-technical error with no data corruption; app fully usable with no key (FR-017, FR-018, FR-019, FR-020, SC-005) (depends on T005, T006)
+- [X] T021 [P] [US3] `apps/web/e2e/acc-role-permissions.spec.ts`: role-gated UI surfaces deny/allow correctly (Viewer read-only) end-to-end (FR-013)
+- [X] T022 [P] [US3] `apps/web/e2e/acc-file-privacy.spec.ts`: the UI never surfaces a public file URL for a financial document (FR-015)
+- [X] T023 [US3] Update `contracts/test-coverage-matrix.md` role/file/AI row statuses and log any failures as findings with severity + release-blocker flag (depends on T018, T019, T020, T021, T022)
 
 **Checkpoint**: Roles, file privacy, and AI safety are verified across backend and UI (or gaps are tracked findings).
 
