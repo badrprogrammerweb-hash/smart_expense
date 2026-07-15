@@ -5,14 +5,16 @@
 **Project:** Smart Expense - AI
 **Domain:** smartexpense.ai
 **Plan Type:** Spec-Kit Implementation Plan
-**Version:** 1.0.0
-**MVP Status:** Free, no payment gateway, no subscription billing
+**Version:** 2.0.0
+**MVP Status:** Phases 1–10 complete; ready for staging
+**Roadmap Status:** Post-MVP design and product expansion in progress
+**Current Phase:** Phase 11 — Design Discovery and UX Planning
 **Architecture:** Monolith repository
 **Primary Market:** Saudi-first
 **Core Model:** Income-driven decreasing balance budgeting
 **AI Model:** Optional BYOK using Gemini or OpenAI
 **Deployment Target:** Bunny Magic Containers
-**Constitution:** Must comply with `speckit.constitution.md`
+**Constitution:** Must comply with `.specify/memory/constitution.md` version 2.0.0
 
 ---
 
@@ -20,7 +22,7 @@
 
 Smart Expense - AI is a Saudi-first, multi-tenant SaaS application for tracking income, expenses, receipts, invoices, and remaining balance.
 
-The MVP must support individuals, families, couples, and small teams. It must work fully without AI. AI features are optional and require the user to provide their own Gemini or OpenAI key.
+The completed MVP supports individuals, families, couples, and small teams. It works fully without AI. AI features are optional and require the user to provide their own Gemini or OpenAI key.
 
 The product is centered on one core financial question:
 
@@ -30,7 +32,13 @@ The primary financial formula is:
 
 > Remaining Balance = Confirmed Total Income - Confirmed Total Expenses
 
-The MVP must avoid bank connections, payment gateways, subscription billing, full accounting features, payroll, tax features, investment tracking, and enterprise-grade workflows.
+The completed MVP excludes bank connections, payment processing,
+subscription billing, paid feature tiers, full accounting features, payroll,
+tax features, investment tracking, and enterprise-grade workflows.
+
+A post-MVP optional product-support purchase flow is planned for Phase 17.
+It will not unlock features, increase limits, or restrict non-supporting
+users.
 
 ---
 
@@ -38,7 +46,7 @@ The MVP must avoid bank connections, payment gateways, subscription billing, ful
 
 ### Frontend
 
-The frontend will be built using:
+The frontend is built using:
 
 * Next.js 16.x (Active LTS), kept on the latest patched 16.x release
 * React
@@ -57,9 +65,10 @@ The frontend is responsible for:
 * AI extraction review UI
 * Reports UI
 * Settings UI
-* Arabic and English readiness
-* RTL layout readiness
-* SAR-first presentation
+* Arabic RTL interface in the current MVP
+* Full Arabic and English localization planned for Phase 12
+* Saudi Riyal as the default workspace currency
+* One configurable base currency per workspace planned for Phase 12
 
 The frontend must not be the source of truth for financial calculations or permissions.
 
@@ -67,7 +76,7 @@ Frontend calculations may be used only for display previews and must never overr
 
 ### Backend
 
-The backend will be built using:
+The backend is built using:
 
 * Python
 * FastAPI
@@ -134,7 +143,10 @@ The plan supports only:
 * Financial accuracy
 * History tracking
 
-No bank sync, billing, investment, tax, payroll, or full accounting features are included.
+No bank sync, mandatory subscription billing, paid feature tiers,
+investment, tax, payroll, or full accounting features are included.
+
+Optional one-time product-support purchases are planned only for Phase 17.
 
 ### Manual-First Rule
 
@@ -164,13 +176,16 @@ AI is limited to:
 * Spending summaries
 * Spending analysis based only on authorized workspace data
 
-AI results must remain draft, pending, or reviewable until confirmed by the user.
+AI extraction results must remain non-final until confirmed by the user.
+Successful extraction output is stored as `ready_for_review`; failed and
+discarded results must never affect financial totals.
 
 ### Financial Accuracy Rule
 
 Financial totals must use confirmed records only.
 
-Draft, pending, failed, or unconfirmed AI extraction records must not affect:
+Processing, ready-for-review, failed, discarded, or otherwise unconfirmed
+AI extraction records must not affect:
 
 * Income totals
 * Expense totals
@@ -204,7 +219,7 @@ The system will use a monolith repository with clear internal boundaries.
 7. Private invoice and receipt files are stored in Supabase Storage.
 8. BYOK secrets are stored using Supabase Vault.
 9. AI extraction runs only when the workspace has a valid configured AI key.
-10. AI extraction results are saved as draft or pending records.
+10. AI extraction starts as `processing` and becomes `ready_for_review` or `failed`.
 11. User reviews and confirms AI results.
 12. Confirmed records affect financial totals and reports.
 
@@ -286,6 +301,13 @@ Workspace types:
 
 Every business record belongs to a workspace.
 
+Post-MVP required behavior planned for Phase 12:
+
+* Each workspace will have exactly one base currency.
+* Saudi Riyal will remain the default currency.
+* Workspace records, dashboard totals, and reports will use the workspace base currency.
+* Mixed-currency records, exchange-rate conversion, and complex multi-currency accounting remain out of scope.
+
 #### Workspace Members
 
 Membership links users to workspaces.
@@ -326,14 +348,26 @@ Required behavior:
 
 #### Categories
 
-Categories organize expenses.
+Categories currently organize expense records using a flat category
+structure.
 
-Required behavior:
+Current behavior:
 
 * Categories belong to a workspace.
-* Default categories should be available for Saudi-first usage.
-* Users may create, rename, archive, and reorder categories.
-* Categories explain spending but do not replace the remaining-balance model.
+* Expense records may be linked to one category.
+* Existing records preserve their category links.
+* Categories may be created, renamed, and archived according to permissions.
+* Archived categories remain identifiable in historical records.
+
+Post-MVP required behavior planned for Phase 13:
+
+* Income and expense category trees will remain separate.
+* Categories will support one parent-child level.
+* A category may be a main category or a subcategory.
+* System categories may have Arabic and English translated names.
+* User-created categories will retain the name entered by the user.
+* Disabled categories will remain visible in historical records.
+* Existing category links must be migrated safely without losing historical meaning.
 
 #### Files
 
@@ -362,14 +396,21 @@ Required behavior:
 
 Extraction jobs represent receipt or invoice processing.
 
-Required statuses should cover:
+Required statuses are:
 
-* Pending
 * Processing
-* Completed
+* Ready for review
 * Failed
 * Confirmed
-* Cancelled
+* Discarded
+
+The persisted database values are:
+
+* `processing`
+* `ready_for_review`
+* `failed`
+* `confirmed`
+* `discarded`
 
 AI extraction output must not affect financial totals until the user confirms it.
 
@@ -383,12 +424,16 @@ Stored report snapshots are not required for MVP unless explicitly specified lat
 
 Settings may exist at user or workspace level.
 
-Required settings include:
+Current settings include:
 
-* Language preference
 * Workspace defaults
 * Auto-delete-after-extraction preference
 * AI provider preference where applicable
+
+Post-MVP settings planned for Phase 12 include:
+
+* User language preference
+* Workspace base currency
 
 #### History Activity
 
@@ -448,12 +493,17 @@ Admin permissions may exclude ownership-level destructive actions.
 
 Can:
 
-* Add income if allowed by workspace policy
-* Add expenses
+* Add and manage permitted expense records
 * Upload receipts and invoices
-* View shared dashboard
-* View reports
-* Edit own records where allowed
+* View the shared dashboard
+* View reports and history
+* Configure permitted AI settings
+
+Must not:
+
+* Add or manage income
+* Manage workspace members
+* Perform ownership-level actions
 
 ### Viewer
 
@@ -462,6 +512,7 @@ Can:
 * View dashboard
 * View confirmed records
 * View reports
+* View history
 
 Viewer must not:
 
@@ -508,18 +559,21 @@ workspace and equivalent period.
 
 ### Financial State Rules
 
-Only confirmed records affect totals.
+Only confirmed income and expense records affect financial totals.
 
-The following must not affect totals:
+AI extraction records never affect totals directly. The following extraction
+states must not affect totals:
 
-* Draft AI extraction results
-* Pending extraction results
-* Failed extraction results
-* Cancelled extraction results
-* Deleted records
-* Unconfirmed review suggestions
+* `processing`
+* `ready_for_review`
+* `failed`
+* `discarded`
 
-Deleted financial records must be excluded from active totals while preserving enough history for traceability.
+When an extraction is confirmed, only the resulting confirmed expense affects
+financial totals.
+
+Deleted income and expense records must be excluded from active totals while
+preserving enough history for traceability.
 
 ### Money Handling
 
@@ -570,9 +624,11 @@ Every protected API action must:
 ### History API Behavior
 
 The history endpoint is forward-only: it records activity starting from
-when history tracking shipped (Phase 9) and never backfills events from
-before that point. Reading history is restricted to the Owner and Admin
-roles; Member and Viewer requests are denied.
+when history tracking shipped in Phase 9 and does not backfill earlier
+events.
+
+Reading history is allowed for Owner, Admin, Member, and Viewer roles.
+History is read-only and append-only for all roles.
 
 ### API Response Principles
 
@@ -636,10 +692,11 @@ The frontend must be:
 * Simple
 * Fast
 * Responsive
-* Arabic-ready
-* English-ready
-* RTL-ready
-* SAR-first
+* Arabic RTL as the current primary interface
+* Full Arabic and English localization planned for Phase 12
+* Complete RTL/LTR layout switching planned for Phase 12
+* Workspace-currency-aware financial formatting planned for Phase 12
+* Hierarchical category selection planned for Phase 13
 * Manual-entry friendly
 * Clear when AI is unavailable
 * Clear when AI output requires review
@@ -671,7 +728,8 @@ The MVP should support:
 * Gemini
 * OpenAI
 
-The provider must be selected by the user or workspace owner/admin.
+The provider may be selected by an authorized Owner, Admin, or Member.
+Viewers have read-only access and must not configure AI settings.
 
 ### BYOK Requirements
 
@@ -692,12 +750,13 @@ The receipt/invoice extraction flow should be:
 
 1. User uploads file.
 2. File metadata is created.
-3. User starts extraction or extraction starts automatically if configured.
+3. User explicitly starts extraction for an uploaded file.
 4. Backend verifies workspace permission.
 5. Backend verifies AI key availability.
 6. Backend sends the document to the selected provider.
 7. Backend receives structured extraction output.
-8. System creates draft or pending result.
+8. System stores successful output as `ready_for_review`; unsuccessful
+processing becomes `failed`.
 9. User reviews extracted data.
 10. User confirms or edits the result.
 11. Confirmed result becomes an expense.
@@ -745,7 +804,7 @@ Files must be:
 
 ### Supported Files
 
-The MVP must support:
+The completed MVP supports:
 
 * Images
 * PDFs
@@ -791,7 +850,7 @@ Reports must:
 
 * Use backend calculations
 * Respect workspace permissions
-* Exclude draft AI results
+* Processing, ready-for-review, failed, and discarded extraction results do not affect totals.
 * Exclude deleted records
 * Match dashboard totals
 * Be understandable for non-accounting users
@@ -812,7 +871,7 @@ AI summaries must:
 
 ## 14. History Tracking Plan
 
-The MVP must support practical history tracking.
+The completed MVP supports practical history tracking.
 
 ### Trackable Events
 
@@ -869,9 +928,8 @@ Every major feature must be tested for:
 * AI key security
 * AI extraction review
 * Auto-delete behavior
-* Arabic UI behavior
-* English UI behavior
-* RTL layout behavior
+* Applicable Arabic and English UI behavior
+* Applicable RTL and LTR layout behavior
 * Tenant isolation
 
 ### Financial Accuracy Tests
@@ -909,7 +967,7 @@ Tests must verify:
 * App works without AI key.
 * Invalid AI key produces a safe error.
 * Provider failure produces a safe error.
-* Extraction result remains pending until confirmed.
+* A successful extraction remains `ready_for_review` until confirmed or discarded.
 * Confirmed extraction creates or updates an expense correctly.
 * Auto-delete setting is respected.
 * AI summaries use only authorized workspace data.
@@ -959,7 +1017,7 @@ Local development must not depend on production secrets.
 
 Implementation must proceed in controlled phases.
 
-### Phase 1 — Foundation and Repository Setup
+### Phase 1 — Foundation and Repository Setup — Completed
 
 Goals:
 
@@ -978,7 +1036,7 @@ Exit criteria:
 * Spec and documentation locations are clear.
 * Environment setup is documented.
 
-### Phase 2 — Supabase Auth and Workspace Foundation
+### Phase 2 — Supabase Auth and Workspace Foundation — Completed
 
 Goals:
 
@@ -997,7 +1055,7 @@ Exit criteria:
 * Users can create or access team workspaces.
 * Workspace membership and roles are enforced.
 
-### Phase 3 — Income, Expense, and Category Core
+### Phase 3 — Income, Expense, and Category Core — Completed
 
 Goals:
 
@@ -1013,9 +1071,9 @@ Exit criteria:
 * Users can manually manage income and expenses.
 * Categories can be managed.
 * Confirmed records affect totals.
-* Deleted and draft records do not affect totals.
+* Deleted records do not affect totals.
 
-### Phase 4 — Backend Financial Calculations and Dashboard Data
+### Phase 4 — Backend Financial Calculations and Dashboard Data — Completed
 
 Goals:
 
@@ -1032,28 +1090,29 @@ Exit criteria:
 * Remaining balance is authoritative.
 * Backend and reports use the same calculation rules.
 
-### Phase 5 — Frontend Core Experience
+### Phase 5 — Frontend Core Experience — Completed
 
 Goals:
 
 * Build authentication UI
 * Build workspace selector
 * Build dashboard
-* Build income forms
-* Build expense forms
+* Build income forms and history
+* Build expense forms and history
 * Build category UI
-* Build reports UI
 * Build settings UI
-* Add Arabic and English readiness
-* Add RTL readiness
+* Establish an Arabic-first frontend foundation
+* Establish RTL-ready layouts and reusable frontend patterns
 
 Exit criteria:
 
-* User can use core product manually.
-* App is useful without AI.
-* Dashboard clearly shows remaining balance.
+* Users can complete the core manual financial workflow.
+* The application is fully usable without AI.
+* The dashboard clearly shows the remaining balance.
+* The current interface supports Arabic RTL usage.
+* Full Arabic/English localization and RTL/LTR switching are deferred to Phase 12.
 
-### Phase 6 — Receipt and Invoice Storage
+### Phase 6 — Receipt and Invoice Storage — Completed
 
 Goals:
 
@@ -1071,7 +1130,7 @@ Exit criteria:
 * Files are linked to records.
 * Auto-delete setting is available.
 
-### Phase 7 — BYOK AI Settings
+### Phase 7 — BYOK AI Settings — Completed
 
 Goals:
 
@@ -1088,13 +1147,13 @@ Exit criteria:
 * App works without BYOK.
 * Stored keys are secure.
 
-### Phase 8 — AI Extraction and Review
+### Phase 8 — AI Extraction and Review — Completed
 
 Goals:
 
 * Add extraction job workflow
 * Process uploaded receipts and invoices
-* Save extraction output as pending/draft
+* Save successful extraction output as `ready_for_review` and unsuccessful processing as `failed`
 * Build review screen
 * Allow user confirmation and correction
 * Convert confirmed extraction to expense
@@ -1108,7 +1167,7 @@ Exit criteria:
 * Confirmed results affect totals.
 * Unconfirmed results do not affect totals.
 
-### Phase 9 — Reports, Summaries, and History
+### Phase 9 — Reports, Summaries, and History — Completed
 
 Goals:
 
@@ -1125,7 +1184,7 @@ Exit criteria:
 * History provides practical traceability.
 * AI summaries are optional and safe.
 
-### Phase 10 — Testing, Security Review, and Deployment
+### Phase 10 — Testing, Security Review, and Deployment Readiness — Completed
 
 Goals:
 
@@ -1134,16 +1193,175 @@ Goals:
 * Complete role permission testing
 * Complete file privacy testing
 * Complete AI behavior testing
-* Complete Arabic/English UI testing
-* Prepare production deployment
-* Deploy to Bunny Magic Containers
+* Complete Arabic RTL UI testing
+* Prepare staging and production deployment for Bunny Magic Containers
+* Document the repeatable deployment process
 
 Exit criteria:
 
-* MVP is ready for review.
+* MVP is ready for staging deployment.
+* Deployment configuration and procedures are documented and repeatable.
 * No known tenant isolation issues remain.
 * No known financial calculation issues remain.
-* Production deployment is documented and repeatable.
+
+### Phase 11 — Design Discovery and UX Planning
+
+Goals:
+
+* Finalize the product design brief
+* Create and review the visual design system
+* Build an Arabic RTL interactive prototype
+* Review all existing MVP screens
+* Identify post-MVP product improvements
+* Document responsive, accessibility, and RTL requirements
+* Produce a developer-ready design handoff
+
+Exit criteria:
+
+* The design system is visually consistent.
+* Existing MVP screens are represented in the prototype.
+* Arabic RTL behavior is reviewed.
+* Desktop and mobile requirements are documented.
+* No production code or backend behavior is changed.
+* Post-MVP improvements are separated into dedicated phases.
+
+### Phase 12 — Internationalization and Workspace Currency
+
+Goals:
+
+* Add Arabic and English interface support
+* Support complete RTL and LTR layout switching
+* Store the preferred interface language per user
+* Add one base currency per workspace
+* Format money, numbers, and dates according to language and currency
+* Keep Saudi Riyal as the default currency
+* Update frontend, backend contracts, and tests where required
+
+Exit criteria:
+
+* Users can switch between Arabic and English.
+* Arabic uses RTL and English uses LTR correctly.
+* Each workspace has exactly one base currency.
+* Currency formatting is consistent across records, dashboard, reports, AI review, and history.
+* Existing financial calculations remain accurate.
+* No exchange-rate conversion or mixed-currency accounting is introduced.
+
+### Phase 13 — Hierarchical Categories
+
+Goals:
+
+* Add main categories and one level of subcategories
+* Separate income categories from expense categories
+* Expand the default category catalog
+* Allow users to create, edit, disable, and organize categories
+* Preserve categories linked to historical records
+* Update income, expense, reports, and AI extraction flows
+* Support translated names for system-provided categories
+
+Exit criteria:
+
+* Records can use a main category and a subcategory.
+* Income and expense category trees remain separate.
+* Existing category data is migrated safely.
+* Disabled categories remain visible in historical records.
+* Reports can summarize by main category and drill into subcategories.
+* AI extraction can suggest supported subcategories without auto-confirming records.
+
+### Phase 14 — Design System and UI Refresh Implementation
+
+Goals:
+
+* Implement the approved design system in the existing Next.js frontend
+* Apply the redesigned Arabic and English layouts
+* Update desktop, tablet, and mobile experiences
+* Standardize forms, tables, cards, dialogs, navigation, and states
+* Resolve the F-001 RTL date display issue
+* Preserve existing APIs, permissions, and financial rules
+* Complete visual regression, accessibility, and end-to-end testing
+
+Exit criteria:
+
+* The approved design is implemented across all MVP screens.
+* Arabic RTL and English LTR layouts work correctly.
+* Desktop and mobile experiences are consistent.
+* F-001 is resolved and tested.
+* Existing business logic and permissions remain unchanged.
+* Frontend, backend, and end-to-end test suites pass.
+
+### Phase 15 — Progressive Web App and Mobile Readiness
+
+Goals:
+
+* Make the responsive web application installable as a PWA
+* Add application icons, manifest, and mobile launch experience
+* Improve mobile navigation and touch interactions
+* Support receipt capture and upload from mobile devices
+* Define safe offline and reconnect behavior
+* Prepare the frontend and API contracts for future app-store packaging
+
+Exit criteria:
+
+* The application can be installed on supported mobile devices.
+* Core workflows are usable on small screens.
+* Receipt upload works from mobile files or camera where supported.
+* Offline behavior never creates incorrect financial totals or duplicate records.
+* Existing security and workspace isolation remain intact.
+
+### Phase 16 — Free Mobile Application
+
+Goals:
+
+* Package or build the approved mobile experience for Android and iOS
+* Reuse the existing backend and Supabase authentication
+* Support core financial, file upload, AI review, report, and settings flows
+* Complete mobile security, accessibility, and store-readiness testing
+* Keep the application free to use
+
+Exit criteria:
+
+* Core web features are available on mobile.
+* Arabic RTL and English LTR work correctly.
+* Financial calculations remain backend-authoritative.
+* Mobile uploads and AI review are reliable.
+* No paid feature tier is introduced.
+
+
+### Phase 17 — Optional Product Support Purchases
+
+Goals:
+
+* Add an optional product-support purchase experience
+* Offer one-time symbolic digital support items
+* Keep the complete product free for every user
+* Use hosted checkout for supported web purchases
+* Use Apple In-App Purchase and Google Play Billing in store apps
+* Provide clear success, failure, refund, and receipt states
+* Keep support transactions separate from workspace financial records
+* Avoid charitable or donation terminology
+
+Exit criteria:
+
+* Users can optionally purchase a symbolic support item.
+* Support purchases do not unlock features or change limits.
+* Non-supporting users retain the complete product experience.
+* Payment-card details are not stored by Smart Expense.
+* Web and mobile payment flows comply with their platform requirements.
+* Legal, commercial, tax, refund, and accounting requirements are reviewed
+  before release.
+
+### Platform and Financial Planning Notes
+
+* Apple support purchases should use StoreKit In-App Purchase.
+* Google Play support purchases should use Google Play Billing unless the
+  current policy for the target storefront explicitly permits another method.
+* Tax-exempt donation exceptions must not be assumed or used unless the
+  project legally qualifies for that classification.
+* The project may apply for the App Store Small Business Program when
+  eligible.
+* Store commissions, taxes, refund rules, and regional billing requirements
+  must be verified immediately before implementation and release.
+* Commission percentages must not be hard-coded into the product
+  constitution or long-term business model.
 
 ---
 
@@ -1156,7 +1374,7 @@ The product may drift into banking, accounting, payments, or enterprise workflow
 Mitigation:
 
 * Enforce constitution scope.
-* Reject features outside MVP boundaries.
+* Reject features outside the approved constitution and current phase scope.
 * Keep each feature spec focused.
 
 ### Risk: Financial Calculation Errors
@@ -1166,7 +1384,7 @@ Incorrect totals would break user trust.
 Mitigation:
 
 * Centralize calculations in backend.
-* Test all create, edit, delete, draft, and confirmed states.
+* Test create, edit, delete, confirmed, and all AI extraction state transitions.
 * Use safe money storage and calculation methods.
 
 ### Risk: Tenant Isolation Failure
@@ -1186,7 +1404,7 @@ Receipts and invoices may be extracted incorrectly.
 
 Mitigation:
 
-* Store AI results as drafts or pending records.
+* Store AI results using the defined extraction states and require confirmation before creating expenses.
 * Require user confirmation.
 * Show editable review screen.
 * Never let unconfirmed AI results affect totals.
@@ -1213,6 +1431,54 @@ Mitigation:
 * Scope file access by workspace membership.
 * Test file access permissions.
 
+### Risk: Localization Regression
+
+Arabic RTL and English LTR layouts may behave inconsistently.
+
+Mitigation:
+
+* Use centralized translation keys.
+* Test both directions on every core screen.
+* Isolate dates, emails, filenames, and technical identifiers.
+* Prevent untranslated system text in production.
+
+### Risk: Currency Configuration Errors
+
+Changing or misconfiguring workspace currency may make financial values
+unclear.
+
+Mitigation:
+
+* Allow exactly one base currency per workspace.
+* Do not perform exchange-rate conversion.
+* Require confirmation before changing an established workspace currency.
+* Test formatting across dashboard, reports, history, and AI review.
+
+### Risk: Category Migration Errors
+
+Migrating flat categories into hierarchical categories may break historical
+classification or reports.
+
+Mitigation:
+
+* Preserve existing category IDs and historical links.
+* Use a safe migration strategy.
+* Prevent deletion of referenced categories.
+* Test report reconciliation before and after migration.
+
+
+### Risk: UI Refresh Regression
+
+Implementing the new design may unintentionally alter business flows or
+permissions.
+
+Mitigation:
+
+* Treat the approved prototype as a visual reference, not new business logic.
+* Preserve API contracts.
+* Run existing regression and end-to-end tests.
+* Add accessibility and visual regression checks.
+
 ---
 
 ## 19. Implementation Boundaries
@@ -1220,8 +1486,9 @@ Mitigation:
 The implementation must not include:
 
 * Bank connections
-* Payment gateway
-* Subscription billing
+* Paid feature tiers and mandatory subscription billing
+* In-app storage or direct processing of payment-card details
+* Monetization that restricts the free core product
 * Investment tracking
 * Debt management
 * Payroll
@@ -1229,15 +1496,20 @@ The implementation must not include:
 * Full accounting ledger
 * Enterprise permission system
 * Advanced accounting reconciliation
-* Complex multi-currency behavior
+* Mixed-currency records, exchange-rate conversion, and complex multi-currency accounting
 * Public file access for financial documents
 * AI-created final records without user confirmation
 
 Any feature outside the constitution scope must be deferred.
 
+Optional one-time product-support purchases may be added in Phase 17.
+
+They must not unlock features, change limits, alter permissions, create a
+mandatory subscription, or be presented as charitable fundraising.
+
 ---
 
-## 20. Definition of Done
+## 20. MVP Definition of Done — Achieved
 
 The MVP is considered complete when:
 
@@ -1262,16 +1534,40 @@ The MVP is considered complete when:
 * Tenant isolation is tested.
 * File privacy is tested.
 * API keys are not exposed.
-* Arabic and English readiness is present.
-* RTL readiness is present.
-* The app is deployable to Bunny Magic Containers.
+* An Arabic-first RTL interface is present.
+* Full Arabic and English localization is planned for Phase 12.
+* Complete RTL and LTR layout switching is planned for Phase 12.
+* The app is ready for staging deployment to Bunny Magic Containers.
 * No MVP-excluded features are implemented.
 
 ---
 
-## Final Implementation Direction
+## 21. Post-MVP Roadmap Definition of Done
 
-Build the product in this order:
+Post-MVP expansion is complete when:
+
+* Arabic and English interfaces are fully supported.
+* RTL and LTR layouts work across all core screens.
+* Each workspace has one base currency.
+* Financial formatting respects workspace currency and interface locale.
+* Income and expense categories support one subcategory level.
+* Existing category history is preserved after migration.
+* The approved design system is implemented on desktop and mobile.
+* F-001 is resolved and regression-tested.
+* Existing financial accuracy, permissions, and tenant isolation remain intact.
+* The web application is installable as a PWA.
+* Core mobile workflows work reliably on supported devices.
+* Receipt capture and upload work from supported mobile devices.
+* The free Android and iOS applications pass store-readiness validation.
+* Optional product-support purchases remain separate from workspace financial records.
+* Non-supporting users retain the complete product experience.
+* Store, legal, tax, refund, and payment requirements are verified before release.
+
+---
+
+## Completed MVP Implementation Direction
+
+The MVP was built in this order:
 
 1. Secure tenant foundation
 2. Manual income and expense tracking
@@ -1282,6 +1578,19 @@ Build the product in this order:
 7. Review-before-confirmation workflow
 8. Testing and deployment
 
+## Post-MVP Implementation Direction
+
+Continue development in this order:
+
+1. Complete design discovery and handoff
+2. Implement Arabic/English localization and workspace base currency
+3. Implement hierarchical income and expense categories
+4. Implement the approved design system and responsive UI refresh
+5. Make the web application installable and mobile-ready
+6. Release the free mobile application
+7. Add optional one-time product-support purchases
+8. Run complete regression, accessibility, security, store, and deployment validation
+
 The implementation must protect the core experience:
 
 > Add income. Add expenses. Upload invoices. Use AI only when desired. See exactly what remains.
@@ -1290,11 +1599,14 @@ The implementation must protect the core experience:
 
 ## Next Step
 
-This document is the master implementation plan. It does not replace the
-per-feature Spec-Kit cycle required by the project constitution — each
-phase in Section 17 must still go through its own `/speckit-specify` →
-`/speckit-plan` → `/speckit-tasks` → `/speckit-implement` cycle before any
-code, migrations, or tasks are created.
+Phases 1–10 are complete and merged into `main`. The MVP is ready for
+staging.
 
-**The next step is to run `/speckit-specify` for `001-foundation`**,
-covering Phase 1 — Foundation and Repository Setup.
+The next step is Phase 11 — Design Discovery and UX Planning. This phase
+documents and validates the visual direction without changing production
+business logic.
+
+After Phase 11 is approved, Phases 12–17 must each follow the project’s
+required Spec-Kit cycle:
+
+`/speckit-specify` → `/speckit-clarify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` → phase-by-phase `/speckit-implement` → review → tests → merge.
