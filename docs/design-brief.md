@@ -2,13 +2,16 @@
 
 **Document:** Product Design Brief  
 **Project:** Smart Expense - AI  
-**Status:** Final — Ready for Design System and Prototype  
+**Status:** Phase 11 — In Progress; Design System and Prototype Review  
 **Repository:** `D:\claude\smart_expense`  
-**Frontend:** Next.js, React, Tailwind CSS, Shadcn UI  
-**Primary Language:** Arabic  
-**Layout Direction:** RTL  
-**Target Market:** Saudi Arabia  
-**Design Scope:** Existing MVP frontend only  
+**Working Product Name:** Smart Expense - AI  
+**Frontend:** Next.js 16.x, React, Tailwind CSS, Shadcn UI  
+**Default Language:** Arabic  
+**Additional Language:** English planned for Phase 12  
+**Layout Direction:** RTL for Arabic; LTR for English  
+**Primary Market:** Saudi-first  
+**Design Scope:** Existing MVP screens plus approved future-state UX
+requirements for Phases 12–14  
 
 ---
 
@@ -33,7 +36,31 @@ The product supports:
 - Personal and team workspaces.
 - Role-based permissions.
 
-The MVP is functionally complete. This design phase must improve the visual system, usability, consistency, responsiveness, accessibility, and Arabic RTL experience without changing existing business logic.
+The MVP is functionally complete. Phase 11 must improve the visual system,
+usability, consistency, responsiveness, accessibility, and Arabic RTL
+experience while preparing a developer-ready design direction for:
+
+- Arabic and English localization in Phase 12.
+- RTL and LTR layout switching in Phase 12.
+- One base currency per workspace in Phase 12.
+- Hierarchical income and expense categories in Phase 13.
+- Design-system implementation in Phase 14.
+
+Phase 11 must not change production business logic, database behavior, API
+contracts, permissions, or financial calculations.
+
+### Roadmap boundaries
+
+- Phase 11 defines and validates the design.
+- Phase 12 implements localization and workspace currency.
+- Phase 13 implements hierarchical categories.
+- Phase 14 implements the approved frontend redesign.
+- Phase 15 implements PWA and mobile-readiness behavior.
+- Phase 16 delivers the future mobile application.
+- Phase 17 handles optional product-support purchases.
+
+PWA installation, native mobile packaging, and product-support purchases are
+not implementation deliverables of this design phase.
 
 ---
 
@@ -146,9 +173,14 @@ Destructive actions such as deletion, removal, discard, or leaving a workspace m
 
 Advanced options should appear only when needed. Main screens should remain simple.
 
-### 5.7 Existing functionality first
+### 5.7 Existing functionality and approved roadmap requirements
 
-The redesign must improve the current application rather than introduce new product features.
+The redesign must preserve all existing MVP workflows.
+
+Future requirements from Phases 12 and 13 may be represented in the
+prototype to prepare the design handoff, but they must be clearly identified
+as future-state behavior and must not be treated as currently implemented
+functionality.
 
 ---
 
@@ -265,13 +297,17 @@ The sidebar should support:
 
 Requirements:
 
-- The sidebar should appear on the right in RTL layouts.
+- The sidebar must appear on the right in Arabic RTL layouts.
+- The sidebar must appear on the left in English LTR layouts.
 - The active page must be visually obvious.
-- Navigation labels should use clear Arabic.
-- Arabic and English should not be mixed unnecessarily.
+- Navigation labels must be fully translated.
+- Arabic and English labels must not be mixed unnecessarily.
+- Directional icons must adapt when their meaning depends on direction.
 - Workspace switching must be clearly separated from user-account actions.
+- Language switching must not be confused with workspace switching.
 
-On mobile devices, the sidebar should transform into a drawer or another compact navigation pattern.
+On mobile devices, navigation should transform into a direction-aware drawer
+or another compact navigation pattern.
 
 A global search feature and a persistent notification center are out of scope for this redesign.
 
@@ -386,29 +422,30 @@ Eastern Arabic digit preferences are out of scope for the current redesign.
 
 ---
 
-## 13. Arabic and RTL Requirements
+## 13. Internationalization, Arabic RTL, and English LTR Requirements
 
-Arabic RTL support is a core design requirement.
+Arabic is the default interface language and uses RTL layouts.
 
-The design must correctly handle:
+English is an optional interface language planned for Phase 12 and uses LTR
+layouts.
 
-- RTL page structure.
-- Right-positioned desktop sidebar.
-- Form alignment.
-- Table alignment.
-- Icons beside Arabic text.
-- Breadcrumb direction.
-- Dialogs and dropdown menus.
-- Pagination controls.
-- Date ranges.
-- Currency values.
+The design must support:
+
+- A user-level language preference.
+- Complete translation of system interface text.
+- Direction-aware navigation, forms, tables, dialogs, and pagination.
+- Arabic RTL and English LTR application shells.
+- Translated system-provided category names.
+- User-created category names exactly as entered by the user.
+- User-entered merchant names, notes, and descriptions without automatic
+  translation.
 - Mixed Arabic and English content.
-- Email addresses.
-- API key hints.
-- File names.
-- Provider names such as OpenAI and Gemini.
+- Directional icons that flip only when their meaning requires it.
+- Stable component dimensions when switching languages.
+- Longer English and Arabic labels without clipping.
 
-Technical values may require isolated LTR rendering inside RTL pages.
+Technical values may require isolated LTR rendering inside both language
+layouts.
 
 Examples include:
 
@@ -419,6 +456,8 @@ Examples include:
 - URLs.
 - Provider identifiers.
 - Technical error codes.
+
+Western digits remain the default in both languages.
 
 ### 13.1 F-001 RTL date display
 
@@ -448,42 +487,41 @@ Do not rely on browser bidirectional-text heuristics alone.
 
 ---
 
-## 14. Currency and Financial Values
+## 14. Workspace Base Currency and Financial Values
 
-The default currency is Saudi Riyal.
+Each workspace will have exactly one base currency in Phase 12.
 
-Use one consistent currency format throughout the application.
+Saudi Riyal is the default base currency.
 
-Preferred display:
+Requirements:
+
+- Dashboard totals, forms, records, reports, charts, AI review, and history
+  must use the selected workspace base currency.
+- A financial record must not have an independent currency that differs from
+  its workspace.
+- Mixed-currency records are out of scope.
+- Exchange-rate conversion is out of scope.
+- Changing the interface language must not change the workspace currency.
+- Switching workspaces must immediately update financial formatting.
+- Workspace currency selection must appear in workspace settings.
+- Changing the currency of a workspace that already contains records must
+  display a clear warning and require confirmation.
+- The design must not imply that historical amounts are converted when the
+  base-currency setting changes.
+- Amount, sign, decimal separators, and currency indicator must remain
+  visually grouped.
+- Positive and negative states must not rely only on color.
+
+Saudi Riyal example:
 
 ```text
 1,250.00 ر.س
 ```
 
-The official Saudi Riyal symbol may be adopted only when:
+Other currencies must use their approved code or symbol consistently.
 
-- The selected font supports it correctly.
-- It renders consistently across supported browsers.
-- It remains readable in RTL layouts.
-
-Currency formatting must be consistent across:
-
-- Dashboard totals.
-- Forms.
-- Tables.
-- Reports.
-- Charts.
-- AI review.
-- History.
-
-Requirements:
-
-- Use Western digits.
-- Use consistent decimal precision.
-- Keep the negative sign, amount, and currency indicator visually together.
-- Prevent wrapping that separates the symbol from the amount.
-- Zero values should remain neutral.
-- Positive and negative states must not rely only on color.
+The official Saudi Riyal symbol may be adopted only when the selected font
+and supported platforms render it correctly.
 
 ---
 
@@ -516,6 +554,24 @@ Requirements:
 - Amount, sign, and currency must remain correctly ordered in RTL.
 - Technical values should use LTR isolation where needed.
 
+### 15.1 Hierarchical category selection
+
+The future Phase 13 category experience must support:
+
+- Separate category sets for income and expenses.
+- One main-category level and one subcategory level.
+- Clear distinction between a main category and a subcategory.
+- Selection of an appropriate subcategory where available.
+- Creation and editing according to role permissions.
+- Disabled categories that remain identifiable in historical records.
+- Translated names for system-provided categories.
+- User-created category names displayed exactly as entered.
+- AI suggestions that may recommend a subcategory but never confirm it
+  automatically.
+
+Financial forms must show the workspace currency as contextual information
+and must not offer a per-record currency selector.
+
 ---
 
 ## 16. Tables and Record Lists
@@ -542,6 +598,13 @@ Requirements:
 - Dates and financial values must remain directionally correct.
 - Important row actions should remain reachable without visual clutter.
 - Empty, loading, and error states must be defined.
+- Category columns should show both the main category and subcategory where
+  applicable.
+- System-provided category names should follow the selected interface
+  language.
+- User-created category names must not be automatically translated.
+- Currency formatting must follow the selected workspace.
+- Changing interface language must not alter stored financial values.
 
 ---
 
@@ -571,6 +634,14 @@ Requirements:
 - No three-dimensional charts.
 - No excessive gradients.
 - No unnecessary animation.
+- Category reports must aggregate by main category and allow drill-down into
+  subcategories.
+- Report period controls must support current, previous, and custom periods.
+- Custom ranges of 31 days or fewer should use daily trend presentation.
+- Longer supported ranges should use monthly trend presentation.
+- Report labels must adapt fully to Arabic RTL and English LTR.
+- All report values must use the workspace base currency.
+- Reports must never imply currency conversion.
 
 Exporting, printing, PDF, Excel, and CSV features are out of scope for this redesign.
 
@@ -588,6 +659,14 @@ The design must clearly represent these states:
 - Confirmed.
 - Failed.
 - Discarded.
+
+AI category suggestions may include a main category and subcategory after
+Phase 13, but the user must review and confirm the selection.
+
+When extracted currency information conflicts with the workspace base
+currency, the future design should present a clear mismatch warning rather
+than implying automatic conversion. Implementation of this behavior requires
+an approved Phase 12 specification and backend support.
 
 AI-generated values must never appear as confirmed financial records before user confirmation.
 
@@ -647,6 +726,17 @@ Role-based differences must remain consistent across:
 - AI review.
 - Workspace settings.
 
+Language preference belongs to the user.
+
+Base currency belongs to the workspace.
+
+The interface must make this distinction clear:
+
+- Switching language changes interface text and direction.
+- Switching language does not change financial values or workspace currency.
+- Switching workspace may change the displayed currency.
+- Workspace currency management must appear only to authorized roles.
+
 ---
 
 ## 20. Components Required in the Design System
@@ -688,8 +778,17 @@ The design system should define reusable versions of:
 - Charts.
 - Receipt preview.
 - AI review form.
+- Language switcher.
+- Workspace base-currency selector.
+- Direction-aware application shell.
+- Hierarchical category picker.
+- Main-category and subcategory presentation.
+- Currency-change warning dialog.
+- Bilingual validation and empty-state variants.
 
 Components must use shared tokens instead of page-specific styling.
+
+Payment or product-support components are not part of this design phase; they belong to Phase 17.
 
 A persistent notification center, email notification settings, and global search are not part of this design phase.
 
@@ -745,6 +844,18 @@ Primary actions should remain reachable without unnecessary scrolling.
 
 Complex tables should become cards or compact lists on mobile.
 
+The responsive design should be ready for later PWA implementation, including:
+
+- Mobile-safe navigation.
+- Touch-friendly financial forms.
+- Camera and file-upload entry points.
+- Appropriate device safe-area spacing.
+- Reliable loading and reconnect states.
+
+PWA installation prompts, offline synchronization, and native application
+packaging are implementation concerns for Phases 15 and 16 and are not part
+of Phase 11.
+
 ---
 
 ## 23. Accessibility
@@ -792,9 +903,10 @@ Privacy mode, session timeout screens, OTP, and 2FA are out of scope for this re
 
 ---
 
-## 25. Technical Guardrails
+## 25. Technical and Phase Guardrails
 
-The design phase must not change:
+Phase 11 may document and prototype future UX requirements for Phases 12–14,
+but it must not directly change production:
 
 - Financial calculation rules.
 - Confirmed-only totals.
@@ -807,6 +919,9 @@ The design phase must not change:
 - History append-only behavior.
 - Workspace isolation.
 - Existing business logic.
+
+Every future-state screen or component must be labeled with its target phase
+and must not be presented as currently implemented behavior.
 
 The final implementation must continue using:
 
@@ -845,6 +960,17 @@ The following features are not part of this redesign:
 - Database changes.
 - Changes to financial logic.
 - Changes to role permissions.
+- Mixed-currency financial records.
+- Currency conversion and exchange rates.
+- Per-record currency selection.
+- PWA installation implementation.
+- Offline financial record creation or synchronization.
+- Native Android or iOS packaging.
+- App-store publishing.
+- Product-support purchase screens.
+- Payment checkout.
+- Paid tiers or mandatory subscriptions.
+- Final product renaming and final logo production.
 
 These may be considered in future phases.
 
@@ -855,15 +981,17 @@ These may be considered in future phases.
 The design tool should produce:
 
 1. A complete visual design system.
-2. Desktop application shell.
-3. Responsive mobile application shell.
-4. High-fidelity versions of the main existing screens.
-5. Arabic RTL layouts.
-6. Component variants and states.
-7. Empty, loading, error, and permission states.
-8. Responsive page examples.
-9. Design tokens.
-10. Clear developer handoff documentation.
+2. Arabic RTL desktop and mobile application shells.
+3. Representative English LTR application shells.
+4. High-fidelity versions of all existing MVP screens.
+5. Language-switching behavior and bilingual component examples.
+6. Workspace base-currency settings and formatting examples.
+7. Hierarchical income and expense category examples.
+8. Component variants and interaction states.
+9. Empty, loading, error, and permission states.
+10. Responsive desktop, tablet, and mobile examples.
+11. Design tokens.
+12. Developer handoff notes mapping future-state designs to Phases 12–14.
 
 The prototype should use:
 
@@ -900,6 +1028,15 @@ The design is ready for implementation when:
 - Dates are tested in Chrome and at least one mobile Arabic RTL environment.
 - A first-time user can add an expense and understand the remaining balance without external instruction.
 - A Viewer or Member does not encounter an unexplained permission failure.
+- Representative English LTR layouts are reviewed.
+- Language switching does not break navigation, forms, tables, or dialogs.
+- User language and workspace currency are presented as separate settings.
+- All financial screens follow the workspace base currency.
+- No design implies mixed currencies or exchange-rate conversion.
+- Income and expense category trees are visually separate.
+- Main categories and subcategories are understandable in forms and reports.
+- Current MVP behavior and future Phase 12–14 behavior are clearly labeled.
+- The design does not include Phase 17 product-support purchase flows.
 
 ---
 
