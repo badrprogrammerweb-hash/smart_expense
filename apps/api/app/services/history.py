@@ -34,9 +34,17 @@ async def list_history(
                     coalesce(nullif(up.display_name, ''), up.email) as actor_display_name,
                     h.entity_table,
                     h.entity_id,
-                    h.summary,
+                    case
+                        when h.summary ? 'amount_minor' then
+                            h.summary || jsonb_build_object(
+                                'currency',
+                                coalesce(h.summary ->> 'currency', w.currency)
+                            )
+                        else h.summary
+                    end as summary,
                     h.created_at
                 from public.activity_history h
+                join public.workspaces w on w.id = h.workspace_id
                 left join public.user_profiles up on up.id = h.actor_user_id
                 where {" and ".join(clauses)}
                 order by h.created_at desc, h.id desc

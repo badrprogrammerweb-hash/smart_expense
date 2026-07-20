@@ -94,6 +94,7 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
                 <ExpenseForm
                   workspaceId={workspaceId}
                   role={role}
+                  currency={record.currency}
                   record={record}
                   canSubmit={canManageRecord}
                   onSaved={() => setEditingId(null)}
@@ -102,7 +103,9 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
               ) : (
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
-                    <p className="text-base font-semibold text-destructive">{toDisplayAmount(record.amount_minor, locale)}</p>
+                    <p className="text-base font-semibold text-destructive">
+                      {toDisplayAmount(record.amount_minor, locale, record.currency)}
+                    </p>
                     <p className="text-sm text-muted-foreground">{record.occurred_on}</p>
                     <p className="mt-1 text-sm">
                       {record.description || record.merchant_name || categoryNames.get(record.category_id ?? "") || common("none")}

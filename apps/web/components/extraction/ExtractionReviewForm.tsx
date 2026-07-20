@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState, type FormEvent } from "react";
 
 import { ApiError } from "@/lib/api/client";
@@ -10,22 +10,26 @@ import {
   type ConfirmExtractionInput,
   type ExtractionRecord,
 } from "@/lib/api/extractions";
-import { parseInputToMinor } from "@/lib/money";
+import { minorUnitDigits, type SupportedCurrency } from "@/lib/currency";
+import { parseInputToMinor, toDisplayAmount } from "@/lib/money";
 
 type ExtractionReviewFormProps = {
   workspaceId: string;
+  currency: SupportedCurrency;
   extraction: ExtractionRecord;
   categories: Category[];
   autoDeleteAfterExtraction?: boolean;
   onConfirmed?: (extraction: ExtractionRecord) => void;
 };
 
-function minorToInput(minor: number | null | undefined) {
+function minorToInput(minor: number | null | undefined, currency: SupportedCurrency) {
   if (!minor) {
     return "";
   }
-  const whole = Math.floor(minor / 100);
-  const fraction = String(minor % 100).padStart(2, "0");
+  const fractionDigits = minorUnitDigits[currency];
+  const minorUnitsPerMajor = 10 ** fractionDigits;
+  const whole = Math.floor(minor / minorUnitsPerMajor);
+  const fraction = String(minor % minorUnitsPerMajor).padStart(fractionDigits, "0");
   return `${whole}.${fraction}`;
 }
 
@@ -41,6 +45,7 @@ function errorMessage(error: unknown, fallback: string) {
 
 export function ExtractionReviewForm({
   workspaceId,
+  currency,
   extraction,
   categories,
   autoDeleteAfterExtraction = false,
@@ -48,14 +53,16 @@ export function ExtractionReviewForm({
 }: ExtractionReviewFormProps) {
   const t = useTranslations("extraction");
   const common = useTranslations("common");
+  const locale = useLocale();
   const draft = extraction.draft;
-  const [amount, setAmount] = useState(minorToInput(draft?.amount_minor));
+  const [amount, setAmount] = useState(minorToInput(draft?.amount_minor, currency));
   const [occurredOn, setOccurredOn] = useState(draft?.occurred_on ?? "");
   const [merchantName, setMerchantName] = useState(draft?.vendor_name ?? "");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const amountInputId = `extraction-amount-${extraction.id}`;
 
   const activeCategories = useMemo(
     () => categories.filter((category) => !category.is_archived),
@@ -78,7 +85,9 @@ export function ExtractionReviewForm({
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-muted-foreground">{t("review.amount")}</dt>
-            <dd className="font-medium">{minorToInput(draft.amount_minor) || common("none")}</dd>
+            <dd className="font-medium">
+              {draft.amount_minor ? toDisplayAmount(draft.amount_minor, locale, currency) : common("none")}
+            </dd>
           </div>
           <div>
             <dt className="text-muted-foreground">{t("review.date")}</dt>
@@ -101,7 +110,7 @@ export function ExtractionReviewForm({
     event.preventDefault();
     setFormError(null);
 
-    const amountMinor = parseInputToMinor(amount);
+    const amountMinor = parseInputToMinor(amount, currency);
     if (!Number.isFinite(amountMinor) || amountMinor <= 0 || !occurredOn) {
       setFormError(t("errors.invalidRequest"));
       return;
@@ -142,15 +151,21 @@ export function ExtractionReviewForm({
         )}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-medium">
-          {t("review.amount")}
+        <div className="block text-sm font-medium">
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor={amountInputId}>{t("review.amount")}</label>
+            <span className="text-xs text-muted-foreground" aria-hidden="true">
+              {currency}
+            </span>
+          </div>
           <input
+            id={amountInputId}
             className="mt-2 h-10 w-full rounded-md border bg-background px-3"
             inputMode="decimal"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
           />
-        </label>
+        </div>
         <label className="block text-sm font-medium">
           {t("review.date")}
           <input

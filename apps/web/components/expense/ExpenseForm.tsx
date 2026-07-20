@@ -10,25 +10,29 @@ import { useCategories } from "@/hooks/use-categories";
 import { useCreateExpense, useUpdateExpense } from "@/hooks/use-expenses";
 import type { ExpenseRecord } from "@/lib/api/expenses";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
+import { minorUnitDigits, type SupportedCurrency } from "@/lib/currency";
 import { parseInputToMinor } from "@/lib/money";
 import { canCreateExpense } from "@/lib/permissions";
 
 type ExpenseFormProps = {
   workspaceId: string;
   role: WorkspaceRole;
+  currency: SupportedCurrency;
   record?: ExpenseRecord;
   canSubmit?: boolean;
   onSaved?: () => void;
   onCancel?: () => void;
 };
 
-function minorToInput(minor: number) {
-  const whole = Math.floor(minor / 100);
-  const fraction = String(minor % 100).padStart(2, "0");
+function minorToInput(minor: number, currency: SupportedCurrency) {
+  const fractionDigits = minorUnitDigits[currency];
+  const minorUnitsPerMajor = 10 ** fractionDigits;
+  const whole = Math.floor(minor / minorUnitsPerMajor);
+  const fraction = String(minor % minorUnitsPerMajor).padStart(fractionDigits, "0");
   return `${whole}.${fraction}`;
 }
 
-export function ExpenseForm({ workspaceId, role, record, canSubmit, onSaved, onCancel }: ExpenseFormProps) {
+export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, onSaved, onCancel }: ExpenseFormProps) {
   const t = useTranslations("records");
   const common = useTranslations("common");
   const [formError, setFormError] = useState<string | null>(null);
@@ -50,19 +54,19 @@ export function ExpenseForm({ workspaceId, role, record, canSubmit, onSaved, onC
   const schema = useMemo(
     () =>
       z.object({
-        amount: z.string().refine((value) => parseInputToMinor(value) > 0, t("validationAmount")),
+        amount: z.string().refine((value) => parseInputToMinor(value, currency) > 0, t("validationAmount")),
         occurred_on: z.string().min(1, t("validationDate")),
         merchant_name: z.string().optional(),
         description: z.string().optional(),
         category_id: z.string().optional(),
       }),
-    [t],
+    [currency, t],
   );
   type FormValues = z.infer<typeof schema>;
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      amount: record ? minorToInput(record.amount_minor) : "",
+      amount: record ? minorToInput(record.amount_minor, currency) : "",
       occurred_on: record?.occurred_on ?? new Date().toISOString().slice(0, 10),
       merchant_name: record?.merchant_name ?? "",
       description: record?.description ?? "",
@@ -77,7 +81,7 @@ export function ExpenseForm({ workspaceId, role, record, canSubmit, onSaved, onC
   async function submit(values: FormValues) {
     setFormError(null);
     const input = {
-      amount_minor: parseInputToMinor(values.amount),
+      amount_minor: parseInputToMinor(values.amount, currency),
       occurred_on: values.occurred_on,
       category_id: values.category_id || null,
       merchant_name: values.merchant_name?.trim() || null,

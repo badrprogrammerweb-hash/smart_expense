@@ -66,6 +66,7 @@ describe("ExtractionReviewForm", () => {
     renderWithProviders(
       <ExtractionReviewForm
         categories={[{ id: "cat-1", name: "Groceries", is_archived: false, sort_order: 1 }]}
+        currency="SAR"
         extraction={editableExtraction}
         onConfirmed={onConfirmed}
         workspaceId="workspace-1"
@@ -98,6 +99,7 @@ describe("ExtractionReviewForm", () => {
     renderWithProviders(
       <ExtractionReviewForm
         categories={[]}
+        currency="SAR"
         extraction={editableExtraction}
         workspaceId="workspace-1"
       />,
@@ -112,6 +114,7 @@ describe("ExtractionReviewForm", () => {
     renderWithProviders(
       <ExtractionReviewForm
         categories={[]}
+        currency="SAR"
         extraction={{ ...editableExtraction, can_edit: false, can_discard: false }}
         workspaceId="workspace-1"
       />,
@@ -127,6 +130,7 @@ describe("ExtractionReviewForm", () => {
       <ExtractionReviewForm
         autoDeleteAfterExtraction
         categories={[]}
+        currency="SAR"
         extraction={editableExtraction}
         workspaceId="workspace-1"
       />,
@@ -141,7 +145,7 @@ describe("ExtractionReviewForm", () => {
 
   it("hides the auto-delete notice when the workspace setting is disabled", () => {
     renderWithProviders(
-      <ExtractionReviewForm categories={[]} extraction={editableExtraction} workspaceId="workspace-1" />,
+      <ExtractionReviewForm categories={[]} currency="SAR" extraction={editableExtraction} workspaceId="workspace-1" />,
     );
 
     expect(

@@ -195,37 +195,37 @@ currency-correct formatting everywhere, including 3-decimal currencies (quicksta
 
 ### Tests for User Story 3
 
-- [ ] T026 [P] [US3] Frontend unit test in `apps/web/tests/unit/money-formatting.test.ts`:
+- [X] T026 [P] [US3] Frontend unit test in `apps/web/tests/unit/money-formatting.test.ts`:
       `toDisplayAmount`/`parseInputToMinor` produce correct output for all 10 supported currencies,
       including the 3-decimal-digit cases (`KWD`, `BHD`, `OMR`) and both locales. (FR-012, FR-013)
-- [ ] T027 [P] [US3] Backend test in `apps/api/tests/test_reports_currency_awareness.py`: dashboard,
+- [X] T027 [P] [US3] Backend test in `apps/api/tests/test_reports_currency_awareness.py`: dashboard,
       reports, and history responses report the workspace's actual configured currency (not a
       hard-coded `SAR` default); re-run of the existing financial-accuracy edge states (zero
       income, zero expenses, negative remaining balance, edited record, deleted record, pending AI
       draft, failed AI extraction, multiple workspaces, viewer restriction) against a non-SAR
       workspace fixture, asserting outcomes are unchanged. (FR-015, FR-018, SC-006)
-- [ ] T028 [P] [US3] Frontend e2e test in
+- [X] T028 [P] [US3] Frontend e2e test in
       `apps/web/e2e/workspace-currency-formatting.spec.ts`: dashboard, records, reports, AI
       extraction review, and history all show the workspace's configured currency correctly in
       both English and Arabic (quickstart.md §3). (FR-012, FR-013, SC-004)
 
 ### Implementation for User Story 3
 
-- [ ] T029 [US3] Update `apps/api/app/schemas/dashboard.py`, `apps/api/app/schemas/expenses.py`,
+- [X] T029 [US3] Update `apps/api/app/schemas/dashboard.py`, `apps/api/app/schemas/expenses.py`,
       `apps/api/app/schemas/incomes.py`, and `apps/api/app/schemas/reports.py`: replace
       `Currency = Literal["SAR"]` / loose `str` currency fields with the `SupportedCurrency` type
       from T005, removing the single-value `"SAR"` field defaults. (depends on T005) (FR-017)
-- [ ] T030 [US3] Update `apps/api/app/services/dashboard.py` and `apps/api/app/services/reports.py`
+- [X] T030 [US3] Update `apps/api/app/services/dashboard.py` and `apps/api/app/services/reports.py`
       so every response's `currency` field is derived from the owning workspace's `currency` column
       instead of a literal default. (depends on T029) (FR-015)
-- [ ] T031 [US3] Update `apps/web/lib/money.ts`: `toDisplayAmount(minor, locale, currency)` and
+- [X] T031 [US3] Update `apps/web/lib/money.ts`: `toDisplayAmount(minor, locale, currency)` and
       `parseInputToMinor(input, currency)`, parameterized using T006's `minorUnitDigits` map instead
       of the hard-coded `SAR_FRACTION_DIGITS` / `MINOR_UNITS_PER_SAR` constants. (depends on T006)
       (FR-012, FR-013, FR-014)
-- [ ] T032 [P] [US3] Update `apps/web/lib/api/dashboard.ts`, `apps/web/lib/api/expenses.ts`,
+- [X] T032 [P] [US3] Update `apps/web/lib/api/dashboard.ts`, `apps/web/lib/api/expenses.ts`,
       `apps/web/lib/api/incomes.ts`, and `apps/web/lib/api/reports.ts`: replace the hard-coded
       `"SAR"` literal currency type with `SupportedCurrency` from T006. (depends on T006) (FR-017)
-- [ ] T033 [US3] Update every component call site currently calling `toDisplayAmount(minor,
+- [X] T033 [US3] Update every component call site currently calling `toDisplayAmount(minor,
       locale)` across the dashboard, records, reports, AI review, and history surfaces to also pass
       the relevant `currency` value from the API response. (depends on T031, T032) (FR-012, SC-004)
 

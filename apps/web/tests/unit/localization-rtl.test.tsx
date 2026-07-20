@@ -37,8 +37,8 @@ describe("Arabic/English localization and RTL", () => {
   });
 
   it("formats integer minor units as SAR for English and Arabic", () => {
-    const englishAmount = toDisplayAmount(123456, "en");
-    const arabicAmount = toDisplayAmount(123456, "ar");
+    const englishAmount = toDisplayAmount(123456, "en", "SAR");
+    const arabicAmount = toDisplayAmount(123456, "ar", "SAR");
 
     expect(englishAmount).toMatch(/SAR\s*1,234\.56/);
     expect(arabicAmount).not.toBe(englishAmount);

@@ -14,7 +14,7 @@ Currency = SupportedCurrency
 class Income(BaseModel):
     id: UUID
     amount_minor: int
-    currency: Currency = "SAR"
+    currency: Currency
     occurred_on: date
     description: str | None = None
     status: RecordStatus

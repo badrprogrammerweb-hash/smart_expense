@@ -4,6 +4,8 @@ import { Clock } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import type { ActivityHistoryItem } from "@/lib/api/history";
+import { supportedCurrencies, type SupportedCurrency } from "@/lib/currency";
+import { toDisplayAmount } from "@/lib/money";
 
 type HistoryListProps = {
   items: ActivityHistoryItem[];
@@ -38,6 +40,22 @@ function summaryText(summary: Record<string, unknown>) {
   return null;
 }
 
+function summaryAmount(summary: Record<string, unknown>) {
+  const amountMinor = summary.amount_minor;
+  const currency = summary.currency;
+
+  if (
+    typeof amountMinor === "number" &&
+    Number.isFinite(amountMinor) &&
+    typeof currency === "string" &&
+    supportedCurrencies.includes(currency as SupportedCurrency)
+  ) {
+    return { amountMinor, currency: currency as SupportedCurrency };
+  }
+
+  return null;
+}
+
 export function HistoryList({ items, locale }: HistoryListProps) {
   const t = useTranslations("history");
   const events = useTranslations("history.events");
@@ -47,6 +65,7 @@ export function HistoryList({ items, locale }: HistoryListProps) {
       <ul className="divide-y">
         {items.map((item) => {
           const detail = summaryText(item.summary);
+          const amount = summaryAmount(item.summary);
 
           return (
             <li className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between" key={item.id}>
@@ -57,10 +76,17 @@ export function HistoryList({ items, locale }: HistoryListProps) {
                   {detail ? ` - ${detail}` : ""}
                 </p>
               </div>
-              <p className="inline-flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-                <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-                {formatTimestamp(item.created_at, locale)}
-              </p>
+              <div className="flex shrink-0 flex-col gap-1 text-xs text-muted-foreground sm:items-end">
+                {amount && (
+                  <p className="text-sm font-semibold text-card-foreground">
+                    {toDisplayAmount(amount.amountMinor, locale, amount.currency)}
+                  </p>
+                )}
+                <p className="inline-flex items-center gap-2">
+                  <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                  {formatTimestamp(item.created_at, locale)}
+                </p>
+              </div>
             </li>
           );
         })}

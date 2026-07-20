@@ -50,7 +50,7 @@ describe("income and expense double-submit protection", () => {
 
   it("submits an income record only once when Save is clicked twice in the same tick", async () => {
     createIncomeMock.mockImplementation(pendingMutation);
-    renderWithMessages(<IncomeForm workspaceId="workspace-1" role="owner" />);
+    renderWithMessages(<IncomeForm workspaceId="workspace-1" role="owner" currency="SAR" />);
 
     fireEvent.change(screen.getByLabelText("Amount"), { target: { value: "10" } });
     fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-01-01" } });
@@ -70,7 +70,7 @@ describe("income and expense double-submit protection", () => {
 
   it("submits an expense record only once when Save is clicked twice in the same tick", async () => {
     createExpenseMock.mockImplementation(pendingMutation);
-    renderWithMessages(<ExpenseForm workspaceId="workspace-1" role="member" />);
+    renderWithMessages(<ExpenseForm workspaceId="workspace-1" role="member" currency="SAR" />);
 
     fireEvent.change(screen.getByLabelText("Amount"), { target: { value: "10" } });
     fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-01-01" } });

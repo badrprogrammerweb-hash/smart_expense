@@ -15,21 +15,21 @@ class FinancialSummary(BaseModel):
     total_income_minor: int
     total_expenses_minor: int
     remaining_balance_minor: int
-    currency: Currency = "SAR"
+    currency: Currency
 
 
 class CategoryBreakdownItem(BaseModel):
     category_id: UUID | None = None
     category_name: str
     total_minor: int
-    currency: Currency = "SAR"
+    currency: Currency
 
 
 class RecentRecord(BaseModel):
     type: RecordType
     id: UUID
     amount_minor: int
-    currency: Currency = "SAR"
+    currency: Currency
     occurred_on: date
     description: str | None = None
     merchant_name: str | None = None

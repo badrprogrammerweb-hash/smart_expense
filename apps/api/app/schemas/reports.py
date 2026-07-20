@@ -5,6 +5,10 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.dashboard import CategoryBreakdownItem, FinancialSummary, RecentRecord
+from app.schemas.currency import SupportedCurrency
+
+
+Currency = SupportedCurrency
 
 
 class ReportPreset(StrEnum):
@@ -36,14 +40,14 @@ class TrendPoint(BaseModel):
     income_minor: int
     expense_minor: int
     remaining_minor: int
-    currency: str = "SAR"
+    currency: Currency
 
 
 class MerchantTotal(BaseModel):
     merchant_name: str
     total_minor: int
     count: int
-    currency: str = "SAR"
+    currency: Currency
 
 
 class TeamActivityItem(BaseModel):
@@ -56,7 +60,7 @@ class TopCategorySummary(BaseModel):
     category_id: UUID | None = None
     category_name: str
     total_minor: int
-    currency: str = "SAR"
+    currency: Currency
 
 
 class SpendingSummary(BaseModel):
@@ -65,7 +69,7 @@ class SpendingSummary(BaseModel):
     remaining_balance_minor: int
     top_category: TopCategorySummary | None = None
     trend_direction: TrendDirection = TrendDirection.FLAT
-    currency: str = "SAR"
+    currency: Currency
 
 
 class ReportData(BaseModel):
