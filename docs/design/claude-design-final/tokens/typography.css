@@ -1,0 +1,22 @@
+:root{
+--font-arabic:'Tajawal','IBM Plex Sans Arabic',system-ui,sans-serif;
+--font-numeric:'Tajawal',system-ui,sans-serif;
+--text-page-title-size:28px;
+--text-page-title-weight:700;
+--text-section-heading-size:19px;
+--text-section-heading-weight:600;
+--text-financial-lg-size:32px;
+--text-financial-md-size:24px;
+--text-financial-sm-size:20px;
+--text-financial-weight:600;
+--text-body-size:15px;
+--text-body-weight:400;
+--text-table-size:14px;
+--text-supporting-size:13px;
+--text-supporting-weight:400;
+--text-label-size:13px;
+--text-label-weight:500;
+--line-height-tight:1.25;
+--line-height-normal:1.55;
+--numeric-feature:'tnum' 1,'lnum' 1; /* @kind other */
+}

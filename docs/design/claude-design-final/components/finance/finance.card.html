@@ -1,0 +1,31 @@
+<!-- @dsCard group="Components" viewport="700x640" name="Finance: Summary, InfoCard, StatusBadge, Receipt, AI Review, Chart" -->
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<div id="root" dir="rtl" style="padding:16px;display:flex;flex-direction:column;gap:16px;background:var(--color-bg)"></div>
+<script type="text/babel">
+const { SummaryCard, InfoCard, StatusBadge, ReceiptPreview, AIReviewForm, Chart } = window.SmartExpenseAIDesignSystem_44f3e6;
+function Demo(){
+const [fields,setFields]=React.useState({amount:'145.00',merchant:'بقالة العائلة',date:'12/07/2026',mainCategory:'food',subCategory:'restaurants'});
+return (
+<>
+<div style={{display:'grid',gridTemplateColumns:'1.4fr 1fr 1fr',gap:12}}>
+<SummaryCard label="الرصيد المتبقي" amount="3,420.00" icon="wallet" emphasis />
+<SummaryCard label="الدخل" amount="8,500.00" kind="income" icon="trending-up" />
+<SummaryCard label="المصاريف" amount="5,080.00" kind="expense" icon="trending-down" />
+</div>
+<InfoCard title="حالة الاستخراج"><div style={{display:'flex',gap:8,flexWrap:'wrap'}}><StatusBadge status="not_started"/><StatusBadge status="processing"/><StatusBadge status="ready"/><StatusBadge status="confirmed"/><StatusBadge status="failed"/><StatusBadge status="discarded"/></div></InfoCard>
+<InfoCard title="مراجعة الاستخراج الذكي">
+<AIReviewForm receipt={{fileName:'receipt-2026-07-13.jpg'}} status="ready" fields={fields} onFieldChange={(k,v)=>setFields(f=>({...f,[k]:v}))} categoryHierarchy={[{value:'food',label:'طعام',subs:[{value:'restaurants',label:'مطاعم'},{value:'cafes',label:'مقاهي'}]}]} receiptCurrency="USD" workspaceCurrency="SAR" />
+</InfoCard>
+<InfoCard title="التوزيع حسب الفئة">
+<Chart type="donut" data={[{label:'بقالة',value:1200,color:'var(--color-primary)'},{label:'مواصلات',value:600,color:'var(--color-info)'},{label:'سكن',value:2000,color:'var(--color-warning)'}]} />
+</InfoCard>
+</>
+);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>

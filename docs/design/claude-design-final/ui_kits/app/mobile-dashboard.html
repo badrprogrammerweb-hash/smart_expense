@@ -1,0 +1,57 @@
+<!-- @dsCard group="App" viewport="390x844" name="Smart Expense — Dashboard (Mobile RTL)" subtitle="Mobile Arabic RTL dashboard — 390×844" -->
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+html,body{margin:0;background:var(--color-bg);overflow-x:hidden}
+#root{width:390px;max-width:100vw;height:100vh;height:100dvh;display:flex;flex-direction:column;position:relative;margin:0 auto;box-shadow:0 0 0 1px var(--color-border);overflow-x:hidden}
+.se-app-main{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px;padding-bottom:calc(88px + env(safe-area-inset-bottom));min-width:0}
+.se-top-header-wrap{padding-top:env(safe-area-inset-top);min-width:0}
+.se-top-header-wrap header{flex-wrap:wrap;height:auto !important;min-height:64px;row-gap:6px}
+.se-mobile-nav{padding-bottom:env(safe-area-inset-bottom);height:calc(64px + env(safe-area-inset-bottom));position:absolute;inset-inline-start:0;inset-inline-end:0;bottom:0}
+.se-mobile-nav nav{position:absolute !important;inset-inline-start:0 !important;inset-inline-end:0 !important;bottom:0 !important;top:auto !important}
+.se-summary-grid{grid-template-columns:1fr !important}
+.se-two-col{grid-template-columns:1fr !important}
+.se-desktop-table{display:none !important}
+.se-mobile-cards{display:flex !important}
+*{min-width:0}
+</style>
+<div id="root" dir="rtl"></div>
+<script src="mock-data.js"></script>
+<script type="text/babel" src="DashboardScreen.jsx"></script>
+<script type="text/babel">
+const { TopHeader, MobileNav, Icon } = window.SmartExpenseAIDesignSystem_44f3e6;
+
+function MoreDrawer({ open, onClose, pendingCount }) {
+  const items = [
+    { label: 'الفئات', icon: 'shapes' },
+    { label: 'الإيصالات والملفات', icon: 'receipt' },
+    { label: 'مراجعة الاستخراج الذكي', icon: 'sparkles', badge: pendingCount },
+    { label: 'سجل النشاط', icon: 'history' },
+    { label: 'الإعدادات', icon: 'settings' },
+  ];
+  if (!open) return null;
+  return React.createElement('div', { dir: 'rtl', style: { position: 'absolute', inset: 0, background: 'var(--color-overlay)', zIndex: 250, display: 'flex', alignItems: 'flex-end' }, onClick: onClose },
+    React.createElement('div', { onClick: e => e.stopPropagation(), style: { width: '100%', background: 'var(--color-surface)', borderRadius: '16px 16px 0 0', padding: '10px 12px calc(12px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 2, fontFamily: 'var(--font-arabic)' } },
+      React.createElement('div', { style: { width: 36, height: 4, borderRadius: 99, background: 'var(--color-border-strong)', alignSelf: 'center', margin: '4px 0 10px' } }),
+      items.map(it => React.createElement('div', { key: it.label, style: { display: 'flex', alignItems: 'center', gap: 12, minHeight: 48, padding: '0 12px', borderRadius: 8, color: 'var(--color-text)', fontSize: 15, fontWeight: 500 } },
+        React.createElement(Icon, { name: it.icon, size: 20 }),
+        React.createElement('span', { style: { flex: 1 } }, it.label),
+        it.badge > 0 && React.createElement('span', { style: { fontSize: 11, fontWeight: 700, color: '#92620A', background: 'var(--color-warning-subtle)', borderRadius: 99, padding: '1px 7px' } }, it.badge)))));
+}
+
+function Demo() {
+  const [screen, setScreen] = React.useState('dashboard');
+  const [moreOpen, setMoreOpen] = React.useState(false);
+  const pendingCount = window.SEMockData.aiQueue.filter(a => a.status === 'ready').length;
+  return React.createElement(React.Fragment, null,
+    React.createElement('div', { className: 'se-top-header-wrap' }, React.createElement(TopHeader, { user: { name: 'سارة العتيبي', role: 'مالك' }, workspace: { name: 'عائلة العتيبي', type: 'عائلي' }, workspaces: [{ name: 'مشروعي الشخصي', type: 'شخصي' }], lang: 'ar', onLangChange: () => {} })),
+    React.createElement('div', { className: 'se-app-main' }, React.createElement(window.DashboardScreen, { role: 'owner', onNavigate: setScreen, onAddExpense: () => {}, onAddIncome: () => {}, onUploadReceipt: () => {} })),
+    React.createElement('div', { className: 'se-mobile-nav' }, React.createElement(MobileNav, { active: screen, onNavigate: (key) => key === 'more' ? setMoreOpen(true) : setScreen(key) })),
+    React.createElement(MoreDrawer, { open: moreOpen, onClose: () => setMoreOpen(false), pendingCount }));
+}
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Demo));
+</script>

@@ -1,0 +1,117 @@
+<!-- @dsCard group="App" viewport="390x844" name="Smart Expense — Add Expense (Mobile RTL)" subtitle="Mobile Arabic RTL add-expense form — responsive 375–482px" -->
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+html,body{margin:0;background:var(--color-bg);overflow-x:hidden}
+#root{width:100%;max-width:482px;min-width:375px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;position:relative;box-shadow:0 0 0 1px var(--color-border);overflow-x:hidden}
+*{min-width:0}
+.se-form-header{padding:calc(12px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--color-border);background:var(--color-surface)}
+.se-form-main{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px;padding-bottom:calc(64px + 84px + 24px + env(safe-area-inset-bottom))}
+.se-form-actions{position:fixed;inset-inline:0;bottom:calc(64px + env(safe-area-inset-bottom));background:var(--color-surface);border-top:1px solid var(--color-border);padding:12px 16px;display:flex;gap:10px;z-index:45;max-width:482px;min-width:375px;margin:0 auto}
+.se-mobile-nav{position:fixed;inset-inline:0;bottom:0;height:calc(64px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);max-width:482px;min-width:375px;margin:0 auto}
+.se-mobile-nav nav{position:static !important;height:64px !important}
+.se-picker-overlay{max-width:482px;min-width:375px;margin:0 auto;align-items:flex-end !important;background:transparent !important}
+.se-picker-panel{width:100% !important;height:100dvh !important;max-height:100dvh !important;border-radius:0 !important;box-shadow:none !important}
+.se-cat-add-desktop{display:none !important}
+.se-cat-add-mobile{display:inline-flex !important}
+</style>
+<div id="root" dir="rtl"></div>
+<script src="mock-data.js"></script>
+<script type="text/babel">
+const { IconButton, Button, AmountInput, DateField, Textarea, FileUpload, Badge, Toast, MobileNav, Icon, CategoryPickerDialog } = window.SmartExpenseAIDesignSystem_44f3e6;
+const { expenseCategoryTree } = window.SEMockData;
+
+function AddExpenseForm() {
+  const [categories, setCategories] = React.useState(expenseCategoryTree);
+  const [amount, setAmount] = React.useState('');
+  const [date, setDate] = React.useState('14/07/2026');
+  const [category, setCategory] = React.useState(null);
+  const [notes, setNotes] = React.useState('');
+  const [receipt, setReceipt] = React.useState(null);
+  const [errors, setErrors] = React.useState({});
+  const [saving, setSaving] = React.useState(false);
+  const [toast, setToast] = React.useState(null);
+  const [sheet, setSheet] = React.useState(null);
+
+  const onPickReceipt = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const isPdf = /\.pdf$/i.test(file.name);
+    setReceipt({ name: file.name, isPdf, url: isPdf ? null : URL.createObjectURL(file) });
+  };
+
+  const onCreateCategory = (newCat, parentValue) => {
+    setCategories(prev => parentValue
+      ? prev.map(c => c.value === parentValue ? { ...c, subs: [...(c.subs || []), newCat] } : c)
+      : [...prev, { ...newCat, subs: [] }]);
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!amount || parseFloat(amount) <= 0) e.amount = 'يرجى إدخال مبلغ صحيح أكبر من صفر.';
+    if (!category) e.category = 'يرجى اختيار الفئة.';
+    if (!date) e.date = 'يرجى اختيار التاريخ.';
+    return e;
+  };
+
+  const onSubmit = () => {
+    const e = validate();
+    setErrors(e);
+    if (Object.keys(e).length > 0) return;
+    setSaving(true);
+    setTimeout(() => {
+      setSaving(false);
+      setToast({ title: 'تمت إضافة المصروف', description: `${amount} ر.س — ${category.isSub ? `${category.mainLabel} › ${category.label}` : category.label}` });
+      setTimeout(() => setToast(null), 3200);
+    }, 700);
+  };
+
+  const onCancel = () => { window.location.href = 'mobile-dashboard.html'; };
+
+  return React.createElement(React.Fragment, null,
+    React.createElement('div', { className: 'se-form-header' },
+      React.createElement(IconButton, { icon: 'arrow-right', label: 'رجوع', size: 'lg', variant: 'ghost', onClick: onCancel }),
+      React.createElement('div', null,
+        React.createElement('div', { style: { fontSize: 17, fontWeight: 700, color: 'var(--color-text)', fontFamily: 'var(--font-arabic)' } }, 'إضافة مصروف'),
+        React.createElement('div', { style: { fontSize: 12, color: 'var(--color-text-muted)', fontFamily: 'var(--font-arabic)' } }, 'الحقول التي تحمل علامة * مطلوبة'))),
+    React.createElement('div', { className: 'se-form-main' },
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16 } },
+        React.createElement(AmountInput, { label: 'المبلغ', kind: 'expense', required: true, value: amount, onChange: e => setAmount(e.target.value), error: errors.amount }),
+        React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: -8 } },
+          React.createElement(Badge, { tone: 'warning', dot: true }, 'Future state — Phase 12'),
+          React.createElement('span', { style: { fontSize: 12, color: 'var(--color-text-muted)', fontFamily: 'var(--font-arabic)' } }, 'يُستخدم دائمًا عملة مساحة العمل الأساسية (ر.س). تغيير العملة لكل سجل غير متاح حاليًا.')),
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+          React.createElement('label', { style: { fontSize: 'var(--text-label-size)', fontWeight: 500, color: 'var(--color-text)', fontFamily: 'var(--font-arabic)' } }, 'الفئة', React.createElement('span', { style: { color: 'var(--color-expense)' } }, ' *')),
+          React.createElement('button', { onClick: () => setSheet('category'), className: 'se-focusable', style: { display: 'flex', alignItems: 'center', gap: 10, width: '100%', height: 52, boxSizing: 'border-box', padding: '0 12px', borderRadius: 'var(--radius-control)', border: `1px solid ${errors.category ? 'var(--color-expense)' : 'var(--color-border-strong)'}`, background: 'var(--color-surface)', cursor: 'pointer', textAlign: 'start' } },
+            category && React.createElement(Icon, { name: category.icon, size: 18, color: 'var(--color-text-muted)' }),
+            React.createElement('span', { style: { flex: 1, fontSize: 15, color: category ? 'var(--color-text)' : 'var(--color-text-muted)', fontFamily: 'var(--font-arabic)', fontWeight: category ? 600 : 400 } }, category ? (category.isSub ? `${category.mainLabel} › ${category.label}` : category.label) : 'اختر الفئة'),
+            React.createElement(Icon, { name: 'chevron-down', size: 16, color: 'var(--color-text-muted)' })),
+          errors.category && React.createElement('span', { style: { fontSize: 12, color: 'var(--color-expense)' } }, errors.category)),
+        React.createElement(DateField, { label: 'التاريخ', required: true, value: date, onChange: e => setDate(e.target.value), error: errors.date }),
+        React.createElement(FileUpload, { label: 'إيصال (اختياري)', fileName: receipt && receipt.name, onPick: onPickReceipt }),
+        receipt && React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 'var(--radius-control)', border: '1px solid var(--color-border)', background: 'var(--color-surface-hover)' } },
+          receipt.isPdf ?
+            React.createElement('div', { style: { width: 40, height: 40, borderRadius: 8, background: 'var(--color-expense-subtle)', color: 'var(--color-expense)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 } }, 'PDF') :
+            React.createElement('img', { src: receipt.url, alt: '', style: { width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0 } }),
+          React.createElement('span', { dir: 'ltr', style: { fontSize: 13, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, receipt.name)),
+        React.createElement(Textarea, { label: 'ملاحظات (اختياري)', placeholder: 'يمكنك إضافة اسم التاجر أو أي تفاصيل إضافية هنا…', value: notes, onChange: e => setNotes(e.target.value), rows: 3 }))),
+    React.createElement('div', { className: 'se-form-actions' },
+      React.createElement(Button, { variant: 'secondary', size: 'lg', fullWidth: true, onClick: onCancel, disabled: saving }, 'إلغاء'),
+      React.createElement(Button, { size: 'lg', fullWidth: true, onClick: onSubmit, loading: saving }, 'إضافة المصروف')),
+    sheet === 'category' && CategoryPickerDialog && React.createElement(CategoryPickerDialog, { open: true, categories, selected: category, canManageCategories: true, onCreateCategory, onClose: () => setSheet(null), onSelect: (c) => { setCategory(c); setSheet(null); } }),
+    toast && React.createElement('div', { style: { position: 'fixed', top: 'calc(12px + env(safe-area-inset-top))', insetInlineStart: 16, insetInlineEnd: 16, zIndex: 300 } },
+      React.createElement(Toast, { tone: 'success', title: toast.title, description: toast.description, onClose: () => setToast(null) })));
+}
+
+function Demo() {
+  return React.createElement(React.Fragment, null,
+    React.createElement(AddExpenseForm, null),
+    React.createElement('div', { className: 'se-mobile-nav' }, React.createElement(MobileNav, { active: 'add', onNavigate: (key) => { if (key !== 'add') window.location.href = 'mobile-dashboard.html'; } })));
+}
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Demo));
+</script>
+<template id="__bundler_thumbnail"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="#0F7A5C"/><g fill="#fff"><rect x="30" y="28" width="40" height="6" rx="3"/><rect x="30" y="42" width="40" height="6" rx="3"/><rect x="30" y="56" width="24" height="6" rx="3"/><rect x="30" y="70" width="40" height="10" rx="5"/></g></svg></template>

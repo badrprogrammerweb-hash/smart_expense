@@ -1,0 +1,234 @@
+<!-- @dsCard group="App" viewport="1440x840" name="Smart Expense — App (click-through)" subtitle="Dashboard, records, AI review, reports, settings — RTL" -->
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+html,body{margin:0}
+.se-mobile-nav,.se-mobile-cards{display:none}
+@media (max-width:1023px){
+html,body{overflow-x:hidden}
+.se-app-shell{height:100vh;height:100dvh}
+.se-desktop-table{display:none !important}
+.se-mobile-cards{display:flex !important}
+.se-app-main{overflow-y:auto;overflow-x:hidden;padding-bottom:calc(88px + env(safe-area-inset-bottom)) !important}
+.se-summary-grid{grid-template-columns:1fr !important}
+.se-two-col{grid-template-columns:1fr !important}
+.se-top-header-wrap{padding-top:env(safe-area-inset-top)}
+}
+@media (max-width:767px){
+.se-sidebar{display:none !important}
+.se-mobile-nav{display:flex !important;padding-bottom:env(safe-area-inset-bottom);height:calc(64px + env(safe-area-inset-bottom))}
+.se-demo-controls{bottom:calc(64px + 16px + env(safe-area-inset-bottom)) !important}
+}
+@media (min-width:768px) and (max-width:1023px){
+.se-sidebar{--sidebar-width:212px;flex-shrink:0}
+.se-sidebar nav{overflow-y:auto}
+.se-app-main{padding-bottom:24px !important}
+}
+.se-filters-desktop-only{display:contents}
+.se-filter-trigger-mobile{display:none}
+.se-filter-chips-mobile{display:none}
+@media (max-width:1023px){
+.se-filters-desktop-only{display:none !important}
+.se-filter-trigger-mobile{display:inline-flex !important}
+.se-filter-chips-mobile{display:flex !important}
+}
+@media (max-width:767px){
+.se-expense-heading h1{font-size:20px !important}
+.se-expense-page{gap:12px !important}
+}
+.se-cat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+@media (max-width:767px){
+.se-cat-grid{grid-template-columns:1fr}
+}
+.se-files-grid{grid-template-columns:repeat(2,1fr);gap:14px}
+.se-files-list-wrap{display:none}
+.se-files-filter-trigger{display:none}
+@media (min-width:768px) and (max-width:1023px){
+.se-files-filters-inline{display:flex !important}
+.se-files-filter-trigger{display:none !important}
+.se-files-chips{display:none !important}
+}
+@media (min-width:1024px) and (max-width:1439px){
+.se-files-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media (min-width:1440px){
+.se-files-grid{grid-template-columns:repeat(4,1fr)}
+}
+@media (max-width:767px){
+.se-files-filters-inline{display:none !important}
+.se-files-filter-trigger{display:inline-flex !important}
+.se-files-grid{display:none !important}
+.se-files-list-wrap{display:flex !important}
+}
+.se-air-mobile{display:none}
+@media (min-width:1024px){
+.se-air-mobile{display:none !important}
+.se-air-desktop{display:block}
+}
+@media (max-width:1023px){
+.se-air-desktop{display:none !important}
+.se-air-mobile{display:block !important}
+}
+.se-air-detail-screen{position:fixed;inset:0;z-index:260;background:var(--color-bg);display:flex;flex-direction:column}
+.se-air-detail-header{display:flex;align-items:center;gap:10px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top));border-bottom:1px solid var(--color-border);background:var(--color-surface);flex-shrink:0}
+.se-air-detail-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.se-air-detail-footer{display:flex;gap:10px;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--color-border);background:var(--color-surface);flex-shrink:0}
+.se-reports-page,.se-reports-summary,.se-reports-charts{min-width:0}
+.se-history-desktop{display:block}
+.se-history-mobile{display:none}
+.se-history-filter-search{flex:1;min-width:180px}
+.se-history-filter-type{min-width:160px}
+.se-history-filter-date{min-width:150px}
+@media (max-width:1023px){
+.se-history-desktop{display:none}
+.se-history-mobile{display:flex !important;padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+.se-history-page h1{font-size:20px}
+.se-history-filter-search,.se-history-filter-type,.se-history-filter-date{flex:1 1 100%;min-width:0}
+.se-history-filterbar>div{gap:8px !important;padding:10px !important}
+}
+@media (max-width:767px){
+.se-reports-summary{grid-template-columns:1fr !important}
+.se-reports-charts{grid-template-columns:1fr !important}
+.se-reports-custom-fields{flex-direction:column;align-items:stretch !important}
+.se-reports-custom-fields>*{width:100%}
+.se-settings-save-wrap>button{width:100%}
+.se-settings-ai-actions{flex-direction:column !important;align-items:stretch !important}
+.se-settings-ai-actions>button{width:100%}
+.se-settings-currency-helper{font-size:11.5px !important;line-height:1.55 !important}
+}
+@media (min-width:1024px) and (max-width:1279px){
+.se-col-hide-narrow{display:none}
+}
+@media (min-width:1024px){
+.se-settings-narrow{max-width:640px}
+}
+</style>
+<div id="root" dir="rtl"></div>
+<script src="mock-data.js"></script>
+<script type="text/babel" src="AuthScreen.jsx"></script>
+<script type="text/babel" src="DashboardScreen.jsx"></script>
+<script type="text/babel" src="RecordsScreen.jsx"></script>
+<script type="text/babel" src="RecordFormDialog.jsx"></script>
+<script type="text/babel" src="CategoryFormDialog.jsx"></script>
+<script type="text/babel" src="CategoriesScreen.jsx"></script>
+<script type="text/babel" src="FilesScreen.jsx"></script>
+<script type="text/babel" src="AIReviewScreen.jsx"></script>
+<script type="text/babel" src="ReportsScreen.jsx"></script>
+<script type="text/babel" src="HistoryScreen.jsx"></script>
+<script type="text/babel" src="WorkspaceMembersScreen.jsx"></script>
+<script type="text/babel" src="SettingsScreen.jsx"></script>
+<script type="text/babel" src="EnglishShellScreen.jsx"></script>
+<script type="text/babel">
+const { Sidebar, MobileNav, TopHeader, Toast, ConfirmDialog, IconButton, DropdownMenu, Icon, Select } = window.SmartExpenseAIDesignSystem_44f3e6;
+const { roles } = window.SEMockData;
+
+function MobileMoreDrawer({ open, onClose, onNavigate, pendingCount, active }) {
+  const { Icon } = window.SmartExpenseAIDesignSystem_44f3e6;
+  const items = [
+    { key: 'income', label: 'الدخل', icon: 'trending-up' },
+    { key: 'categories', label: 'الفئات', icon: 'shapes' },
+    { key: 'files', label: 'الإيصالات والملفات', icon: 'receipt' },
+    { key: 'ai-review', label: 'مراجعة الاستخراج الذكي', icon: 'sparkles', badge: pendingCount },
+    { key: 'history', label: 'سجل النشاط', icon: 'history' },
+    { key: 'settings', label: 'الإعدادات', icon: 'settings' },
+  ];
+  if (!open) return null;
+  return React.createElement('div', { dir: 'rtl', style: { position: 'fixed', inset: 0, background: 'var(--color-overlay)', zIndex: 250, display: 'flex', alignItems: 'flex-end' }, onClick: onClose },
+    React.createElement('div', { onClick: e => e.stopPropagation(), style: { width: '100%', maxHeight: '80vh', maxHeight: '80dvh', display: 'flex', flexDirection: 'column', background: 'var(--color-surface)', borderRadius: '16px 16px 0 0', fontFamily: 'var(--font-arabic)' } },
+      React.createElement('div', { style: { width: 36, height: 4, borderRadius: 99, background: 'var(--color-border-strong)', alignSelf: 'center', margin: '10px 0 6px', flexShrink: 0 } }),
+      React.createElement('div', { className: 'se-scrollbar', style: { overflowY: 'auto', padding: '4px 12px calc(12px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 2 } },
+        items.map(it => React.createElement('button', { key: it.key, onClick: () => { onNavigate(it.key); onClose(); }, className: 'se-focusable se-row-hover', style: { display: 'flex', alignItems: 'center', gap: 12, minHeight: 48, padding: '0 12px', borderRadius: 'var(--radius-control)', border: 'none', background: active === it.key ? 'var(--color-primary-subtle)' : 'transparent', color: active === it.key ? 'var(--color-primary)' : 'var(--color-text)', fontSize: 15, fontWeight: active === it.key ? 700 : 500, cursor: 'pointer', textAlign: 'start' } },
+          React.createElement(Icon, { name: it.icon, size: 20 }),
+          React.createElement('span', { style: { flex: 1 } }, it.label),
+          it.badge > 0 && React.createElement('span', { style: { fontSize: 11, fontWeight: 700, color: '#92620A', background: 'var(--color-warning-subtle)', borderRadius: 99, padding: '1px 7px' } }, it.badge))))));
+}
+
+function QuickAddSheet({ open, onClose, role, onAddExpense, onAddIncome, onUploadReceipt }) {
+  const { Icon } = window.SmartExpenseAIDesignSystem_44f3e6;
+  if (!open) return null;
+  const items = [
+    { key: 'expense', label: 'إضافة مصروف', icon: 'trending-down', onClick: onAddExpense },
+    (role === 'owner' || role === 'admin') && { key: 'income', label: 'إضافة دخل', icon: 'trending-up', onClick: onAddIncome },
+    { key: 'upload', label: 'رفع إيصال أو فاتورة', icon: 'upload', onClick: onUploadReceipt },
+  ].filter(Boolean);
+  return React.createElement('div', { dir: 'rtl', style: { position: 'fixed', inset: 0, background: 'var(--color-overlay)', zIndex: 250, display: 'flex', alignItems: 'flex-end' }, onClick: onClose },
+    React.createElement('div', { onClick: e => e.stopPropagation(), style: { width: '100%', display: 'flex', flexDirection: 'column', background: 'var(--color-surface)', borderRadius: '16px 16px 0 0', padding: '10px 12px calc(12px + env(safe-area-inset-bottom))', fontFamily: 'var(--font-arabic)' } },
+      React.createElement('div', { style: { width: 36, height: 4, borderRadius: 99, background: 'var(--color-border-strong)', alignSelf: 'center', margin: '4px 0 10px' } }),
+      items.map(it => React.createElement('button', { key: it.key, onClick: () => { it.onClick(); onClose(); }, className: 'se-focusable se-row-hover', style: { display: 'flex', alignItems: 'center', gap: 12, minHeight: 52, padding: '0 12px', borderRadius: 'var(--radius-control)', border: 'none', background: 'transparent', color: 'var(--color-text)', fontSize: 15, fontWeight: 600, cursor: 'pointer', textAlign: 'start' } },
+        React.createElement(Icon, { name: it.icon, size: 20, color: 'var(--color-primary)' }),
+        it.label))));
+}
+function DemoControls({ role, setRole, emptyMode, setEmptyMode, loadingMode, setLoadingMode, errorMode, setErrorMode, showEnglishShell, setShowEnglishShell }) {
+  const [open, setOpen] = React.useState(false);
+  return React.createElement('div', { dir: 'rtl', className: 'se-demo-controls', style: { position: 'fixed', bottom: 16, insetInlineStart: 16, zIndex: 200, fontFamily: 'var(--font-arabic)' } },
+    open && React.createElement('div', { style: { marginBottom: 8, width: 260, background: 'var(--color-text)', color: '#fff', borderRadius: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 10, boxShadow: 'var(--shadow-dialog)' } },
+      React.createElement('div', { style: { fontSize: 12, fontWeight: 700, opacity: 0.8 } }, 'عرض تجريبي — ليس جزءًا من التطبيق'),
+      React.createElement('label', { style: { fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 } }, 'الدور الحالي',
+        React.createElement('select', { value: role, onChange: e => setRole(e.target.value), style: { height: 32, borderRadius: 6, border: 'none', padding: '0 8px' } },
+          roles.map(r => React.createElement('option', { key: r.key, value: r.key }, r.label)))),
+      React.createElement('label', { style: { fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 } }, React.createElement('input', { type: 'checkbox', checked: emptyMode, onChange: e => setEmptyMode(e.target.checked) }), 'مساحة عمل فارغة (أول استخدام)'),
+      React.createElement('label', { style: { fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 } }, React.createElement('input', { type: 'checkbox', checked: loadingMode, onChange: e => setLoadingMode(e.target.checked) }), 'حالة تحميل'),
+      React.createElement('label', { style: { fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 } }, React.createElement('input', { type: 'checkbox', checked: errorMode, onChange: e => setErrorMode(e.target.checked) }), 'حالة خطأ (التقارير)'),
+      React.createElement('div', { style: { height: 1, background: 'rgba(255,255,255,0.2)' } }),
+      React.createElement('label', { style: { fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 } }, React.createElement('input', { type: 'checkbox', checked: showEnglishShell, onChange: e => setShowEnglishShell(e.target.checked) }), 'معاينة الواجهة الإنجليزية LTR (Phase 12)')),
+    React.createElement('button', { onClick: () => setOpen(o => !o), style: { width: 44, height: 44, borderRadius: '50%', border: 'none', background: 'var(--color-text)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-dialog)' } }, React.createElement(Icon, { name: 'sliders-horizontal', size: 18, color: '#fff' })));
+}
+
+function App() {
+  const [authed, setAuthed] = React.useState(false);
+  const [screen, setScreen] = React.useState('dashboard');
+  const [role, setRole] = React.useState('owner');
+  const [emptyMode, setEmptyMode] = React.useState(false);
+  const [loadingMode, setLoadingMode] = React.useState(false);
+  const [errorMode, setErrorMode] = React.useState(false);
+  const [showEnglishShell, setShowEnglishShell] = React.useState(false);
+  const [mobileMoreOpen, setMobileMoreOpen] = React.useState(false);
+  const [quickAddOpen, setQuickAddOpen] = React.useState(false);
+  const [formDialog, setFormDialog] = React.useState(null);
+  const [editTarget, setEditTarget] = React.useState(null);
+  const [deleteTarget, setDeleteTarget] = React.useState(null);
+  const [toast, setToast] = React.useState(null);
+  const notify = (title, description) => { setToast({ title, description }); setTimeout(() => setToast(null), 3200); };
+  const roleLabel = roles.find(r => r.key === role).label;
+  const userNames = { owner: 'سارة العتيبي', admin: 'محمد العتيبي', member: 'نورة العتيبي', viewer: 'خالد العتيبي' };
+
+  if (!authed) return React.createElement(React.Fragment, null, React.createElement(window.AuthScreen, { onSignIn: () => setAuthed(true) }));
+
+  if (showEnglishShell) return React.createElement(React.Fragment, null,
+    React.createElement(window.EnglishShellScreen, { onBackToArabic: () => setShowEnglishShell(false) }),
+    !formDialog && React.createElement(DemoControls, { role, setRole, emptyMode, setEmptyMode, loadingMode, setLoadingMode, errorMode, setErrorMode, showEnglishShell, setShowEnglishShell }));
+
+  const screens = {
+    dashboard: () => React.createElement(window.DashboardScreen, { role, emptyMode, loadingMode, onNavigate: setScreen, onAddExpense: () => setFormDialog('expense'), onAddIncome: () => setFormDialog('income'), onUploadReceipt: () => setScreen('files') }),
+    income: () => React.createElement(window.RecordsScreen, { kind: 'income', role, onAdd: () => setFormDialog('income'), onDeleteRequest: setDeleteTarget }),
+    expenses: () => React.createElement(window.RecordsScreen, { kind: 'expense', role, onAdd: () => setFormDialog('expense'), onEdit: (r) => { setEditTarget(r); setFormDialog('expense'); }, onOpenReceipt: () => notify('فتح الإيصال'), onDeleteRequest: setDeleteTarget }),
+    categories: () => React.createElement(window.CategoriesScreen, { role }),
+    files: () => React.createElement(window.FilesScreen, { onUpload: () => notify('تم رفع الإيصال', 'سيتم استخراج القيم تلقائيًا خلال لحظات.'), loadingMode, emptyMode, errorMode }),
+    'ai-review': () => React.createElement(window.AIReviewScreen, { role }),
+    reports: () => React.createElement(window.ReportsScreen, { errorMode, onNavigate: setScreen }),
+    history: () => React.createElement(window.HistoryScreen, null),
+    settings: () => React.createElement(window.SettingsScreen, { role, onInvite: () => notify('تم إرسال الدعوة', 'ستصل رسالة دعوة إلى البريد الإلكتروني المحدد.') }),
+  };
+
+  return React.createElement('div', { dir: 'rtl', className: 'se-app-shell', style: { display: 'flex', minHeight: '100vh', background: 'var(--color-bg)' } },
+    React.createElement('div', { className: 'se-sidebar' }, React.createElement(Sidebar, { active: screen, onNavigate: setScreen, pendingCount: window.SEMockData.aiQueue.filter(a => a.status === 'ready').length })),
+    React.createElement('div', { style: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' } },
+      React.createElement('div', { className: 'se-top-header-wrap' }, React.createElement(TopHeader, { user: { name: userNames[role], role: roleLabel }, workspace: { name: 'عائلة العتيبي', type: 'عائلي' }, workspaces: [{ name: 'مشروعي الشخصي', type: 'شخصي' }], lang: 'ar', onLangChange: (l) => { if (l === 'en') setShowEnglishShell(true); } })),
+      React.createElement('div', { className: 'se-app-main', style: { flex: 1, padding: 24, overflowY: 'auto', minHeight: 0 } }, screens[screen] ? screens[screen]() : null)),
+    React.createElement('div', { className: 'se-mobile-nav' }, React.createElement(MobileNav, { active: ['income', 'categories', 'files', 'ai-review', 'history', 'settings'].includes(screen) ? 'more' : screen, hideAdd: role === 'viewer', onNavigate: (key) => key === 'more' ? setMobileMoreOpen(true) : key === 'add' ? setQuickAddOpen(true) : setScreen(key) })),
+    React.createElement(MobileMoreDrawer, { open: mobileMoreOpen, active: screen, onClose: () => setMobileMoreOpen(false), onNavigate: setScreen, pendingCount: window.SEMockData.aiQueue.filter(a => a.status === 'ready').length }),
+    React.createElement(QuickAddSheet, { open: quickAddOpen, onClose: () => setQuickAddOpen(false), role, onAddExpense: () => setFormDialog('expense'), onAddIncome: () => setFormDialog('income'), onUploadReceipt: () => setScreen('files') }),
+    React.createElement(window.RecordFormDialog, { open: !!formDialog, kind: formDialog, role, editRecord: editTarget, onClose: () => { setFormDialog(null); setEditTarget(null); }, onSave: () => { notify(formDialog === 'income' ? 'تم حفظ الدخل' : (editTarget ? 'تم حفظ التعديلات' : 'تم حفظ المصروف'), null); setFormDialog(null); setEditTarget(null); } }),
+    React.createElement(ConfirmDialog, { open: !!deleteTarget, onClose: () => setDeleteTarget(null), onConfirm: () => { notify('تم الحذف'); setDeleteTarget(null); },
+      title: deleteTarget && deleteTarget.kind === 'income' ? 'حذف سجل الدخل؟' : 'حذف هذا السجل؟',
+      description: deleteTarget && deleteTarget.kind === 'income' ? 'سيتم حذف سجل الدخل المحدد، ولا يمكن التراجع عن هذا الإجراء.' : 'سيتم حذف هذا السجل نهائيًا. لا يمكن التراجع عن هذا الإجراء.',
+      confirmLabel: deleteTarget && deleteTarget.kind === 'income' ? 'حذف' : undefined }),
+    toast && React.createElement('div', { style: { position: 'fixed', top: 20, insetInlineStart: 20, zIndex: 300 } }, React.createElement(Toast, { tone: 'success', title: toast.title, description: toast.description, onClose: () => setToast(null) })),
+    !formDialog && screen !== 'settings' && React.createElement(DemoControls, { role, setRole, emptyMode, setEmptyMode, loadingMode, setLoadingMode, errorMode, setErrorMode, showEnglishShell, setShowEnglishShell }));
+}
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
