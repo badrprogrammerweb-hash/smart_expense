@@ -104,3 +104,25 @@ cd apps/web && npm run test && npm run test:e2e -- locale currency
 ```
 
 Green suite + steps 1–5 satisfied = SC-001 … SC-006 met.
+
+## Validation Results - 2026-07-21
+
+1. Language preference follows the user across sessions: PASS.
+   - Backend: `cd apps/api && .\.venv\Scripts\python.exe -m pytest tests\test_users_locale.py ... -q` covered `tests/test_users_locale.py`.
+   - Frontend: `cd apps/web && npx playwright test e2e/locale-preference-persistence.spec.ts ... --project=chromium --reporter=line --timeout=120000 --workers=1`.
+2. Workspace Owner sets base currency: PASS.
+   - Backend quickstart subset included `tests/test_workspace_currency.py`.
+3. Currency- and locale-aware formatting everywhere: PASS.
+   - Frontend unit coverage passed in full `npm run test`.
+   - Playwright quickstart subset included `e2e/workspace-currency-formatting.spec.ts`.
+4. Existing AR/EN/RTL regression suite still passes: PASS.
+   - Playwright quickstart subset included `tests/e2e/locale-rtl.spec.ts` and `e2e/acc-localization-rtl.spec.ts`.
+   - Manual checklist remains recorded in `specs/010-testing-security-deployment/manual-ar-en-rtl-checklist.md` for non-SAR verification.
+5. Financial accuracy unaffected by currency choice: PASS.
+   - Backend quickstart subset included `tests/test_reports_reconciliation.py`, `tests/test_reports_currency_awareness.py`, and `tests/acceptance/test_acc_financial_accuracy.py`.
+
+Full regression:
+
+- Backend: `cd apps/api && .\.venv\Scripts\python.exe -m pytest` -> 143 passed.
+- Frontend unit: `cd apps/web && npm run test` -> 65 passed across 19 files.
+- Frontend e2e: `cd apps/web && npm run test:e2e` with seeded `E2E_*` credentials for legacy gated specs -> 25 passed, 0 skipped.

@@ -263,13 +263,13 @@ case (quickstart.md §4).
 
 **Purpose**: Final validation and cross-reference cleanup spanning all stories.
 
-- [ ] T036 [P] Run the full `quickstart.md` validation guide end-to-end and record the outcome of
+- [X] T036 [P] Run the full `quickstart.md` validation guide end-to-end and record the outcome of
       each of its five sections. (FR-020, SC-001–SC-006)
-- [ ] T037 [P] Update the SAR-only scope note in `specs/009-reports-summaries-history/spec.md`
+- [X] T037 [P] Update the SAR-only scope note in `specs/009-reports-summaries-history/spec.md`
       (FR-034) and its `plan.md` Constitution Check row to cross-reference that Phase 12
       (`specs/012-i18n-base-currency`) supersedes SAR-only reporting with
       workspace-currency-aware reporting — documentation cross-reference only, no behavior change.
-- [ ] T038 Run the full regression pass: `cd apps/api && pytest`; `cd apps/web && npm run test &&
+- [X] T038 Run the full regression pass: `cd apps/api && pytest`; `cd apps/web && npm run test &&
       npm run test:e2e`. (FR-020, FR-018, FR-019)
 
 ---
