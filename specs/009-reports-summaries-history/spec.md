@@ -378,7 +378,10 @@ safe error with the rest of the page unaffected.
 - **FR-034**: The following MUST NOT be implemented in this phase: report export to
   PDF or CSV; scheduled or emailed reports; stored/persisted report snapshots;
   audit-grade or compliance history; cross-workspace/aggregate reporting; and
-  multi-currency reporting (reporting is SAR-first only).
+  multi-currency reporting (reporting is SAR-first only for Phase 9). Phase 12
+  (`specs/012-i18n-base-currency`) supersedes this SAR-only reporting scope with
+  workspace-currency-aware reporting while still excluding mixed-currency records
+  and exchange-rate conversion.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -454,5 +457,7 @@ safe error with the rest of the page unaffected.
   on a configured key.
 - Reports are computed live on request; no report snapshots are persisted in the
   MVP.
-- SAR is the only reporting currency in the MVP; multi-currency reporting is out of
-  scope.
+- SAR is the only reporting currency in Phase 9; Phase 12
+  (`specs/012-i18n-base-currency`) supersedes this with workspace-currency-aware
+  reporting while keeping mixed-currency reporting and exchange-rate conversion
+  out of scope.

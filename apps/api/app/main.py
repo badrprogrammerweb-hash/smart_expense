@@ -16,6 +16,7 @@ from app.routes.health import router as health_router
 from app.routes.history import router as history_router
 from app.routes.incomes import router as incomes_router
 from app.routes.reports import router as reports_router
+from app.routes.users import router as users_router
 from app.routes.workspace_members import router as workspace_members_router
 from app.routes.workspaces import router as workspaces_router
 
@@ -84,6 +85,7 @@ async def validation_exception_handler(_: Request, exc: RequestValidationError) 
 
 
 app.include_router(health_router)
+app.include_router(users_router)
 app.include_router(workspaces_router)
 app.include_router(workspace_members_router)
 app.include_router(incomes_router)

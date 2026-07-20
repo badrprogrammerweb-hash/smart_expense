@@ -7,8 +7,10 @@ import {
   getWorkspace,
   getWorkspaces,
   updateWorkspaceAutoDelete,
+  updateWorkspaceCurrency,
   type WorkspaceDetail,
 } from "@/lib/api/workspaces";
+import type { SupportedCurrency } from "@/lib/currency";
 
 export function useWorkspaces() {
   return useQuery({
@@ -49,6 +51,26 @@ export function useUpdateWorkspaceAutoDelete(workspaceId: string) {
         current
           ? {
               ...current,
+              auto_delete_after_extraction: updated.auto_delete_after_extraction,
+            }
+          : current,
+      );
+      void queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+    },
+  });
+}
+
+export function useUpdateWorkspaceCurrency(workspaceId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (currency: SupportedCurrency) => updateWorkspaceCurrency(workspaceId, currency),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<WorkspaceDetail>(["workspace", workspaceId], (current) =>
+        current
+          ? {
+              ...current,
+              currency: updated.currency,
               auto_delete_after_extraction: updated.auto_delete_after_extraction,
             }
           : current,

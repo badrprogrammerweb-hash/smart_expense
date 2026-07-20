@@ -1,10 +1,11 @@
 import { apiFetch } from "./client";
+import type { SupportedCurrency } from "../currency";
 
 export type DashboardSummary = {
   total_income_minor: number;
   total_expenses_minor: number;
   remaining_balance_minor: number;
-  currency: "SAR";
+  currency: SupportedCurrency;
 };
 
 export type DashboardPeriod = {
@@ -16,14 +17,14 @@ export type CategoryBreakdownItem = {
   category_id: string | null;
   category_name: string;
   total_minor: number;
-  currency: "SAR";
+  currency: SupportedCurrency;
 };
 
 export type RecentRecord = {
   type: "income" | "expense";
   id: string;
   amount_minor: number;
-  currency: "SAR";
+  currency: SupportedCurrency;
   occurred_on: string;
   description: string | null;
   merchant_name: string | null;

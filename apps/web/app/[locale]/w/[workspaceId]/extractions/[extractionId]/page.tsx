@@ -17,7 +17,7 @@ export default function ExtractionReviewPage() {
   const t = useTranslations("extraction");
   const common = useTranslations("common");
   const errors = useTranslations("errors");
-  const { workspaceId, autoDeleteAfterExtraction } = useWorkspaceContext();
+  const { workspaceId, autoDeleteAfterExtraction, currency } = useWorkspaceContext();
   const extraction = useQuery({
     queryKey: ["extractions", workspaceId, params.extractionId],
     queryFn: () => getExtraction(workspaceId, params.extractionId),
@@ -62,6 +62,7 @@ export default function ExtractionReviewPage() {
         <ExtractionReviewForm
           autoDeleteAfterExtraction={autoDeleteAfterExtraction}
           categories={categories.data?.categories ?? []}
+          currency={currency}
           extraction={extraction.data}
           workspaceId={workspaceId}
           onConfirmed={() => void extraction.refetch()}

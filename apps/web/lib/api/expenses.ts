@@ -1,10 +1,11 @@
 import { apiFetch } from "./client";
+import type { SupportedCurrency } from "../currency";
 import type { FileMetadata } from "./files";
 
 export type ExpenseRecord = {
   id: string;
   amount_minor: number;
-  currency: "SAR";
+  currency: SupportedCurrency;
   occurred_on: string;
   category_id: string | null;
   description: string | null;

@@ -4,17 +4,18 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.schemas.currency import SupportedCurrency
 from app.schemas.files import FileMetadata
 
 
 RecordStatus = Literal["confirmed", "deleted"]
-Currency = Literal["SAR"]
+Currency = SupportedCurrency
 
 
 class Expense(BaseModel):
     id: UUID
     amount_minor: int
-    currency: Currency = "SAR"
+    currency: Currency
     occurred_on: date
     category_id: UUID | None = None
     description: str | None = None

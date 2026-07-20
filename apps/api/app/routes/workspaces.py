@@ -33,13 +33,25 @@ def forbidden() -> HTTPException:
     )
 
 
+def currency_locked() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "currency_locked",
+            "message": "Workspace currency is locked once income or expense records exist.",
+        },
+    )
+
+
 def _workspace_from_row(row) -> Workspace:
     return Workspace(
         id=row.id,
         type=row.type,
         name=row.name,
         role=row.role,
+        currency=row.currency,
         auto_delete_after_extraction=row.auto_delete_after_extraction,
+        currency_locked=row.currency_locked,
         member_count=getattr(row, "member_count", None),
     )
 
@@ -53,7 +65,17 @@ async def list_workspaces(
         result = await session.execute(
             text(
                 """
-                select w.id, w.type, w.name, w.auto_delete_after_extraction, wm.role
+                select
+                    w.id,
+                    w.type,
+                    w.name,
+                    w.currency,
+                    w.auto_delete_after_extraction,
+                    (
+                        exists (select 1 from public.incomes i where i.workspace_id = w.id)
+                        or exists (select 1 from public.expenses e where e.workspace_id = w.id)
+                    ) as currency_locked,
+                    wm.role
                 from public.workspaces w
                 join public.workspace_memberships wm on wm.workspace_id = w.id
                 where wm.user_id = :user_id
@@ -104,7 +126,14 @@ async def create_workspace(
     result = await session.execute(
         text(
             """
-            select w.id, w.type, w.name, w.auto_delete_after_extraction, wm.role
+            select
+                w.id,
+                w.type,
+                w.name,
+                w.currency,
+                w.auto_delete_after_extraction,
+                false as currency_locked,
+                wm.role
             from public.workspaces w
             join public.workspace_memberships wm on wm.workspace_id = w.id
             where w.created_by = :user_id
@@ -131,7 +160,7 @@ async def update_workspace(
     role_result = await session.execute(
         text(
             """
-            select wm.role
+            select wm.role, w.currency
             from public.workspaces w
             join public.workspace_memberships wm
               on wm.workspace_id = w.id
@@ -147,22 +176,61 @@ async def update_workspace(
     if role_row.role != "owner":
         raise forbidden()
 
+    if (
+        "currency" in request.model_fields_set
+        and request.currency is not None
+        and request.currency != role_row.currency
+    ):
+        try:
+            lock_result = await session.execute(
+                text(
+                    """
+                    select exists (
+                        select 1
+                        from public.incomes
+                        where workspace_id = :workspace_id
+                    ) or exists (
+                        select 1
+                        from public.expenses
+                        where workspace_id = :workspace_id
+                    ) as has_records
+                    """
+                ),
+                {"workspace_id": str(workspace_id)},
+            )
+        except DBAPIError as exc:
+            raise database_unavailable_exception(exc) from exc
+
+        if lock_result.scalar_one():
+            raise currency_locked()
+
+    assignments: list[str] = []
+    params = {"workspace_id": str(workspace_id)}
+    if (
+        "auto_delete_after_extraction" in request.model_fields_set
+        and request.auto_delete_after_extraction is not None
+    ):
+        assignments.append("auto_delete_after_extraction = :auto_delete_after_extraction")
+        params["auto_delete_after_extraction"] = request.auto_delete_after_extraction
+    if "currency" in request.model_fields_set and request.currency is not None:
+        assignments.append("currency = :currency")
+        params["currency"] = request.currency
+
     try:
         update_result = await session.execute(
             text(
-                """
+                f"""
                 update public.workspaces
-                set auto_delete_after_extraction = :auto_delete_after_extraction
+                set {", ".join(assignments)}
                 where id = :workspace_id
-                returning id, auto_delete_after_extraction
+                returning id, currency, auto_delete_after_extraction
                 """
             ),
-            {
-                "workspace_id": str(workspace_id),
-                "auto_delete_after_extraction": request.auto_delete_after_extraction,
-            },
+            params,
         )
     except DBAPIError as exc:
+        if "workspace currency is locked" in str(exc).lower():
+            raise currency_locked() from exc
         raise database_unavailable_exception(exc) from exc
 
     row = update_result.first()
@@ -170,6 +238,7 @@ async def update_workspace(
         raise not_found()
     return WorkspaceSettingsResponse(
         id=row.id,
+        currency=row.currency,
         auto_delete_after_extraction=row.auto_delete_after_extraction,
     )
 
@@ -187,7 +256,12 @@ async def get_workspace(
                 w.id,
                 w.type,
                 w.name,
+                w.currency,
                 w.auto_delete_after_extraction,
+                (
+                    exists (select 1 from public.incomes i where i.workspace_id = w.id)
+                    or exists (select 1 from public.expenses e where e.workspace_id = w.id)
+                ) as currency_locked,
                 wm.role,
                 count(all_members.id)::int as member_count
             from public.workspaces w
@@ -197,7 +271,7 @@ async def get_workspace(
             left join public.workspace_memberships all_members
               on all_members.workspace_id = w.id
             where w.id = :workspace_id
-            group by w.id, w.type, w.name, w.auto_delete_after_extraction, wm.role
+            group by w.id, w.type, w.name, w.currency, w.auto_delete_after_extraction, wm.role
             """
         ),
         {"workspace_id": str(workspace_id), "user_id": str(current_user.user_id)},

@@ -31,7 +31,7 @@ export function TopMerchants({ merchants, locale }: TopMerchantsProps) {
                 <p className="text-xs text-muted-foreground">{merchant.count}</p>
               </div>
               <p className="shrink-0 text-sm font-semibold">
-                {toDisplayAmount(merchant.total_minor, locale)}
+                {toDisplayAmount(merchant.total_minor, locale, merchant.currency)}
               </p>
             </li>
           ))}

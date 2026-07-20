@@ -10,6 +10,7 @@ from sqlalchemy.exc import DBAPIError
 
 from app.db import database_unavailable_exception
 from app.schemas.dashboard import FinancialSummary
+from app.schemas.currency import SupportedCurrency
 from app.schemas.reports import (
     MerchantTotal,
     ReportData,
@@ -95,6 +96,7 @@ async def get_spending_trend(
     period_start: date,
     period_end: date,
     conn,
+    currency: SupportedCurrency,
 ) -> list[TrendPoint]:
     span_days = (period_end - period_start).days + 1
     granularity = TrendGranularity.DAY if span_days <= 31 else TrendGranularity.MONTH
@@ -154,6 +156,7 @@ async def get_spending_trend(
                 income_minor=income_minor,
                 expense_minor=expense_minor,
                 remaining_minor=income_minor - expense_minor,
+                currency=currency,
             )
         )
     return points
@@ -164,6 +167,7 @@ async def get_top_merchants(
     period_start: date,
     period_end: date,
     conn,
+    currency: SupportedCurrency,
     limit: int = 5,
 ) -> list[MerchantTotal]:
     result = await conn.execute(
@@ -197,6 +201,7 @@ async def get_top_merchants(
             merchant_name=row.merchant_name,
             total_minor=int(row.total_minor),
             count=int(row.record_count),
+            currency=currency,
         )
         for row in result
     ]
@@ -265,6 +270,7 @@ def _spending_summary(
     expense_total: int,
     previous_expense_total: int,
     category_breakdown,
+    currency: SupportedCurrency,
 ) -> SpendingSummary:
     top_category = None
     if category_breakdown:
@@ -282,6 +288,7 @@ def _spending_summary(
         remaining_balance_minor=income_total - expense_total,
         top_category=top_category,
         trend_direction=_trend_direction(expense_total, previous_expense_total),
+        currency=currency,
     )
 
 
@@ -298,14 +305,15 @@ async def get_report_data(
         expense_total = await dashboard.get_expense_total(
             workspace_id, report_period.start, report_period.end, session
         )
+        currency = await dashboard.get_workspace_currency(workspace_id, session)
         category_breakdown = await dashboard.get_category_breakdown(
             workspace_id, report_period.start, report_period.end, session
         )
         spending_trend = await get_spending_trend(
-            workspace_id, report_period.start, report_period.end, session
+            workspace_id, report_period.start, report_period.end, session, currency
         )
         top_merchants = await get_top_merchants(
-            workspace_id, report_period.start, report_period.end, session
+            workspace_id, report_period.start, report_period.end, session, currency
         )
         team_activity = await get_team_activity(
             workspace_id, report_period.start, report_period.end, session
@@ -325,6 +333,7 @@ async def get_report_data(
         total_income_minor=income_total,
         total_expenses_minor=expense_total,
         remaining_balance_minor=income_total - expense_total,
+        currency=currency,
     )
 
     return ReportData(
@@ -338,6 +347,6 @@ async def get_report_data(
         team_activity=team_activity,
         pending_review_count=pending_review_count,
         spending_summary=_spending_summary(
-            income_total, expense_total, previous_expense_total, category_breakdown
+            income_total, expense_total, previous_expense_total, category_breakdown, currency
         ),
     )

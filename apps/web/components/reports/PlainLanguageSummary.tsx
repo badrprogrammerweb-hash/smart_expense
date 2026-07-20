@@ -38,15 +38,19 @@ export function PlainLanguageSummary({ summary, locale }: PlainLanguageSummaryPr
         <div className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
           <p>
             {t("totals", {
-              expenses: toDisplayAmount(summary.total_expenses_minor, locale),
-              income: toDisplayAmount(summary.total_income_minor, locale),
-              remaining: toDisplayAmount(summary.remaining_balance_minor, locale),
+              expenses: toDisplayAmount(summary.total_expenses_minor, locale, summary.currency),
+              income: toDisplayAmount(summary.total_income_minor, locale, summary.currency),
+              remaining: toDisplayAmount(summary.remaining_balance_minor, locale, summary.currency),
             })}
           </p>
           <p>
             {summary.top_category
               ? t("topCategory", {
-                  amount: toDisplayAmount(summary.top_category.total_minor, locale),
+                  amount: toDisplayAmount(
+                    summary.top_category.total_minor,
+                    locale,
+                    summary.top_category.currency,
+                  ),
                   category: summary.top_category.category_name,
                 })
               : t("noTopCategory")}

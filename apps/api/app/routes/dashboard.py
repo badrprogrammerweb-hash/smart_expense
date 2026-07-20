@@ -15,6 +15,7 @@ from app.services.dashboard import (
     get_income_total,
     get_pending_ai_count,
     get_recent_records,
+    get_workspace_currency,
 )
 
 
@@ -61,6 +62,7 @@ async def get_dashboard(
     try:
         income_total = await get_income_total(workspace_id, period_start, period_end, session)
         expense_total = await get_expense_total(workspace_id, period_start, period_end, session)
+        currency = await get_workspace_currency(workspace_id, session)
         category_breakdown = await get_category_breakdown(
             workspace_id, period_start, period_end, session
         )
@@ -78,6 +80,7 @@ async def get_dashboard(
             total_income_minor=income_total,
             total_expenses_minor=expense_total,
             remaining_balance_minor=income_total - expense_total,
+            currency=currency,
         ),
         category_breakdown=category_breakdown,
         recent_records=recent_records,

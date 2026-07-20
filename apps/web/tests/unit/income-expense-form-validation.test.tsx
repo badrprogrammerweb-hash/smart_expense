@@ -47,7 +47,7 @@ describe("income and expense form validation", () => {
   });
 
   it("rejects missing and non-positive income amounts before calling the API", async () => {
-    renderWithMessages(<IncomeForm workspaceId="workspace-1" role="owner" />);
+    renderWithMessages(<IncomeForm workspaceId="workspace-1" role="owner" currency="SAR" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
@@ -61,7 +61,7 @@ describe("income and expense form validation", () => {
   });
 
   it("rejects a missing income date before calling the API", async () => {
-    renderWithMessages(<IncomeForm workspaceId="workspace-1" role="owner" />);
+    renderWithMessages(<IncomeForm workspaceId="workspace-1" role="owner" currency="SAR" />);
 
     fireEvent.change(screen.getByLabelText("Amount"), { target: { value: "10" } });
     fireEvent.change(screen.getByLabelText("Date"), { target: { value: "" } });
@@ -72,7 +72,7 @@ describe("income and expense form validation", () => {
   });
 
   it("rejects missing and non-positive expense amounts before calling the API", async () => {
-    renderWithMessages(<ExpenseForm workspaceId="workspace-1" role="member" />);
+    renderWithMessages(<ExpenseForm workspaceId="workspace-1" role="member" currency="SAR" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
@@ -86,7 +86,7 @@ describe("income and expense form validation", () => {
   });
 
   it("rejects a missing expense date before calling the API", async () => {
-    renderWithMessages(<ExpenseForm workspaceId="workspace-1" role="member" />);
+    renderWithMessages(<ExpenseForm workspaceId="workspace-1" role="member" currency="SAR" />);
 
     fireEvent.change(screen.getByLabelText("Amount"), { target: { value: "10" } });
     fireEvent.change(screen.getByLabelText("Date"), { target: { value: "" } });

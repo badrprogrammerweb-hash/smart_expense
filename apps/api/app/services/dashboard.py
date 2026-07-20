@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import text
 
 from app.schemas.dashboard import CategoryBreakdownItem, RecentRecord
+from app.schemas.currency import SupportedCurrency
 
 
 def get_current_period() -> tuple[date, date]:
@@ -60,6 +61,14 @@ async def get_expense_total(
     return int(result.scalar_one())
 
 
+async def get_workspace_currency(workspace_id: UUID, conn) -> SupportedCurrency:
+    result = await conn.execute(
+        text("select currency from public.workspaces where id = :workspace_id"),
+        {"workspace_id": str(workspace_id)},
+    )
+    return result.scalar_one()
+
+
 async def get_category_breakdown(
     workspace_id: UUID, period_start: date, period_end: date, conn
 ) -> list[CategoryBreakdownItem]:
@@ -69,13 +78,14 @@ async def get_category_breakdown(
             select
                 e.category_id,
                 coalesce(c.name, 'Uncategorized') as category_name,
-                sum(e.amount_minor) as total_minor
+                sum(e.amount_minor) as total_minor,
+                e.currency
             from public.expenses e
             left join public.categories c on c.id = e.category_id
             where e.workspace_id = :workspace_id
               and e.status = 'confirmed'
               and e.occurred_on between :period_start and :period_end
-            group by e.category_id, c.name
+            group by e.category_id, c.name, e.currency
             order by total_minor desc
             """
         ),
@@ -90,6 +100,7 @@ async def get_category_breakdown(
             category_id=row.category_id,
             category_name=row.category_name,
             total_minor=int(row.total_minor),
+            currency=row.currency,
         )
         for row in result
     ]

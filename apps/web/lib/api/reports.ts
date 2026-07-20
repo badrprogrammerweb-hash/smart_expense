@@ -1,4 +1,5 @@
 import { apiFetch } from "./client";
+import type { SupportedCurrency } from "../currency";
 import type { CategoryBreakdownItem, DashboardSummary, RecentRecord } from "./dashboard";
 
 export type ReportPeriodPreset = "current_month" | "previous_month" | "custom";
@@ -19,14 +20,14 @@ export type TrendPoint = {
   income_minor: number;
   expense_minor: number;
   remaining_minor: number;
-  currency: "SAR";
+  currency: SupportedCurrency;
 };
 
 export type MerchantTotal = {
   merchant_name: string;
   total_minor: number;
   count: number;
-  currency: "SAR";
+  currency: SupportedCurrency;
 };
 
 export type TeamActivityItem = {
@@ -43,10 +44,10 @@ export type SpendingSummary = {
     category_id: string | null;
     category_name: string;
     total_minor: number;
-    currency: "SAR";
+    currency: SupportedCurrency;
   } | null;
   trend_direction: "up" | "down" | "flat";
-  currency: "SAR";
+  currency: SupportedCurrency;
 };
 
 export type AiSummaryLocale = "en" | "ar";

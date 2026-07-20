@@ -187,3 +187,30 @@ async def test_dashboard_recent_activity_rejects_invalid_limits(
         )
         assert response.status_code == 422
         assert response.json()["error"]["code"] == "invalid_limit"
+
+
+async def test_dashboard_recent_activity_reports_non_sar_record_currency(
+    api_client, signup_user
+) -> None:
+    owner = await signup_user()
+    workspace = await create_team_workspace(api_client, owner)
+    workspace_id = workspace["id"]
+
+    currency_response = await api_client.patch(
+        f"/workspaces/{workspace_id}",
+        headers=owner.auth_header,
+        json={"currency": "USD"},
+    )
+    assert currency_response.status_code == 200, currency_response.text
+
+    await create_income(
+        api_client,
+        owner,
+        workspace_id,
+        {"amount_minor": 10000, "occurred_on": period_date(1), "description": "USD income"},
+    )
+
+    records = (await _dashboard(api_client, owner, workspace_id))["recent_records"]
+
+    assert len(records) == 1
+    assert records[0]["currency"] == "USD"

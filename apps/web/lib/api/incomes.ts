@@ -1,9 +1,10 @@
 import { apiFetch } from "./client";
+import type { SupportedCurrency } from "../currency";
 
 export type IncomeRecord = {
   id: string;
   amount_minor: number;
-  currency: "SAR";
+  currency: SupportedCurrency;
   occurred_on: string;
   description: string | null;
   status: "confirmed";

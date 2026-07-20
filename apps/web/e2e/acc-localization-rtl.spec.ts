@@ -8,6 +8,7 @@ import enMessages from "../messages/en.json";
 type TestUser = {
   email: string;
   password: string;
+  accessToken: string;
 };
 
 function loadEnvFile(path: string) {
@@ -32,6 +33,7 @@ loadEnvFile(resolve(process.cwd(), ".env.local"));
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
 async function signUp(): Promise<TestUser> {
   const email = `acc-localization-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
@@ -49,7 +51,38 @@ async function signUp(): Promise<TestUser> {
     throw new Error(await response.text());
   }
 
-  return { email, password };
+  const payload = await response.json();
+  const accessToken = payload.access_token ?? payload.session?.access_token;
+  expect(accessToken).toBeTruthy();
+  return { email, password, accessToken };
+}
+
+async function apiFetch<T>(path: string, user: TestUser, init: RequestInit = {}) {
+  const headers = new Headers(init.headers);
+  headers.set("Authorization", `Bearer ${user.accessToken}`);
+  if (init.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const response = await fetch(`${apiUrl}${path}`, { ...init, headers });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as T;
+}
+
+async function createKwdWorkspace(user: TestUser) {
+  const workspace = await apiFetch<{ id: string }>("/workspaces", user, {
+    method: "POST",
+    body: JSON.stringify({ name: `Acceptance KWD ${Date.now()}` }),
+  });
+
+  await apiFetch(`/workspaces/${workspace.id}`, user, {
+    method: "PATCH",
+    body: JSON.stringify({ currency: "KWD" }),
+  });
+
+  return workspace.id;
 }
 
 type CoreRoute = {
@@ -78,16 +111,15 @@ test.describe("acceptance localization and RTL", () => {
     "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to run localization acceptance checks.",
   );
 
-  test("switches every core route between English LTR and Arabic RTL with SAR amounts", async ({ page }) => {
+  test("switches every core route between English LTR and Arabic RTL with KWD amounts", async ({ page }) => {
     const user = await signUp();
+    const workspaceId = await createKwdWorkspace(user);
+
     await page.goto("/en/sign-in");
     await page.getByLabel(enMessages.auth.email).fill(user.email);
     await page.getByLabel(enMessages.auth.password).fill(user.password);
     await page.getByRole("button", { name: enMessages.auth.signIn }).click();
-    await page.waitForURL(/\/en\/w\/[^/]+\/dashboard$/);
-
-    const workspaceId = new URL(page.url()).pathname.split("/")[3];
-    expect(workspaceId).toBeTruthy();
+    await expect(page).toHaveURL(/\/en\/w\/[^/]+\/dashboard$/, { timeout: 30_000 });
 
     for (const route of coreRoutes) {
       await page.goto(`/en/w/${workspaceId}/${route.path}`);
@@ -106,6 +138,6 @@ test.describe("acceptance localization and RTL", () => {
     }
 
     await page.goto(`/ar/w/${workspaceId}/dashboard`);
-    await expect(page.getByText(/(?:SAR|\u0631\.\u0633\.)/).first()).toBeVisible();
+    await expect(page.getByText(/(?:KWD|\u062f\.\u0643|\u062f\u064a\u0646\u0627\u0631)/).first()).toBeVisible();
   });
 });

@@ -17,17 +17,17 @@ export function SummaryCards({ summary, period, locale }: SummaryCardsProps) {
   const cards = [
     {
       label: t("totalIncome"),
-      value: toDisplayAmount(summary.total_income_minor, locale),
+      value: toDisplayAmount(summary.total_income_minor, locale, summary.currency),
       icon: TrendingUp,
     },
     {
       label: t("totalExpenses"),
-      value: toDisplayAmount(summary.total_expenses_minor, locale),
+      value: toDisplayAmount(summary.total_expenses_minor, locale, summary.currency),
       icon: TrendingDown,
     },
     {
       label: t("remainingBalance"),
-      value: toDisplayAmount(summary.remaining_balance_minor, locale),
+      value: toDisplayAmount(summary.remaining_balance_minor, locale, summary.currency),
       icon: WalletCards,
       tone: summary.remaining_balance_minor < 0 ? "negative" : "default",
     },

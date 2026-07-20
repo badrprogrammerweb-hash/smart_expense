@@ -41,7 +41,9 @@ export function RecentActivity({
                 <p className="text-sm font-medium">{record.description || record.merchant_name || record.type}</p>
                 <p className="text-xs text-muted-foreground">{record.occurred_on}</p>
               </div>
-              <p className="text-sm font-semibold">{toDisplayAmount(record.amount_minor, locale)}</p>
+              <p className="text-sm font-semibold">
+                {toDisplayAmount(record.amount_minor, locale, record.currency)}
+              </p>
             </li>
           ))}
         </ul>

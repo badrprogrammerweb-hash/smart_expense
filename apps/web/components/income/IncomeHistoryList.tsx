@@ -83,6 +83,7 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
                 <IncomeForm
                   workspaceId={workspaceId}
                   role={role}
+                  currency={record.currency}
                   record={record}
                   onSaved={() => setEditingId(null)}
                   onCancel={() => setEditingId(null)}
@@ -90,7 +91,9 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
               ) : (
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
-                    <p className="text-base font-semibold text-primary">{toDisplayAmount(record.amount_minor, locale)}</p>
+                    <p className="text-base font-semibold text-primary">
+                      {toDisplayAmount(record.amount_minor, locale, record.currency)}
+                    </p>
                     <p className="text-sm text-muted-foreground">{record.occurred_on}</p>
                     {record.description && <p className="mt-1 text-sm">{record.description}</p>}
                     {confirmingDeleteId === record.id && deleteError && (

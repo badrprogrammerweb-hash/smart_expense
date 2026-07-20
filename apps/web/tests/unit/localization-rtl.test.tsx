@@ -37,8 +37,8 @@ describe("Arabic/English localization and RTL", () => {
   });
 
   it("formats integer minor units as SAR for English and Arabic", () => {
-    const englishAmount = toDisplayAmount(123456, "en");
-    const arabicAmount = toDisplayAmount(123456, "ar");
+    const englishAmount = toDisplayAmount(123456, "en", "SAR");
+    const arabicAmount = toDisplayAmount(123456, "ar", "SAR");
 
     expect(englishAmount).toMatch(/SAR\s*1,234\.56/);
     expect(arabicAmount).not.toBe(englishAmount);
@@ -47,6 +47,23 @@ describe("Arabic/English localization and RTL", () => {
     );
     expect(new Intl.NumberFormat("ar", { style: "currency", currency: "SAR" }).resolvedOptions().currency).toBe(
       "SAR",
+    );
+  });
+
+  it("formats a non-SAR three-decimal currency in English and Arabic without changing direction state", () => {
+    const englishAmount = toDisplayAmount(123456, "en", "KWD");
+    const arabicAmount = toDisplayAmount(123456, "ar", "KWD");
+
+    renderDirectionSync("ar");
+
+    expect(document.documentElement).toHaveAttribute("dir", "rtl");
+    expect(englishAmount).toMatch(/KWD\s*123\.456/);
+    expect(arabicAmount).not.toBe(englishAmount);
+    expect(new Intl.NumberFormat("en", { style: "currency", currency: "KWD" }).resolvedOptions().currency).toBe(
+      "KWD",
+    );
+    expect(new Intl.NumberFormat("ar", { style: "currency", currency: "KWD" }).resolvedOptions().currency).toBe(
+      "KWD",
     );
   });
 

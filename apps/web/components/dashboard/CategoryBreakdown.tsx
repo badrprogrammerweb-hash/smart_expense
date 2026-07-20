@@ -24,7 +24,9 @@ export function CategoryBreakdown({
           {items.map((item) => (
             <li className="flex items-center justify-between gap-4" key={item.category_id ?? "uncategorized"}>
               <span className="text-sm">{item.category_name || t("uncategorized")}</span>
-              <span className="text-sm font-semibold">{toDisplayAmount(item.total_minor, locale)}</span>
+              <span className="text-sm font-semibold">
+                {toDisplayAmount(item.total_minor, locale, item.currency)}
+              </span>
             </li>
           ))}
         </ul>

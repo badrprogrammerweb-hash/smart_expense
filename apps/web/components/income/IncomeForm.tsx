@@ -9,24 +9,28 @@ import { z } from "zod";
 import { useCreateIncome, useUpdateIncome } from "@/hooks/use-incomes";
 import type { IncomeRecord } from "@/lib/api/incomes";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
+import { minorUnitDigits, type SupportedCurrency } from "@/lib/currency";
 import { parseInputToMinor } from "@/lib/money";
 import { canManageIncome } from "@/lib/permissions";
 
 type IncomeFormProps = {
   workspaceId: string;
   role: WorkspaceRole;
+  currency: SupportedCurrency;
   record?: IncomeRecord;
   onSaved?: () => void;
   onCancel?: () => void;
 };
 
-function minorToInput(minor: number) {
-  const whole = Math.floor(minor / 100);
-  const fraction = String(minor % 100).padStart(2, "0");
+function minorToInput(minor: number, currency: SupportedCurrency) {
+  const fractionDigits = minorUnitDigits[currency];
+  const minorUnitsPerMajor = 10 ** fractionDigits;
+  const whole = Math.floor(minor / minorUnitsPerMajor);
+  const fraction = String(minor % minorUnitsPerMajor).padStart(fractionDigits, "0");
   return `${whole}.${fraction}`;
 }
 
-export function IncomeForm({ workspaceId, role, record, onSaved, onCancel }: IncomeFormProps) {
+export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCancel }: IncomeFormProps) {
   const t = useTranslations("records");
   const common = useTranslations("common");
   const [formError, setFormError] = useState<string | null>(null);
@@ -35,17 +39,17 @@ export function IncomeForm({ workspaceId, role, record, onSaved, onCancel }: Inc
   const schema = useMemo(
     () =>
       z.object({
-        amount: z.string().refine((value) => parseInputToMinor(value) > 0, t("validationAmount")),
+        amount: z.string().refine((value) => parseInputToMinor(value, currency) > 0, t("validationAmount")),
         occurred_on: z.string().min(1, t("validationDate")),
         description: z.string().optional(),
       }),
-    [t],
+    [currency, t],
   );
   type FormValues = z.infer<typeof schema>;
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      amount: record ? minorToInput(record.amount_minor) : "",
+      amount: record ? minorToInput(record.amount_minor, currency) : "",
       occurred_on: record?.occurred_on ?? new Date().toISOString().slice(0, 10),
       description: record?.description ?? "",
     },
@@ -58,7 +62,7 @@ export function IncomeForm({ workspaceId, role, record, onSaved, onCancel }: Inc
   async function submit(values: FormValues) {
     setFormError(null);
     const input = {
-      amount_minor: parseInputToMinor(values.amount),
+      amount_minor: parseInputToMinor(values.amount, currency),
       occurred_on: values.occurred_on,
       description: values.description?.trim() || null,
     };

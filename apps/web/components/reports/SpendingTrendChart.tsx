@@ -55,7 +55,7 @@ export function SpendingTrendChart({ points, locale }: SpendingTrendChartProps) 
                     {formatBucket(point.bucket, point.granularity, locale)}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {toDisplayAmount(point.remaining_minor, locale)}
+                    {toDisplayAmount(point.remaining_minor, locale, point.currency)}
                   </p>
                 </div>
                 <div className="space-y-1.5">
