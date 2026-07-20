@@ -1,50 +1,34 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.0.0 → 1.1.0
-Modified principles: N/A (no Core Principle I–XVI added, removed, or
-  redefined)
+Version change: 1.1.0 → 2.0.0
+
+Modified principles:
+  - III. MVP Scope Discipline
+  - XIII. Future Monetization Readiness
+    → Free Product and Optional Support
+  - XIV. Testing Requirements
+  - XV. Scope Control
+
 Modified sections:
-  - Technology Constraints → Frontend line: "Next.js 14" replaced with
-    "Next.js 16.x (Active LTS), kept on the latest patched 16.x release"
-    (security-driven amendment; see rationale below). React, Tailwind
-    CSS, and Shadcn UI are unchanged. The Backend line ("Python,
-    FastAPI") is unchanged — it carries no version pin and remains
-    accurate; backend-specific version pins belong in
-    specs/001-foundation/plan.md and research.md, not the constitution.
+  - Project Identity
+  - Technology Constraints
+  - Governance metadata
 Added sections: none
 Removed sections: none
-Version bump rationale: MINOR, not MAJOR or PATCH. No Core Principle was
-  added, removed, or redefined, so this is not MAJOR. The change is more
-  than a wording/typo fix — it is a binding Technology Constraint change
-  with a security rationale and an ongoing maintenance policy ("kept on
-  the latest patched release") that did not exist before — so PATCH
-  understates it. MINOR best fits "materially expanded guidance" within
-  an existing section.
-Amendment rationale: npm audit identified unresolved advisories against
-  next@14.2.35 — the newest 14.x release that exists — including a high-
-  severity SSRF via WebSocket upgrades (CVSS 8.6) and several Denial-of-
-  Service issues. Next.js has stopped backporting security fixes to the
-  14.x branch, so no in-line 14.x upgrade can resolve them. The project
-  adopts the actively-patched 16.x LTS line instead, with an explicit
-  policy to stay current on 16.x patches going forward.
-Templates checked, no changes required:
-  - .specify/templates/plan-template.md ✅ no project-specific version
-    references found
-  - .specify/templates/spec-template.md ✅ no project-specific version
-    references found
-  - .specify/templates/tasks-template.md ✅ no project-specific version
-    references found
-  - .specify/templates/commands/*.md — directory does not exist in this
-    project; nothing to check
-  - CLAUDE.md / AGENTS.md ✅ both only point to specs/001-foundation/
-    plan.md for stack details; no direct version references to update
-Follow-up TODOs:
-  - specs/001-foundation/plan.md, research.md, data-model.md,
-    tasks.md, and docs/implementation-plan.md still need their own
-    Next.js/FastAPI/python-dotenv/Starlette/pip references updated for
-    consistency with this amendment — tracked as a separate, immediate
-    follow-up in this same session, not deferred.
+
+Version bump rationale:
+  MAJOR. Principle XIII was materially redefined. The previous direction
+  allowed future paid Pro/Team plans, premium reports, and paid limits.
+  The new binding direction requires the complete product to remain free
+  while allowing only optional one-time product-support purchases that do
+  not unlock features, increase limits, or change permissions.
+
+Follow-up requirements:
+  - Phase 17 must receive its own specification, plan, tasks, tests, and
+    legal/commercial review.
+  - Store-specific billing policies and fees must be verified during
+    Phase 17 rather than hard-coded into this constitution.
 -->
 
 # Smart Expense - AI Constitution
@@ -55,7 +39,9 @@ Follow-up TODOs:
 **Domain:** smartexpense.ai
 **Type:** Saudi-first, multi-tenant SaaS expense tracker and smart budgeting platform
 **Users:** Individuals, families, couples, and small teams
-**MVP Status:** Free, with no payment gateway or subscription billing
+**MVP Status:** Phases 1–10 complete; free, with no payment processing or
+subscription billing
+**Roadmap Status:** Post-MVP product expansion in progress
 **Core Model:** Income-driven decreasing balance budgeting
 **Architecture:** Monolith repository
 
@@ -92,33 +78,26 @@ would obscure that clarity.
 
 ### III. MVP Scope Discipline
 
-The MVP MUST include: authentication; personal workspace; minimal team
-workspace; workspace roles; income records; expense records; category
-management; receipt and invoice upload (images and PDFs); optional AI
-extraction using BYOK; manual review before confirming AI extraction
-results; reports and summaries; settings; SAR-first formatting; Arabic and
-English UI readiness; permanent invoice storage by default; an
-auto-delete-after-extraction setting; and basic history/activity tracking.
+The MVP MUST include: authentication; personal workspace; minimal team workspace; workspace roles; income records; expense records; category management; receipt and invoice upload (images and PDFs); optional AI extraction using BYOK; manual review before confirming AI extraction results; reports and summaries; settings; SAR-first formatting; an Arabic-first RTL interface; readiness for later English localization and LTR switching; permanent invoice storage by default; an auto-delete-after-extraction setting; and basic history/activity tracking.
 
-The MVP MUST exclude: bank connections; payment gateway; subscription
-billing; investment tracking; debt management; payroll; tax filing; a full
-accounting ledger; corporate card features; complex approval workflows;
-complex multi-currency support; enterprise permission systems; and advanced
-accounting reconciliation.
+The MVP MUST exclude: bank connections; payment processing; subscription
+billing; paid feature tiers; investment tracking; debt management; payroll;
+tax filing; a full accounting ledger; corporate card features; complex
+approval workflows; mixed-currency records and exchange-rate conversion;
+enterprise permission systems; and advanced accounting reconciliation.
+
+Optional one-time product-support purchases governed by Principle XIII are
+post-MVP and MUST NOT be treated as a paid product tier.
 
 **Rationale:** Explicit inclusion/exclusion lists prevent scope creep into
 adjacent, much larger product categories (accounting, banking, payroll).
 
 ### IV. Saudi-First Default
 
-Smart Expense - AI IS Saudi-first. Defaults MUST include SAR as the primary
-currency, Arabic and English UI readiness, RTL layout readiness,
-Saudi-relevant expense categories, VAT-aware invoice extraction when
-possible, and simple language for non-accounting users. Default categories
-MUST include: Restaurants, Groceries, Fuel, Transportation, Rent,
-Utilities, Internet & Mobile, Health, Education, Family, Shopping,
-Entertainment, Travel, Subscriptions, Other. The product MUST be
-understandable to users without accounting or finance backgrounds.
+Smart Expense - AI IS Saudi-first. Defaults MUST include SAR as the default currency, SAR-first financial formatting, an Arabic-first RTL interface, readiness for later English localization and LTR switching, Saudi-relevant expense categories, VAT-aware invoice extraction when possible, and simple language for non-accounting users.
+
+Default categories MUST include: Restaurants, Groceries, Fuel,
+Transportation, Rent, Utilities, Internet & Mobile, Health, Education, Family, Shopping, Entertainment, Travel, Subscriptions, and Other. The product MUST be understandable to users without accounting or finance backgrounds.
 
 **Rationale:** The primary market and earliest users are Saudi-based;
 defaults that fit them out of the box reduce onboarding friction.
@@ -254,31 +233,36 @@ enterprise compliance product in the MVP.
 debugging without taking on the scope and liability of a compliance-grade
 audit system.
 
-### XIII. Future Monetization Readiness
+### XIII. Free Product and Optional Support
 
-The MVP is free and MUST NOT include payment processing or any billing
-flow. The architecture SHOULD remain ready for future free/Pro/Team plans,
-storage limits, AI usage limits, workspace member limits, invoice upload
-limits, and premium reports, but no payment provider integration may be
-added in the MVP.
+Smart Expense - AI MUST remain fully usable without payment. Core product
+features, workspace permissions, reports, storage workflows, and usage
+limits MUST NOT be placed behind paid tiers or mandatory subscriptions.
 
-**Rationale:** Designing with future monetization hooks in mind avoids
-costly rework later, without distracting the MVP with billing complexity
-now.
+The product MAY offer optional one-time product-support purchases or
+symbolic digital support items after the MVP. These purchases MUST NOT:
+
+* Unlock functional features
+* Increase product limits
+* Change workspace permissions
+* Restrict the experience of non-supporting users
+* Create a mandatory subscription
+* Be presented as charitable donations
+* Affect workspace income, expense, balance, or report records
+
+Payment handling MUST use approved external payment providers or the
+applicable app-store billing mechanism. Smart Expense - AI MUST NOT store
+or directly process payment-card details.
+
+**Rationale:** The complete product remains free and accessible to every
+user, while voluntary support purchases may help sustain development
+without creating paid feature tiers or weakening the core experience.
 
 ### XIV. Testing Requirements
 
-Every major feature MUST be tested for: authentication; workspace access;
-role permissions; income and expense calculations; remaining balance
-accuracy; file upload and privacy; AI key security; AI extraction review;
-auto-delete behavior; Arabic and English UI behavior; RTL layout behavior;
-and tenant isolation. Critical rules that MUST always be covered: AI
-drafts must not affect totals until confirmed; editing or deleting income
-or expenses must recalculate balance; users must not access another
-workspace's data; viewers must not modify workspace records; private files
-must not be publicly accessible; API keys must never be exposed to the
-frontend. No implementation is complete until its security and financial
-accuracy risks are tested.
+Every major feature MUST be tested for: authentication; workspace access; role permissions; income and expense calculations; remaining balance accuracy; file upload and privacy; AI key security; AI extraction review; auto-delete behavior; applicable Arabic and English UI behavior; applicable RTL and LTR layout behavior; and tenant isolation.
+
+Critical rules that MUST always be covered: AI drafts must not affect totals until confirmed; editing or deleting income or expenses must recalculate balance; users must not access another workspace's data; viewers must not modify workspace records; private files must not be publicly accessible; API keys must never be exposed to the frontend. No implementation is complete until its security and financial accuracy risks are tested.
 
 **Rationale:** Security and financial-accuracy regressions are the
 highest-cost failures for this product; testing them is treated as part of
@@ -293,6 +277,11 @@ accuracy, or history tracking. Features outside this scope MUST be
 rejected or deferred. The MVP MUST prefer simple, reliable workflows over
 complex financial automation. When in doubt, choose clarity, privacy, and
 correctness over feature expansion.
+
+Optional one-time product-support purchases are permitted only under
+Principle XIII. They MUST remain separate from the product's financial
+workspace model and MUST NOT expand Smart Expense - AI into a general
+payment, fundraising, or commerce platform.
 
 **Rationale:** An explicit allow-list of feature categories is a stronger
 guardrail against scope creep than a vague "stay focused" guideline.
@@ -312,8 +301,13 @@ implementation traceable back to an approved design decision.
 
 ## Technology Constraints
 
-**Frontend:** Next.js 16.x (Active LTS), kept on the latest patched 16.x
-release; React, Tailwind CSS, Shadcn UI.
+**Primary web frontend:** Next.js 16.x (Active LTS), kept on the latest
+patched 16.x release; React, Tailwind CSS, Shadcn UI.
+
+**Future mobile clients:** Mobile delivery MUST reuse the authoritative
+FastAPI backend, Supabase security model, workspace isolation, and financial
+calculation rules. Any additional mobile-client technology MUST be approved
+through its own specification and technical plan.
 
 **Backend:** Python, FastAPI.
 
@@ -373,4 +367,4 @@ focused on income, expenses, invoices, receipts, reports, and remaining
 balance. The core experience is: add income, add expenses, upload
 invoices, use AI only when desired, see exactly what remains.
 
-**Version**: 1.1.0 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-06-21
+**Version**: 2.0.0 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-07-15

@@ -1,0 +1,59 @@
+.se-focusable:focus-visible{outline:none;box-shadow:var(--shadow-focus)}
+@keyframes se-spin{to{transform:rotate(360deg)}}
+@keyframes se-shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
+.se-btn{transition:background-color .12s ease,border-color .12s ease,transform .05s ease}
+.se-btn:active{transform:scale(0.98)}
+.se-row-hover:hover{background:var(--color-surface-hover)}
+.se-link{color:var(--color-primary);text-decoration:none}
+.se-link:hover{color:var(--color-primary-hover);text-decoration:underline}
+a{color:var(--color-primary);text-decoration:none}
+a:hover{color:var(--color-primary-hover);text-decoration:underline}
+body{margin:0;background:var(--color-bg);font-family:var(--font-arabic);color:var(--color-text);font-feature-settings:var(--numeric-feature)}
+::selection{background:var(--color-primary-subtle)}
+.se-scrollbar::-webkit-scrollbar{width:8px;height:8px}
+.se-scrollbar::-webkit-scrollbar-thumb{background:var(--color-border-strong);border-radius:99px}
+.se-th-workspace .se-ws-trigger{width:100%}
+.se-lang-mobile-slot{display:none!important}
+@media (max-width:767px){
+.se-top-header{padding:8px 16px !important}
+.se-lang-desktop-slot{display:none !important}
+.se-lang-mobile-slot{display:inline-flex !important}
+.se-ws-type{display:none}
+.se-user-info{display:none}
+.se-th-note{padding:4px 16px !important}
+.se-user-trigger{width:44px !important;height:44px !important;padding:0 !important;border-radius:50% !important;justify-content:center !important}
+.se-user-avatar{width:44px !important;height:44px !important;font-size:16px !important}
+.se-account-chevron{display:none !important}
+}
+.se-row-action{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-control);border:1px solid transparent;background:transparent;color:var(--color-text-muted);cursor:pointer}
+.se-row-action:hover{background:var(--color-surface-hover)}
+.se-row-action:active{background:var(--color-surface-sunken)}
+.se-row-action[disabled]{cursor:not-allowed;opacity:.45}
+.se-row-action-danger:hover{background:var(--color-expense-subtle);color:var(--color-expense)}
+.se-row-action-danger:active{background:var(--color-expense-subtle);color:var(--color-expense)}
+.se-row-action-lg{width:44px;height:44px}
+.se-picker-overlay{position:fixed;inset:0;background:transparent;z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.se-picker-panel{width:100%;height:100dvh;max-height:100dvh;background:var(--color-surface);display:flex;flex-direction:column;overflow:hidden}
+.se-cat-row{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:0 8px;border:none;background:none;border-radius:var(--radius-control);cursor:pointer;font-family:var(--font-arabic)}
+.se-cat-row[disabled]{cursor:not-allowed;opacity:.45}
+.se-cat-row.se-cat-selected{background:var(--color-primary-subtle)}
+.se-cat-add-desktop{display:none}
+.se-cat-add-mobile{display:inline-flex}
+.se-mrc-icon{width:36px;height:36px}
+.se-mrc-title{font-size:14px}
+.se-mrc-amount{font-size:14px}
+@media (min-width:768px) and (max-width:1023px){
+.se-mrc-icon{width:40px;height:40px}
+}
+.se-dialog-overlay{position:fixed;inset:0;background:var(--color-overlay);display:flex;align-items:center;justify-content:center;z-index:100}
+.se-dialog-panel{width:var(--se-dialog-width,480px);max-width:92vw;max-height:86vh;display:flex;flex-direction:column;overflow:hidden;background:var(--color-surface);border-radius:var(--radius-card);box-shadow:var(--shadow-dialog)}
+@media (min-width:768px){
+.se-picker-overlay{align-items:center;background:var(--color-overlay)}
+.se-picker-panel{width:440px;max-width:92vw;height:auto;max-height:80vh;border-radius:var(--radius-card);box-shadow:var(--shadow-dialog)}
+.se-cat-add-desktop{display:inline-flex}
+.se-cat-add-mobile{display:none}
+}
+@media (max-width:767px){
+.se-dialog-overlay-sheet{align-items:flex-end;background:transparent}
+.se-dialog-panel-sheet{width:100%;max-width:100%;height:100dvh;max-height:100dvh;border-radius:0;box-shadow:none}
+}
