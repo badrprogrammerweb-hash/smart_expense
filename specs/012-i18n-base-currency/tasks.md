@@ -246,11 +246,11 @@ case (quickstart.md §4).
 
 ### Implementation for User Story 4
 
-- [ ] T034 [P] [US4] Re-run `apps/web/tests/unit/localization-rtl.test.tsx`,
+- [X] T034 [P] [US4] Re-run `apps/web/tests/unit/localization-rtl.test.tsx`,
       `apps/web/tests/e2e/locale-rtl.spec.ts`, and `apps/web/e2e/acc-localization-rtl.spec.ts`;
       extend them with at least one non-SAR-currency case each; confirm no regression in existing
       assertions. (FR-004, FR-019, SC-005)
-- [ ] T035 [US4] Re-walk
+- [X] T035 [US4] Re-walk
       `specs/010-testing-security-deployment/manual-ar-en-rtl-checklist.md` against a workspace
       configured with a non-SAR currency and record the result (append a dated re-verification
       note rather than editing the original Phase 10 rows). (FR-019, SC-005)
