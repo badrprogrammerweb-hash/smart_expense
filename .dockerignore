@@ -54,3 +54,10 @@ tmp/
 temp/
 *.log
 logs/
+
+# Additional Docker ignore patterns required by Spec Kit
+build/
+dist/
+*.log*
+Dockerfile*
+.dockerignore

@@ -36,12 +36,12 @@ top-level directories are introduced.
 **Purpose**: Confirm the local environment matches the tracked schema baseline before adding new
 schema, so the new migration applies cleanly and its assumptions about existing constraints hold.
 
-- [ ] T001 Reconcile any local Supabase migration drift against the tracked history (per the
+- [X] T001 Reconcile any local Supabase migration drift against the tracked history (per the
       known Phase 8 stray-DB-state note: local `psql`-applied changes are not always reflected in
       `supabase migration up`) so the local stack's applied schema exactly matches
       `supabase/migrations/20260708000000_reports_history.sql` before this phase's migration is
       written.
-- [ ] T002 [P] Determine the exact current constraint names on `public.incomes.currency` and
+- [X] T002 [P] Determine the exact current constraint names on `public.incomes.currency` and
       `public.expenses.currency` (e.g. `\d public.incomes`, `\d public.expenses`, or query
       `information_schema.table_constraints`) so the new migration's drop/replace statements in
       `contracts/schema-migration.md` use the real names instead of a guess.
@@ -56,7 +56,7 @@ schema, so the new migration applies cleanly and its assumptions about existing 
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Write migration `supabase/migrations/20260720000000_i18n_locale_workspace_currency.sql`
+- [X] T003 Write migration `supabase/migrations/20260720000000_i18n_locale_workspace_currency.sql`
       implementing, per `contracts/schema-migration.md` and `data-model.md`: the
       `public.supported_currencies` reference table + 10 seed rows (`SAR` default, `KWD`/`BHD`/`OMR`
       at 3 minor-unit digits, the rest at 2); the `public.user_profiles.locale` column
@@ -67,17 +67,17 @@ schema, so the new migration applies cleanly and its assumptions about existing 
       `enforce_record_currency_matches_workspace()` function + `BEFORE INSERT OR UPDATE` triggers on
       `incomes` and `expenses`; and the `enforce_workspace_currency_lock()` function + `BEFORE
       UPDATE OF currency` trigger on `workspaces`. (FR-001, FR-006, FR-007, FR-009, FR-010, FR-011, FR-016)
-- [ ] T004 Apply the migration locally (`supabase migration up`) and verify: every pre-existing
+- [X] T004 Apply the migration locally (`supabase migration up`) and verify: every pre-existing
       workspace now reads `currency = 'SAR'`, every pre-existing user reads `locale = 'en'`, and
       every pre-existing `incomes`/`expenses` row still passes its (new) currency constraint with
       zero errors and no backfill statement needed (`data-model.md` Non-destructiveness check).
       (FR-005, SC-002)
-- [ ] T005 [P] Create `apps/api/app/schemas/currency.py`: `SupportedCurrency = Literal["SAR",
+- [X] T005 [P] Create `apps/api/app/schemas/currency.py`: `SupportedCurrency = Literal["SAR",
       "USD", "EUR", "GBP", "AED", "EGP", "KWD", "QAR", "BHD", "OMR"]` and a
       `MINOR_UNIT_DIGITS: dict[str, int]` mapping (2 for most, 3 for `KWD`/`BHD`/`OMR`) — the single
       backend source of truth referenced by every schema/service in later phases
       (`research.md` §4). (FR-007, FR-017)
-- [ ] T006 [P] Create `apps/web/lib/currency.ts`: `SupportedCurrency` union (the same 10 codes) and
+- [X] T006 [P] Create `apps/web/lib/currency.ts`: `SupportedCurrency` union (the same 10 codes) and
       a `minorUnitDigits: Record<SupportedCurrency, number>` map — the single frontend source of
       truth referenced by `lib/money.ts` and every component that renders or edits an amount
       (`research.md` §5). (FR-007, FR-012, FR-017)
