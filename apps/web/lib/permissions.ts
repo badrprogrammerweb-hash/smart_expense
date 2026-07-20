@@ -26,6 +26,10 @@ export function canEditAutoDelete(role: WorkspaceRole) {
   return role === "owner";
 }
 
+export function canEditWorkspaceCurrency(role: WorkspaceRole) {
+  return role === "owner";
+}
+
 export function canManageAiSettings(role: WorkspaceRole) {
   return role === "owner";
 }

@@ -241,10 +241,11 @@ async def create_expense(
                 """
                 insert into public.expenses(
                     workspace_id, created_by, category_id, amount_minor, occurred_on,
-                    description, merchant_name
+                    currency, description, merchant_name
                 )
                 values (
                     :workspace_id, :created_by, :category_id, :amount_minor, :occurred_on,
+                    (select currency from public.workspaces where id = :workspace_id),
                     :description, :merchant_name
                 )
                 returning id, amount_minor, currency, occurred_on, category_id, description,

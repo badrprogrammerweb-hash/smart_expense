@@ -4,9 +4,11 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from app.schemas.currency import SupportedCurrency
+
 
 RecordStatus = Literal["confirmed", "deleted"]
-Currency = Literal["SAR"]
+Currency = SupportedCurrency
 
 
 class Income(BaseModel):

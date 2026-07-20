@@ -136,10 +136,15 @@ async def create_income(
             text(
                 """
                 insert into public.incomes(
-                    workspace_id, created_by, amount_minor, occurred_on, description
+                    workspace_id, created_by, amount_minor, currency, occurred_on, description
                 )
                 values (
-                    :workspace_id, :created_by, :amount_minor, :occurred_on, :description
+                    :workspace_id,
+                    :created_by,
+                    :amount_minor,
+                    (select currency from public.workspaces where id = :workspace_id),
+                    :occurred_on,
+                    :description
                 )
                 returning id, amount_minor, currency, occurred_on, description, status,
                           created_by, created_at, updated_at

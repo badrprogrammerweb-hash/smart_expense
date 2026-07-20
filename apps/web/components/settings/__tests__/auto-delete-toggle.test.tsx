@@ -32,6 +32,8 @@ function workspace(autoDeleteAfterExtraction: boolean): WorkspaceDetail {
     name: "Family Budget",
     role: "owner",
     member_count: 4,
+    currency: "SAR",
+    currency_locked: false,
     auto_delete_after_extraction: autoDeleteAfterExtraction,
   };
 }
@@ -54,6 +56,7 @@ describe("AutoDeleteToggle", () => {
     queryClient.setQueryData(["workspace", "workspace-1"], workspace(false));
     updateWorkspaceAutoDeleteMock.mockResolvedValue({
       id: "workspace-1",
+      currency: "SAR",
       auto_delete_after_extraction: true,
     });
 

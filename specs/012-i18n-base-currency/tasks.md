@@ -145,11 +145,11 @@ once a record exists (quickstart.md §2).
 
 ### Tests for User Story 2
 
-- [ ] T017 [P] [US2] Backend test in `apps/api/tests/test_workspace_currency.py`: Owner changes
+- [X] T017 [P] [US2] Backend test in `apps/api/tests/test_workspace_currency.py`: Owner changes
       currency on a zero-record workspace → `200`; Owner attempts change after a record exists
       (including a soft-deleted one) → `409 currency_locked`; Admin/Member/Viewer attempt → `403`;
       unsupported currency code → `422`. (FR-006, FR-007, FR-008, FR-009, SC-002, SC-003)
-- [ ] T018 [P] [US2] Backend test in
+- [X] T018 [P] [US2] Backend test in
       `apps/api/tests/test_income_expense_currency_matches_workspace.py`: a direct database insert
       attempt (bypassing the service layer) with a currency different from the workspace's current
       currency is rejected by the `enforce_record_currency_matches_workspace` trigger from T003.
@@ -157,27 +157,27 @@ once a record exists (quickstart.md §2).
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Extend `apps/api/app/schemas/workspaces.py`: `Workspace`,
+- [X] T019 [US2] Extend `apps/api/app/schemas/workspaces.py`: `Workspace`,
       `WorkspaceUpdateRequest`, and `WorkspaceSettingsResponse` gain an optional
       `currency: SupportedCurrency` field (import `SupportedCurrency` from T005's
       `app/schemas/currency.py`). (depends on T005) (FR-006, FR-007)
-- [ ] T020 [US2] Extend `update_workspace` in `apps/api/app/routes/workspaces.py`
+- [X] T020 [US2] Extend `update_workspace` in `apps/api/app/routes/workspaces.py`
       (currently lines 124-174) to accept `currency`, pre-check the lock (existence query against
       `incomes`/`expenses` for the workspace) before issuing the update and return
       `409 {"code": "currency_locked", ...}` on conflict, per
       `contracts/workspace-currency-api.md`. (depends on T019) (FR-008, FR-009)
-- [ ] T021 [US2] Update the income/expense create paths in `apps/api/app/services/incomes.py` and
+- [X] T021 [US2] Update the income/expense create paths in `apps/api/app/services/incomes.py` and
       `apps/api/app/services/expenses.py` to read `currency` from the owning workspace's `currency`
       column instead of defaulting the literal `"SAR"`. (depends on T005) (FR-010)
-- [ ] T022 [P] [US2] Create `apps/web/components/settings/WorkspaceCurrencySelector.tsx`: an
+- [X] T022 [P] [US2] Create `apps/web/components/settings/WorkspaceCurrencySelector.tsx`: an
       Owner-only `<Select>` mirroring `LanguageSwitcher.tsx`'s structure/accessibility, showing a
       locked/disabled state with an explanatory message once the workspace has any income/expense
       record. (depends on T006) (FR-008, FR-009)
-- [ ] T023 [US2] Extend `apps/web/lib/api/workspaces.ts`: the `Workspace` type gains `currency`, and
+- [X] T023 [US2] Extend `apps/web/lib/api/workspaces.ts`: the `Workspace` type gains `currency`, and
       the update call accepts it. (depends on T006) (FR-006)
-- [ ] T024 [US2] Wire `WorkspaceCurrencySelector` into the workspace Settings page alongside the
+- [X] T024 [US2] Wire `WorkspaceCurrencySelector` into the workspace Settings page alongside the
       existing `LanguageSwitcher` and auto-delete toggle. (depends on T022, T023) (FR-006)
-- [ ] T025 [P] [US2] Add en/ar strings for the currency selector and the "currency locked" message
+- [X] T025 [P] [US2] Add en/ar strings for the currency selector and the "currency locked" message
       to `apps/web/messages/en.json` / `ar.json`. (FR-009)
 
 **Checkpoint**: User Stories 1 and 2 both work independently — durable language preference and a

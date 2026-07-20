@@ -75,6 +75,7 @@ async def test_owner_updates_auto_delete_setting_and_it_remains_inert(
     assert enable_response.status_code == 200, enable_response.text
     assert enable_response.json() == {
         "id": workspace_id,
+        "currency": "SAR",
         "auto_delete_after_extraction": True,
     }
 

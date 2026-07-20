@@ -190,6 +190,10 @@
     "language": "Language",
     "languageDescription": "Choose the interface language.",
     "languagePreferenceSaveError": "Language preference could not be saved.",
+    "currency": "Base currency",
+    "currencyDescription": "Choose the currency used for this workspace's income and expenses.",
+    "currencyOwnerOnly": "Only the workspace owner can change the base currency.",
+    "currencyLocked": "Currency is locked once this workspace has an income or expense record.",
     "aiTitle": "AI review",
     "aiDescription": "AI is optional and not yet configured. You can add and confirm income and expenses manually without it."
   },

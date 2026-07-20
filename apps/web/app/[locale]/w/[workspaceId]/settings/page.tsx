@@ -5,13 +5,22 @@ import { useTranslations } from "next-intl";
 import { AiSettingsCard } from "@/components/settings/AiSettingsCard";
 import { AutoDeleteToggle } from "@/components/settings/AutoDeleteToggle";
 import { LanguageSwitcher } from "@/components/settings/LanguageSwitcher";
+import { WorkspaceCurrencySelector } from "@/components/settings/WorkspaceCurrencySelector";
 import { useWorkspaceContext } from "@/lib/workspace-context";
 
 export default function SettingsPage() {
   const t = useTranslations("settings");
   const nav = useTranslations("nav");
-  const { autoDeleteAfterExtraction, memberCount, role, workspaceId, workspaceName, workspaceType } =
-    useWorkspaceContext();
+  const {
+    autoDeleteAfterExtraction,
+    currency,
+    currencyLocked,
+    memberCount,
+    role,
+    workspaceId,
+    workspaceName,
+    workspaceType,
+  } = useWorkspaceContext();
 
   return (
     <div className="space-y-6">
@@ -35,6 +44,12 @@ export default function SettingsPage() {
       </section>
       <AutoDeleteToggle
         autoDeleteAfterExtraction={autoDeleteAfterExtraction}
+        role={role}
+        workspaceId={workspaceId}
+      />
+      <WorkspaceCurrencySelector
+        currency={currency}
+        currencyLocked={currencyLocked}
         role={role}
         workspaceId={workspaceId}
       />

@@ -4,8 +4,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.currency import SupportedCurrency
 
-Currency = Literal["SAR"]
+
+Currency = SupportedCurrency
 RecordType = Literal["income", "expense"]
 
 

@@ -10,6 +10,19 @@ export type SupportedCurrency =
   | "BHD"
   | "OMR";
 
+export const supportedCurrencies: SupportedCurrency[] = [
+  "SAR",
+  "USD",
+  "EUR",
+  "GBP",
+  "AED",
+  "EGP",
+  "KWD",
+  "QAR",
+  "BHD",
+  "OMR",
+];
+
 export const minorUnitDigits: Record<SupportedCurrency, number> = {
   SAR: 2,
   USD: 2,

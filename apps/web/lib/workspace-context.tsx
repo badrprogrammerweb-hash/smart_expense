@@ -8,6 +8,7 @@ import { useCurrentUserId } from "@/hooks/use-current-user";
 import { useWorkspace } from "@/hooks/use-workspaces";
 import { ApiError } from "@/lib/api/client";
 import type { WorkspaceRole, WorkspaceType } from "@/lib/api/workspaces";
+import type { SupportedCurrency } from "@/lib/currency";
 
 const LAST_WORKSPACE_KEY = "smart-expense.lastWorkspaceId";
 
@@ -16,6 +17,8 @@ export type WorkspaceContextValue = {
   workspaceType: WorkspaceType;
   workspaceName: string;
   role: WorkspaceRole;
+  currency: SupportedCurrency;
+  currencyLocked: boolean;
   memberCount: number;
   autoDeleteAfterExtraction: boolean;
   currentUserId: string | null;
@@ -94,6 +97,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       workspaceType: workspaceQuery.data.type,
       workspaceName: workspaceQuery.data.name,
       role: workspaceQuery.data.role,
+      currency: workspaceQuery.data.currency,
+      currencyLocked: workspaceQuery.data.currency_locked,
       memberCount: workspaceQuery.data.member_count,
       autoDeleteAfterExtraction: workspaceQuery.data.auto_delete_after_extraction,
       currentUserId: currentUserQuery.data ?? null,
