@@ -97,36 +97,36 @@ browser/session), sign back in, and confirm the interface opens in Arabic withou
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Backend test in `apps/api/tests/test_users_locale.py`: `GET /me` returns the
+- [X] T007 [P] [US1] Backend test in `apps/api/tests/test_users_locale.py`: `GET /me` returns the
       caller's own `locale`; `PATCH /me` persists a new locale and is reflected on a subsequent
       `GET /me` (simulating a new session); an invalid `locale` value → `422`; unauthenticated → `401`.
       (FR-001, FR-003, FR-004)
-- [ ] T008 [P] [US1] Frontend e2e test in `apps/web/e2e/locale-preference-persistence.spec.ts`: set
+- [X] T008 [P] [US1] Frontend e2e test in `apps/web/e2e/locale-preference-persistence.spec.ts`: set
       language to Arabic in Settings, clear all cookies, sign back in, and assert the interface
       opens in Arabic/RTL without the user re-selecting it; repeat for switching back to English.
       (FR-001, FR-002, FR-003, SC-001)
 
 ### Implementation for User Story 1
 
-- [ ] T009 [P] [US1] Create `apps/api/app/schemas/users.py`: `UserProfile` (`id`, `email`,
+- [X] T009 [P] [US1] Create `apps/api/app/schemas/users.py`: `UserProfile` (`id`, `email`,
       `display_name`, `locale`) and `LocaleUpdateRequest` (`locale: Literal["en", "ar"]`). (FR-001, FR-004)
-- [ ] T010 [US1] Create `apps/api/app/routes/users.py`: `GET /me` and `PATCH /me`, self-scoped to
+- [X] T010 [US1] Create `apps/api/app/routes/users.py`: `GET /me` and `PATCH /me`, self-scoped to
       `current_user.user_id` with no workspace/role check, using the schemas from T009. (depends on
       T009) (FR-001, FR-003)
-- [ ] T011 [US1] Register the new router in `apps/api/app/main.py`
+- [X] T011 [US1] Register the new router in `apps/api/app/main.py`
       (`app.include_router(users_router)`). (depends on T010) (FR-001)
-- [ ] T012 [P] [US1] Create `apps/web/lib/api/me.ts`: `getMe()` / `updateLocale(locale)` client
+- [X] T012 [P] [US1] Create `apps/web/lib/api/me.ts`: `getMe()` / `updateLocale(locale)` client
       functions following the existing `lib/api/*.ts` fetch-wrapper pattern. (FR-001, FR-003)
-- [ ] T013 [P] [US1] Create `apps/web/hooks/use-me.ts`: a react-query hook wrapping `getMe()`,
+- [X] T013 [P] [US1] Create `apps/web/hooks/use-me.ts`: a react-query hook wrapping `getMe()`,
       following the existing hook pattern (e.g. `use-reports.ts`). (depends on T012) (FR-002)
-- [ ] T014 [US1] Extend the post-authentication flow (wherever the app redirects after a successful
+- [X] T014 [US1] Extend the post-authentication flow (wherever the app redirects after a successful
       sign-in) to call `GET /me` once and, if no `NEXT_LOCALE` cookie is present yet and the
       returned `locale` differs from the current locale segment, redirect to the equivalent path
       under the preferred locale (`research.md` §2). (depends on T012) (FR-002, FR-005, SC-001)
-- [ ] T015 [US1] Extend `apps/web/components/settings/LanguageSwitcher.tsx` to call
+- [X] T015 [US1] Extend `apps/web/components/settings/LanguageSwitcher.tsx` to call
       `updateLocale()` (via T012) alongside its existing path-swap navigation, so an explicit
       switch also updates the stored account preference. (depends on T012) (FR-003)
-- [ ] T016 [P] [US1] Add any new en/ar strings this story introduces (e.g. a `/me` error message)
+- [X] T016 [P] [US1] Add any new en/ar strings this story introduces (e.g. a `/me` error message)
       to `apps/web/messages/en.json` and `apps/web/messages/ar.json`. (FR-004)
 
 **Checkpoint**: User Story 1 is independently functional and testable — language preference now

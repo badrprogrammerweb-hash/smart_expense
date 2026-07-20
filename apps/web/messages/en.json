@@ -189,6 +189,7 @@
     "workspaceInfo": "Workspace",
     "language": "Language",
     "languageDescription": "Choose the interface language.",
+    "languagePreferenceSaveError": "Language preference could not be saved.",
     "aiTitle": "AI review",
     "aiDescription": "AI is optional and not yet configured. You can add and confirm income and expenses manually without it."
   },
