@@ -17,6 +17,7 @@ from app.schemas.reports import (
     ReportPeriod,
     ReportPreset,
     SpendingSummary,
+    SubcategoryDrilldownResponse,
     TeamActivityItem,
     TopCategorySummary,
     TrendDirection,
@@ -32,6 +33,10 @@ def _error(status_code: int, code: str, message: str) -> HTTPException:
 
 def _invalid_period(message: str = "Select a valid reporting period.") -> HTTPException:
     return _error(status.HTTP_422_UNPROCESSABLE_CONTENT, "invalid_period", message)
+
+
+def _not_found() -> HTTPException:
+    return _error(status.HTTP_404_NOT_FOUND, "not_found", "Category not found.")
 
 
 def _range_too_large() -> HTTPException:
@@ -309,6 +314,9 @@ async def get_report_data(
         category_breakdown = await dashboard.get_category_breakdown(
             workspace_id, report_period.start, report_period.end, session
         )
+        income_category_breakdown = await dashboard.get_category_breakdown(
+            workspace_id, report_period.start, report_period.end, session, table="incomes"
+        )
         spending_trend = await get_spending_trend(
             workspace_id, report_period.start, report_period.end, session, currency
         )
@@ -341,6 +349,7 @@ async def get_report_data(
         period=report_period,
         summary=summary,
         category_breakdown=category_breakdown,
+        income_category_breakdown=income_category_breakdown,
         spending_trend=spending_trend,
         top_merchants=top_merchants,
         recent_records=recent_records,
@@ -349,4 +358,34 @@ async def get_report_data(
         spending_summary=_spending_summary(
             income_total, expense_total, previous_expense_total, category_breakdown, currency
         ),
+    )
+
+
+async def get_subcategory_drilldown(
+    workspace_id: UUID,
+    main_category_id: UUID,
+    report_period: ReportPeriod,
+    session,
+) -> SubcategoryDrilldownResponse:
+    try:
+        main_category = await dashboard.get_main_category(workspace_id, main_category_id, session)
+        if main_category is None:
+            raise _not_found()
+
+        table = "incomes" if main_category.category_type == "income" else "expenses"
+        subcategory_breakdown = await dashboard.get_subcategory_breakdown(
+            workspace_id,
+            main_category_id,
+            report_period.start,
+            report_period.end,
+            session,
+            table=table,
+        )
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+
+    return SubcategoryDrilldownResponse(
+        main_category_id=main_category.id,
+        main_category_name=main_category.name,
+        subcategory_breakdown=subcategory_breakdown,
     )

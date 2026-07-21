@@ -68,7 +68,7 @@ async def test_owner_admin_member_viewer_action_matrix(
     await _configure_ai(api_client, roles["owner"], workspace_id)
 
     for role, user in roles.items():
-        for endpoint in ("incomes", "expenses", "categories", "files", "ai-settings"):
+        for endpoint in ("incomes", "expenses", "categories?category_type=expense", "files", "ai-settings"):
             response = await api_client.get(
                 f"/workspaces/{workspace_id}/{endpoint}",
                 headers=user.auth_header,
@@ -127,7 +127,7 @@ async def test_owner_admin_member_viewer_action_matrix(
         category = await api_client.post(
             f"/workspaces/{workspace_id}/categories",
             headers=user.auth_header,
-            json={"name": f"Phase 10 {role} category"},
+            json={"name": f"Phase 10 {role} category", "category_type": "expense"},
         )
         _assert_status(category, expected_by_action["category"][role])
 
@@ -221,7 +221,7 @@ async def test_viewer_cannot_modify_any_record(
         await api_client.post(
             f"/workspaces/{workspace_id}/categories",
             headers=viewer_headers,
-            json={"name": "Viewer forbidden category"},
+            json={"name": "Viewer forbidden category", "category_type": "expense"},
         ),
         await api_client.patch(
             f"/workspaces/{workspace_id}/categories/{category_id}",

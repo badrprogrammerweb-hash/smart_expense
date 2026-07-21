@@ -54,6 +54,7 @@
     "remainingBalance": "الرصيد المتبقي",
     "period": "الفترة الحالية",
     "categoryBreakdown": "تفصيل التصنيفات",
+    "incomeCategoryBreakdown": "تفصيل تصنيفات الدخل",
     "recentActivity": "آخر النشاطات",
     "pendingAi": "{count} عنصر بانتظار مراجعة الذكاء الاصطناعي",
     "aiUnavailable": "مراجعة الذكاء الاصطناعي غير مفعّلة حاليًا.",
@@ -84,7 +85,9 @@
     "confirmDelete": "تأكيد الحذف",
     "validationAmount": "أدخل مبلغًا أكبر من صفر.",
     "validationDate": "أدخل تاريخًا صحيحًا.",
-    "categoryPlaceholder": "اختر تصنيفًا"
+    "categoryPlaceholder": "اختر تصنيفًا",
+    "subcategory": "الفئة الفرعية",
+    "subcategoryPlaceholder": "بدون فئة فرعية"
   },
   "categories": {
     "title": "التصنيفات",
@@ -95,7 +98,116 @@
     "unarchive": "إلغاء الأرشفة",
     "archived": "مؤرشف",
     "validationName": "أدخل اسم التصنيف.",
-    "viewerBlocked": "دورك الحالي يسمح بعرض التصنيفات فقط ولا يسمح بإدارتها."
+    "viewerBlocked": "دورك الحالي يسمح بعرض التصنيفات فقط ولا يسمح بإدارتها.",
+    "expenseCategories": "تصنيفات المصروفات",
+    "incomeCategories": "تصنيفات الدخل",
+    "categoryType": "نوع التصنيف",
+    "expenseType": "مصروف",
+    "incomeType": "دخل",
+    "parentCategory": "التصنيف الرئيسي",
+    "newMainCategory": "تصنيف رئيسي جديد",
+    "renameInputLabel": "إعادة تسمية التصنيف",
+    "addSubcategory": "إضافة فئة فرعية",
+    "delete": "حذف",
+    "confirmDelete": "تأكيد الحذف",
+    "deleteBlocked": "لا يمكن الحذف — لا يزال قيد الاستخدام",
+    "moveUp": "نقل لأعلى",
+    "moveDown": "نقل لأسفل",
+    "catalog": {
+      "restaurants": "المطاعم",
+      "groceries": "البقالة",
+      "fuel": "الوقود",
+      "transportation": "المواصلات",
+      "rent": "الإيجار",
+      "utilities": "المرافق",
+      "internet_mobile": "الإنترنت والهاتف",
+      "health": "الصحة",
+      "education": "التعليم",
+      "family": "الأسرة",
+      "shopping": "التسوق",
+      "entertainment": "الترفيه",
+      "travel": "السفر",
+      "subscriptions": "الاشتراكات",
+      "other": "أخرى",
+      "salary": "الراتب",
+      "business_income": "دخل الأعمال",
+      "gifts": "الهدايا",
+      "investment_returns": "عوائد الاستثمار",
+      "other_income": "دخل آخر",
+      "noSubcategory": "بدون فئة فرعية",
+      "sub": {
+        "restaurants": {
+          "dining_out": "تناول الطعام بالخارج",
+          "cafes_coffee": "المقاهي والقهوة",
+          "delivery": "التوصيل"
+        },
+        "groceries": {
+          "supermarket": "السوبر ماركت",
+          "bulk_wholesale": "الجملة والكميات"
+        },
+        "transportation": {
+          "public_transit": "النقل العام",
+          "ride_hailing": "تطبيقات النقل",
+          "parking_tolls": "المواقف والرسوم",
+          "vehicle_maintenance": "صيانة المركبة"
+        },
+        "utilities": {
+          "electricity": "الكهرباء",
+          "water": "المياه",
+          "gas": "الغاز"
+        },
+        "internet_mobile": {
+          "internet": "الإنترنت",
+          "mobile_plan": "باقة الجوال"
+        },
+        "health": {
+          "doctor_visits": "زيارات الطبيب",
+          "pharmacy": "الصيدلية",
+          "insurance": "التأمين"
+        },
+        "education": {
+          "tuition": "الرسوم الدراسية",
+          "books_supplies": "الكتب واللوازم",
+          "courses": "الدورات"
+        },
+        "family": {
+          "childcare": "رعاية الأطفال",
+          "household_help": "مساعدة منزلية"
+        },
+        "shopping": {
+          "clothing": "الملابس",
+          "electronics": "الإلكترونيات",
+          "home_goods": "مستلزمات المنزل"
+        },
+        "entertainment": {
+          "movies_events": "الأفلام والفعاليات",
+          "hobbies": "الهوايات",
+          "games_apps": "الألعاب والتطبيقات"
+        },
+        "travel": {
+          "flights": "الطيران",
+          "hotels": "الفنادق",
+          "activities": "الأنشطة"
+        },
+        "subscriptions": {
+          "streaming": "البث",
+          "software": "البرمجيات",
+          "memberships": "العضويات"
+        },
+        "salary": {
+          "primary_job": "الوظيفة الأساسية",
+          "bonus_commission": "المكافآت والعمولات"
+        },
+        "business_income": {
+          "sales_revenue": "إيرادات المبيعات",
+          "services_revenue": "إيرادات الخدمات"
+        },
+        "investment_returns": {
+          "dividends": "الأرباح الموزعة",
+          "interest": "الفوائد"
+        }
+      }
+    }
   },
   "workspace": {
     "createWorkspace": "إنشاء مساحة عمل جماعية",

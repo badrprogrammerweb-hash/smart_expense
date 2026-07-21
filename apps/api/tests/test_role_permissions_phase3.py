@@ -50,7 +50,7 @@ async def test_role_permission_matrix_and_cross_workspace_isolation(
 
     # --- READ (all roles can list all three resources) ---
     for _, user in users_by_role.items():
-        for endpoint in ("incomes", "expenses", "categories"):
+        for endpoint in ("incomes", "expenses", "categories?category_type=expense"):
             response = await api_client.get(
                 f"/workspaces/{workspace_id}/{endpoint}",
                 headers=user.auth_header,
@@ -163,12 +163,12 @@ async def test_role_permission_matrix_and_cross_workspace_isolation(
         response = await api_client.put(
             f"/workspaces/{workspace_id}/categories/order",
             headers=user.auth_header,
-            json={"category_ids": category_ids},
+            json={"category_type": "expense", "category_ids": category_ids},
         )
         _assert_status(response, 200 if role in {"owner", "admin"} else 403)
 
     # --- CROSS-WORKSPACE ISOLATION ---
-    for endpoint in ("incomes", "expenses", "categories"):
+    for endpoint in ("incomes", "expenses", "categories?category_type=expense"):
         response = await api_client.get(
             f"/workspaces/{outsider_workspace_id}/{endpoint}",
             headers=owner.auth_header,
@@ -178,7 +178,7 @@ async def test_role_permission_matrix_and_cross_workspace_isolation(
     for body, endpoint in (
         ({"amount_minor": 100, "occurred_on": "2026-06-01"}, "incomes"),
         ({"amount_minor": 100, "occurred_on": "2026-06-01"}, "expenses"),
-        ({"name": "X"}, "categories"),
+        ({"name": "X", "category_type": "expense"}, "categories"),
     ):
         response = await api_client.post(
             f"/workspaces/{outsider_workspace_id}/{endpoint}",

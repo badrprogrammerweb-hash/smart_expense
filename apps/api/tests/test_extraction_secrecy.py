@@ -66,7 +66,7 @@ def _stub_storage(monkeypatch) -> None:
 
 
 def _stub_extract_receipt(monkeypatch, outcome, captured_keys: list[str]) -> None:
-    async def extract_receipt(provider, api_key, file_bytes, content_type):
+    async def extract_receipt(provider, api_key, file_bytes, content_type, category_names=None):
         # The real ai_providers.extract_receipt receives the decrypted key as
         # a plain argument (never logged) -- capture it here only to prove
         # the *route/service layer* never re-surfaces it anywhere, not to

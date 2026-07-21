@@ -7,6 +7,7 @@ export type IncomeRecord = {
   currency: SupportedCurrency;
   occurred_on: string;
   description: string | null;
+  category_id: string | null;
   status: "confirmed";
   created_by: string;
   created_at: string;
@@ -17,6 +18,7 @@ export type IncomeInput = {
   amount_minor: number;
   occurred_on: string;
   description?: string | null;
+  category_id?: string | null;
 };
 
 export async function listIncomes(workspaceId: string) {

@@ -25,6 +25,13 @@ class CategoryBreakdownItem(BaseModel):
     currency: Currency
 
 
+class SubcategoryBreakdownItem(BaseModel):
+    subcategory_id: UUID | None = None
+    subcategory_name: str
+    total_minor: int
+    currency: Currency
+
+
 class RecentRecord(BaseModel):
     type: RecordType
     id: UUID

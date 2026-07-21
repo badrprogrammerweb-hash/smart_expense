@@ -133,7 +133,7 @@ async def test_rename_archive_reuse_name_and_keep_expense_association(
     assert archive.json()["is_archived"] is True
 
     active_only = await api_client.get(
-        f"/workspaces/{workspace_id}/categories?include_archived=false",
+        f"/workspaces/{workspace_id}/categories?category_type=expense&include_archived=false",
         headers=owner.auth_header,
     )
     assert active_only.status_code == 200, active_only.text
@@ -160,19 +160,19 @@ async def test_reorder_requires_full_matching_category_set(api_client, signup_us
     member_reorder = await api_client.put(
         f"/workspaces/{workspace_id}/categories/order",
         headers=member.auth_header,
-        json={"category_ids": reordered_ids},
+        json={"category_type": "expense", "category_ids": reordered_ids},
     )
     assert member_reorder.status_code == 403
 
     missing_id = await api_client.put(
         f"/workspaces/{workspace_id}/categories/order",
         headers=owner.auth_header,
-        json={"category_ids": reordered_ids[:-1]},
+        json={"category_type": "expense", "category_ids": reordered_ids[:-1]},
     )
     duplicate_id = await api_client.put(
         f"/workspaces/{workspace_id}/categories/order",
         headers=owner.auth_header,
-        json={"category_ids": reordered_ids[:-1] + [reordered_ids[0]]},
+        json={"category_type": "expense", "category_ids": reordered_ids[:-1] + [reordered_ids[0]]},
     )
     assert missing_id.status_code == 422
     assert missing_id.json()["error"]["code"] == "invalid_order"
@@ -182,7 +182,7 @@ async def test_reorder_requires_full_matching_category_set(api_client, signup_us
     reorder = await api_client.put(
         f"/workspaces/{workspace_id}/categories/order",
         headers=owner.auth_header,
-        json={"category_ids": reordered_ids},
+        json={"category_type": "expense", "category_ids": reordered_ids},
     )
     assert reorder.status_code == 200, reorder.text
     reordered = reorder.json()["categories"]

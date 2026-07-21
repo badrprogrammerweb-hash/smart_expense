@@ -11,6 +11,7 @@ import { useCategories } from "@/hooks/use-categories";
 import { useDeleteExpense, useExpenses } from "@/hooks/use-expenses";
 import type { ExpenseRecord } from "@/lib/api/expenses";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
+import { getCategoryLabel } from "@/lib/i18n/category-labels";
 import { toDisplayAmount } from "@/lib/money";
 import { canEditOrDeleteExpense } from "@/lib/permissions";
 import { useWorkspaceContext } from "@/lib/workspace-context";
@@ -20,6 +21,7 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
   const t = useTranslations("records");
   const common = useTranslations("common");
   const errors = useTranslations("errors");
+  const catalogT = useTranslations("categories.catalog");
   const { currentUserId } = useWorkspaceContext();
   const expenses = useExpenses(workspaceId);
   const categories = useCategories(workspaceId, { includeArchived: true });
@@ -29,9 +31,14 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const categoryNames = useMemo(() => {
     const map = new Map<string, string>();
-    categories.data?.categories.forEach((category) => map.set(category.id, category.name));
+    categories.data?.categories.forEach((category) => {
+      map.set(category.id, getCategoryLabel(catalogT, category));
+      category.subcategories.forEach((subcategory) =>
+        map.set(subcategory.id, getCategoryLabel(catalogT, subcategory)),
+      );
+    });
     return map;
-  }, [categories.data?.categories]);
+  }, [categories.data?.categories, catalogT]);
   const records = useMemo(
     () =>
       [...(expenses.data?.expenses ?? [])].sort((a, b) => {

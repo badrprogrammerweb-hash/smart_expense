@@ -1,13 +1,16 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ExtractionReviewForm } from "@/components/extraction/ExtractionReviewForm";
+import type { MainCategory } from "@/lib/api/categories";
 import type { ExtractionRecord } from "@/lib/api/extractions";
 import messages from "@/messages/en.json";
 
 const confirmExtractionMock = vi.hoisted(() => vi.fn());
+const getCategoriesMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/api/extractions", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api/extractions")>();
@@ -17,13 +20,41 @@ vi.mock("@/lib/api/extractions", async (importOriginal) => {
   };
 });
 
+vi.mock("@/lib/api/categories", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api/categories")>();
+  return {
+    ...actual,
+    getCategories: getCategoriesMock,
+  };
+});
+
 function renderWithProviders(ui: ReactNode) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
   return render(
     <NextIntlClientProvider locale="en" messages={messages}>
-      {ui}
+      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
     </NextIntlClientProvider>,
   );
 }
+
+const expenseTree: MainCategory[] = [
+  {
+    id: "cat-1",
+    name: "Groceries",
+    translation_key: "groceries",
+    is_system: true,
+    parent_id: null,
+    sort_order: 0,
+    is_archived: false,
+    subcategories: [],
+  },
+];
 
 const editableExtraction: ExtractionRecord = {
   id: "extraction-1",
@@ -37,6 +68,7 @@ const editableExtraction: ExtractionRecord = {
     occurred_on: "2026-07-01",
     vendor_name: "Panda",
     suggested_category: "Groceries",
+    suggested_category_id: null,
   },
   failure_reason: null,
   triggered_by: "user-1",
@@ -53,6 +85,8 @@ const editableExtraction: ExtractionRecord = {
 describe("ExtractionReviewForm", () => {
   beforeEach(() => {
     confirmExtractionMock.mockReset();
+    getCategoriesMock.mockReset();
+    getCategoriesMock.mockResolvedValue({ categories: expenseTree });
   });
 
   afterEach(() => {
@@ -65,13 +99,14 @@ describe("ExtractionReviewForm", () => {
 
     renderWithProviders(
       <ExtractionReviewForm
-        categories={[{ id: "cat-1", name: "Groceries", is_archived: false, sort_order: 1 }]}
         currency="SAR"
         extraction={editableExtraction}
         onConfirmed={onConfirmed}
         workspaceId="workspace-1"
       />,
     );
+
+    await screen.findByText("Groceries");
 
     fireEvent.change(screen.getByLabelText("Amount"), { target: { value: "99.00" } });
     fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-07-03" } });
@@ -93,16 +128,28 @@ describe("ExtractionReviewForm", () => {
     expect(onConfirmed).toHaveBeenCalled();
   });
 
+  it("pre-fills the category picker with the suggested category id", async () => {
+    renderWithProviders(
+      <ExtractionReviewForm
+        currency="SAR"
+        extraction={{
+          ...editableExtraction,
+          draft: { ...editableExtraction.draft!, suggested_category_id: "cat-1" },
+        }}
+        workspaceId="workspace-1"
+      />,
+    );
+
+    await waitFor(() => {
+      expect((screen.getByLabelText("Category") as HTMLSelectElement).value).toBe("cat-1");
+    });
+  });
+
   it("displays validation errors returned by the API", async () => {
     confirmExtractionMock.mockRejectedValue(new Error("Check the amount and date and try again."));
 
     renderWithProviders(
-      <ExtractionReviewForm
-        categories={[]}
-        currency="SAR"
-        extraction={editableExtraction}
-        workspaceId="workspace-1"
-      />,
+      <ExtractionReviewForm currency="SAR" extraction={editableExtraction} workspaceId="workspace-1" />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Confirm extraction" }));
@@ -113,7 +160,6 @@ describe("ExtractionReviewForm", () => {
   it("renders read-only content when the caller cannot edit", () => {
     renderWithProviders(
       <ExtractionReviewForm
-        categories={[]}
         currency="SAR"
         extraction={{ ...editableExtraction, can_edit: false, can_discard: false }}
         workspaceId="workspace-1"
@@ -129,7 +175,6 @@ describe("ExtractionReviewForm", () => {
     renderWithProviders(
       <ExtractionReviewForm
         autoDeleteAfterExtraction
-        categories={[]}
         currency="SAR"
         extraction={editableExtraction}
         workspaceId="workspace-1"
@@ -145,7 +190,7 @@ describe("ExtractionReviewForm", () => {
 
   it("hides the auto-delete notice when the workspace setting is disabled", () => {
     renderWithProviders(
-      <ExtractionReviewForm categories={[]} currency="SAR" extraction={editableExtraction} workspaceId="workspace-1" />,
+      <ExtractionReviewForm currency="SAR" extraction={editableExtraction} workspaceId="workspace-1" />,
     );
 
     expect(

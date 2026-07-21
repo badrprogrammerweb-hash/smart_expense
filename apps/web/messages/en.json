@@ -54,6 +54,7 @@
     "remainingBalance": "Remaining balance",
     "period": "Current period",
     "categoryBreakdown": "Category breakdown",
+    "incomeCategoryBreakdown": "Income category breakdown",
     "recentActivity": "Recent activity",
     "pendingAi": "{count} pending AI review",
     "aiUnavailable": "AI review is not configured yet.",
@@ -84,7 +85,9 @@
     "confirmDelete": "Confirm delete",
     "validationAmount": "Enter an amount greater than zero.",
     "validationDate": "Enter a valid date.",
-    "categoryPlaceholder": "Choose a category"
+    "categoryPlaceholder": "Choose a category",
+    "subcategory": "Subcategory",
+    "subcategoryPlaceholder": "No subcategory"
   },
   "categories": {
     "title": "Categories",
@@ -95,7 +98,116 @@
     "unarchive": "Unarchive",
     "archived": "Archived",
     "validationName": "Enter a category name.",
-    "viewerBlocked": "Your current role can view categories but cannot manage them."
+    "viewerBlocked": "Your current role can view categories but cannot manage them.",
+    "expenseCategories": "Expense categories",
+    "incomeCategories": "Income categories",
+    "categoryType": "Category type",
+    "expenseType": "Expense",
+    "incomeType": "Income",
+    "parentCategory": "Parent category",
+    "newMainCategory": "New main category",
+    "renameInputLabel": "Rename category",
+    "addSubcategory": "Add subcategory",
+    "delete": "Delete",
+    "confirmDelete": "Confirm delete",
+    "deleteBlocked": "Cannot delete — still in use",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "catalog": {
+      "restaurants": "Restaurants",
+      "groceries": "Groceries",
+      "fuel": "Fuel",
+      "transportation": "Transportation",
+      "rent": "Rent",
+      "utilities": "Utilities",
+      "internet_mobile": "Internet & Mobile",
+      "health": "Health",
+      "education": "Education",
+      "family": "Family",
+      "shopping": "Shopping",
+      "entertainment": "Entertainment",
+      "travel": "Travel",
+      "subscriptions": "Subscriptions",
+      "other": "Other",
+      "salary": "Salary",
+      "business_income": "Business Income",
+      "gifts": "Gifts",
+      "investment_returns": "Investment Returns",
+      "other_income": "Other Income",
+      "noSubcategory": "No subcategory",
+      "sub": {
+        "restaurants": {
+          "dining_out": "Dining Out",
+          "cafes_coffee": "Cafes & Coffee",
+          "delivery": "Delivery"
+        },
+        "groceries": {
+          "supermarket": "Supermarket",
+          "bulk_wholesale": "Bulk & Wholesale"
+        },
+        "transportation": {
+          "public_transit": "Public Transit",
+          "ride_hailing": "Ride-Hailing",
+          "parking_tolls": "Parking & Tolls",
+          "vehicle_maintenance": "Vehicle Maintenance"
+        },
+        "utilities": {
+          "electricity": "Electricity",
+          "water": "Water",
+          "gas": "Gas"
+        },
+        "internet_mobile": {
+          "internet": "Internet",
+          "mobile_plan": "Mobile Plan"
+        },
+        "health": {
+          "doctor_visits": "Doctor Visits",
+          "pharmacy": "Pharmacy",
+          "insurance": "Insurance"
+        },
+        "education": {
+          "tuition": "Tuition",
+          "books_supplies": "Books & Supplies",
+          "courses": "Courses"
+        },
+        "family": {
+          "childcare": "Childcare",
+          "household_help": "Household Help"
+        },
+        "shopping": {
+          "clothing": "Clothing",
+          "electronics": "Electronics",
+          "home_goods": "Home Goods"
+        },
+        "entertainment": {
+          "movies_events": "Movies & Events",
+          "hobbies": "Hobbies",
+          "games_apps": "Games & Apps"
+        },
+        "travel": {
+          "flights": "Flights",
+          "hotels": "Hotels",
+          "activities": "Activities"
+        },
+        "subscriptions": {
+          "streaming": "Streaming",
+          "software": "Software",
+          "memberships": "Memberships"
+        },
+        "salary": {
+          "primary_job": "Primary Job",
+          "bonus_commission": "Bonus & Commission"
+        },
+        "business_income": {
+          "sales_revenue": "Sales Revenue",
+          "services_revenue": "Services Revenue"
+        },
+        "investment_returns": {
+          "dividends": "Dividends",
+          "interest": "Interest"
+        }
+      }
+    }
   },
   "workspace": {
     "createWorkspace": "Create a team workspace",

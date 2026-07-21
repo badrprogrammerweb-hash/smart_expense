@@ -1,6 +1,11 @@
 import { apiFetch } from "./client";
 import type { SupportedCurrency } from "../currency";
-import type { CategoryBreakdownItem, DashboardSummary, RecentRecord } from "./dashboard";
+import type {
+  CategoryBreakdownItem,
+  DashboardSummary,
+  RecentRecord,
+  SubcategoryBreakdownItem,
+} from "./dashboard";
 
 export type ReportPeriodPreset = "current_month" | "previous_month" | "custom";
 
@@ -62,12 +67,19 @@ export type ReportResponse = {
   period: ReportPeriod;
   summary: DashboardSummary;
   category_breakdown: CategoryBreakdownItem[];
+  income_category_breakdown: CategoryBreakdownItem[];
   spending_trend: TrendPoint[];
   top_merchants: MerchantTotal[];
   recent_records: RecentRecord[];
   team_activity: TeamActivityItem[];
   pending_review_count: number;
   spending_summary: SpendingSummary;
+};
+
+export type SubcategoryDrilldownResponse = {
+  main_category_id: string;
+  main_category_name: string;
+  subcategory_breakdown: SubcategoryBreakdownItem[];
 };
 
 export async function getReport(
@@ -82,6 +94,23 @@ export async function getReport(
   }
 
   return apiFetch<ReportResponse>(`/workspaces/${workspaceId}/reports?${params.toString()}`);
+}
+
+export async function getSubcategoryBreakdown(
+  workspaceId: string,
+  mainCategoryId: string,
+  period: ReportPeriodInput = { period: "current_month" },
+) {
+  const params = new URLSearchParams({ period: period.period });
+
+  if (period.period === "custom") {
+    params.set("start", period.start);
+    params.set("end", period.end);
+  }
+
+  return apiFetch<SubcategoryDrilldownResponse>(
+    `/workspaces/${workspaceId}/reports/category-breakdown/${mainCategoryId}/subcategories?${params.toString()}`,
+  );
 }
 
 export async function requestAiSummary(

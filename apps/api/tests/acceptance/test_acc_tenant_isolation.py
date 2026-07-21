@@ -36,7 +36,7 @@ async def test_cross_workspace_read_denied_all_record_types(
     read_paths = [
         f"/workspaces/{workspace_b_id}/incomes",
         f"/workspaces/{workspace_b_id}/expenses",
-        f"/workspaces/{workspace_b_id}/categories",
+        f"/workspaces/{workspace_b_id}/categories?category_type=expense",
         f"/workspaces/{workspace_b_id}/files",
         f"/workspaces/{workspace_b_id}/reports",
         f"/workspaces/{workspace_b_id}/history",
@@ -86,7 +86,7 @@ async def test_cross_workspace_write_denied(
         await api_client.post(
             f"/workspaces/{workspace_b_id}/categories",
             headers=workspace_a_user_headers,
-            json={"name": "Cross Workspace Category"},
+            json={"name": "Cross Workspace Category", "category_type": "expense"},
         ),
         await api_client.post(
             f"/workspaces/{workspace_b_id}/files",

@@ -3,7 +3,13 @@ from sqlalchemy import text
 
 from app.schemas.extractions import FailureReason
 from app.services import ai_providers
-from conftest import add_member, create_expense, create_team_workspace, requires_supabase
+from conftest import (
+    add_member,
+    create_expense,
+    create_team_workspace,
+    default_category_id,
+    requires_supabase,
+)
 
 
 pytestmark = [pytest.mark.asyncio, requires_supabase]
@@ -56,7 +62,7 @@ def _stub_get_object(monkeypatch, content: bytes = PDF_BYTES) -> None:
 def _stub_extract_receipt(monkeypatch, outcome) -> list:
     calls: list = []
 
-    async def extract_receipt(provider, api_key, file_bytes, content_type):
+    async def extract_receipt(provider, api_key, file_bytes, content_type, category_names=None):
         calls.append((provider, api_key, file_bytes, content_type))
         return outcome
 
@@ -72,6 +78,7 @@ async def test_trigger_happy_path_returns_ready_for_review_with_draft(
     workspace_id = workspace["id"]
     await _configure_ai(api_client, owner, workspace_id)
     file = await _upload_file(api_client, owner, workspace_id)
+    groceries_id = await default_category_id(db_connection, workspace_id, "Groceries")
 
     _stub_get_object(monkeypatch)
     outcome = ai_providers.ExtractedFields(
@@ -93,6 +100,7 @@ async def test_trigger_happy_path_returns_ready_for_review_with_draft(
         "occurred_on": "2026-07-01",
         "vendor_name": "Panda Hypermarket",
         "suggested_category": "Groceries",
+        "suggested_category_id": groceries_id,
     }
     assert payload["failure_reason"] is None
     assert payload["expense_id"] is None

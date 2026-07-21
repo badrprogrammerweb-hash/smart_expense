@@ -231,9 +231,11 @@ async def create_category(
     workspace_id: str,
     payload: dict[str, Any] | None = None,
 ) -> httpx.Response:
-    body = {"name": f"Category {uuid.uuid4().hex[:8]}"}
+    body: dict[str, Any] = {"name": f"Category {uuid.uuid4().hex[:8]}"}
     if payload is not None:
         body.update(payload)
+    if "parent_id" not in body and "category_type" not in body:
+        body["category_type"] = "expense"
     return await client.post(
         f"/workspaces/{workspace_id}/categories",
         headers=caller.auth_header,
@@ -258,9 +260,20 @@ async def list_expenses(
 
 
 async def list_categories(
-    client: httpx.AsyncClient, caller: TestUser, workspace_id: str
+    client: httpx.AsyncClient,
+    caller: TestUser,
+    workspace_id: str,
+    category_type: str = "expense",
+    include_archived: bool | None = None,
 ) -> list[dict[str, Any]]:
-    response = await client.get(f"/workspaces/{workspace_id}/categories", headers=caller.auth_header)
+    params: dict[str, Any] = {"category_type": category_type}
+    if include_archived is not None:
+        params["include_archived"] = "true" if include_archived else "false"
+    response = await client.get(
+        f"/workspaces/{workspace_id}/categories",
+        headers=caller.auth_header,
+        params=params,
+    )
     assert response.status_code == 200, response.text
     return response.json()["categories"]
 

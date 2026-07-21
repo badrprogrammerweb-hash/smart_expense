@@ -22,6 +22,7 @@ export type ExtractionDraft = {
   occurred_on: string | null;
   vendor_name: string | null;
   suggested_category: string | null;
+  suggested_category_id: string | null;
 };
 
 export type ExtractionRecord = {

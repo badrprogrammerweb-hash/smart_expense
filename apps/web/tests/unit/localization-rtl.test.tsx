@@ -1,8 +1,9 @@
 import { cleanup, render } from "@testing-library/react";
-import { NextIntlClientProvider } from "next-intl";
+import { NextIntlClientProvider, useTranslations } from "next-intl";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { LocaleDirectionSync } from "@/components/layout/LocaleDirectionSync";
+import { getCategoryLabel } from "@/lib/i18n/category-labels";
 import { toDisplayAmount } from "@/lib/money";
 import arMessages from "@/messages/ar.json";
 import enMessages from "@/messages/en.json";
@@ -15,6 +16,29 @@ function renderDirectionSync(locale: Locale) {
   return render(
     <NextIntlClientProvider locale={locale} messages={messages}>
       <LocaleDirectionSync />
+    </NextIntlClientProvider>,
+  );
+}
+
+function CategoryLabelProbe() {
+  const t = useTranslations("categories.catalog");
+  return (
+    <ul>
+      <li data-testid="main">{getCategoryLabel(t, { name: "Restaurants", translation_key: "restaurants" })}</li>
+      <li data-testid="sub">
+        {getCategoryLabel(t, { name: "Dining Out", translation_key: "restaurants.dining_out" })}
+      </li>
+      <li data-testid="custom">{getCategoryLabel(t, { name: "Pets", translation_key: null })}</li>
+    </ul>
+  );
+}
+
+function renderCategoryLabels(locale: Locale) {
+  const messages = locale === "ar" ? arMessages : enMessages;
+
+  return render(
+    <NextIntlClientProvider locale={locale} messages={messages}>
+      <CategoryLabelProbe />
     </NextIntlClientProvider>,
   );
 }
@@ -84,5 +108,30 @@ describe("Arabic/English localization and RTL", () => {
       expect(english).not.toMatch(/^[a-z]+(?:\.[a-z]+)+$/);
       expect(arabic).not.toMatch(/^[a-z]+(?:\.[a-z]+)+$/);
     }
+  });
+
+  it("renders system-provided category/subcategory names translated per locale, while a user-created category name stays literal in both (quickstart.md Section 6)", () => {
+    const english = renderCategoryLabels("en");
+    const englishMain = english.getByTestId("main").textContent;
+    const englishSub = english.getByTestId("sub").textContent;
+    const englishCustom = english.getByTestId("custom").textContent;
+    english.unmount();
+
+    const arabic = renderCategoryLabels("ar");
+    const arabicMain = arabic.getByTestId("main").textContent;
+    const arabicSub = arabic.getByTestId("sub").textContent;
+    const arabicCustom = arabic.getByTestId("custom").textContent;
+    arabic.unmount();
+
+    expect(englishMain).toBe("Restaurants");
+    expect(arabicMain).toBe(arMessages.categories.catalog.restaurants);
+    expect(arabicMain).not.toBe(englishMain);
+
+    expect(englishSub).toBe("Dining Out");
+    expect(arabicSub).toBe(arMessages.categories.catalog.sub.restaurants.dining_out);
+    expect(arabicSub).not.toBe(englishSub);
+
+    expect(englishCustom).toBe("Pets");
+    expect(arabicCustom).toBe("Pets");
   });
 });

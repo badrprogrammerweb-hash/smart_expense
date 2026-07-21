@@ -42,6 +42,14 @@ def category_archived() -> HTTPException:
     )
 
 
+def category_type_mismatch() -> HTTPException:
+    return error(
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        "category_type_mismatch",
+        "Category does not belong to the expense category tree.",
+    )
+
+
 def invalid_amount() -> HTTPException:
     return error(
         status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -182,6 +190,8 @@ def _raise_from_db_error(exc: SQLAlchemyError) -> None:
     message = str(exc).lower()
     if "category_archived" in message:
         raise category_archived() from exc
+    if "category_type_mismatch" in message:
+        raise category_type_mismatch() from exc
     if "category_not_in_workspace" in message:
         raise invalid_category() from exc
     raise exc
@@ -189,7 +199,11 @@ def _raise_from_db_error(exc: SQLAlchemyError) -> None:
 
 def _raise_from_insert_error(exc: DBAPIError) -> None:
     message = str(exc).lower()
-    if "category_archived" in message or "category_not_in_workspace" in message:
+    if (
+        "category_archived" in message
+        or "category_type_mismatch" in message
+        or "category_not_in_workspace" in message
+    ):
         _raise_from_db_error(exc)
     raise database_unavailable_exception(exc) from exc
 
