@@ -41,6 +41,30 @@ def invalid_date() -> HTTPException:
     )
 
 
+def invalid_category() -> HTTPException:
+    return error(
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        "invalid_category",
+        "Category is not valid for this workspace.",
+    )
+
+
+def category_archived() -> HTTPException:
+    return error(
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        "category_archived",
+        "Category is archived.",
+    )
+
+
+def category_type_mismatch() -> HTTPException:
+    return error(
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        "category_type_mismatch",
+        "Category does not belong to the income category tree.",
+    )
+
+
 def _income_from_row(row) -> Income:
     return Income(
         id=row.id,
@@ -48,6 +72,7 @@ def _income_from_row(row) -> Income:
         currency=row.currency,
         occurred_on=row.occurred_on,
         description=row.description,
+        category_id=row.category_id,
         status=row.status,
         created_by=row.created_by,
         created_at=row.created_at,
@@ -79,7 +104,7 @@ async def _income(session: AsyncSession, workspace_id: UUID, income_id: UUID):
     result = await session.execute(
         text(
             """
-            select id, amount_minor, currency, occurred_on, description, status,
+            select id, amount_minor, currency, occurred_on, description, category_id, status,
                    created_by, created_at, updated_at
             from public.incomes
             where workspace_id = :workspace_id
@@ -90,6 +115,51 @@ async def _income(session: AsyncSession, workspace_id: UUID, income_id: UUID):
         {"workspace_id": str(workspace_id), "income_id": str(income_id)},
     )
     return result.first()
+
+
+async def _validate_category(
+    session: AsyncSession, workspace_id: UUID, category_id: UUID | None
+) -> None:
+    if category_id is None:
+        return
+
+    result = await session.execute(
+        text(
+            """
+            select workspace_id, is_archived
+            from public.categories
+            where id = :category_id
+            """
+        ),
+        {"category_id": str(category_id)},
+    )
+    row = result.first()
+    if row is None or str(row.workspace_id) != str(workspace_id):
+        raise invalid_category()
+    if row.is_archived:
+        raise category_archived()
+
+
+def _raise_from_db_error(exc: SQLAlchemyError) -> None:
+    message = str(exc).lower()
+    if "category_archived" in message:
+        raise category_archived() from exc
+    if "category_type_mismatch" in message:
+        raise category_type_mismatch() from exc
+    if "category_not_in_workspace" in message:
+        raise invalid_category() from exc
+    raise exc
+
+
+def _raise_from_insert_error(exc: DBAPIError) -> None:
+    message = str(exc).lower()
+    if (
+        "category_archived" in message
+        or "category_type_mismatch" in message
+        or "category_not_in_workspace" in message
+    ):
+        _raise_from_db_error(exc)
+    raise database_unavailable_exception(exc) from exc
 
 
 @router.get("", response_model=IncomesListResponse)
@@ -103,7 +173,7 @@ async def list_incomes(
         result = await session.execute(
             text(
                 """
-                select id, amount_minor, currency, occurred_on, description, status,
+                select id, amount_minor, currency, occurred_on, description, category_id, status,
                        created_by, created_at, updated_at
                 from public.incomes
                 where workspace_id = :workspace_id
@@ -131,12 +201,15 @@ async def create_income(
     if request.amount_minor <= 0:
         raise invalid_amount()
 
+    await _validate_category(session, workspace_id, request.category_id)
+
     try:
         result = await session.execute(
             text(
                 """
                 insert into public.incomes(
-                    workspace_id, created_by, amount_minor, currency, occurred_on, description
+                    workspace_id, created_by, amount_minor, currency, occurred_on, description,
+                    category_id
                 )
                 values (
                     :workspace_id,
@@ -144,10 +217,11 @@ async def create_income(
                     :amount_minor,
                     (select currency from public.workspaces where id = :workspace_id),
                     :occurred_on,
-                    :description
+                    :description,
+                    :category_id
                 )
-                returning id, amount_minor, currency, occurred_on, description, status,
-                          created_by, created_at, updated_at
+                returning id, amount_minor, currency, occurred_on, description, category_id,
+                          status, created_by, created_at, updated_at
                 """
             ),
             {
@@ -156,12 +230,13 @@ async def create_income(
                 "amount_minor": request.amount_minor,
                 "occurred_on": request.occurred_on,
                 "description": request.description,
+                "category_id": str(request.category_id) if request.category_id else None,
             },
         )
     except DBAPIError as exc:
-        raise database_unavailable_exception(exc) from exc
+        _raise_from_insert_error(exc)
     except SQLAlchemyError as exc:
-        raise database_unavailable_exception() from exc
+        _raise_from_db_error(exc)
 
     row = result.first()
     if row is None:
@@ -204,12 +279,23 @@ async def update_income(
     if "occurred_on" in request.model_fields_set and request.occurred_on is None:
         raise invalid_date()
 
+    if "category_id" in request.model_fields_set:
+        try:
+            existing = await _income(session, workspace_id, income_id)
+        except DBAPIError as exc:
+            raise database_unavailable_exception(exc) from exc
+        if existing is None:
+            raise not_found()
+        if str(request.category_id) != str(existing.category_id):
+            await _validate_category(session, workspace_id, request.category_id)
+
     assignments: list[str] = []
     params = {"workspace_id": str(workspace_id), "income_id": str(income_id)}
-    for field in ("amount_minor", "occurred_on", "description"):
+    for field in ("amount_minor", "occurred_on", "description", "category_id"):
         if field in request.model_fields_set:
             assignments.append(f"{field} = :{field}")
-            params[field] = getattr(request, field)
+            value = getattr(request, field)
+            params[field] = str(value) if field == "category_id" and value else value
 
     try:
         result = await session.execute(
@@ -220,14 +306,16 @@ async def update_income(
                 where workspace_id = :workspace_id
                   and id = :income_id
                   and status = 'confirmed'
-                returning id, amount_minor, currency, occurred_on, description, status,
-                          created_by, created_at, updated_at
+                returning id, amount_minor, currency, occurred_on, description, category_id,
+                          status, created_by, created_at, updated_at
                 """
             ),
             params,
         )
     except DBAPIError as exc:
-        raise database_unavailable_exception(exc) from exc
+        _raise_from_insert_error(exc)
+    except SQLAlchemyError as exc:
+        _raise_from_db_error(exc)
 
     row = result.first()
     if row is None:

@@ -92,7 +92,12 @@ export default function DashboardPage() {
           pendingAiCount={data.pending_ai_count}
           records={data.recent_records}
         />
-        <CategoryBreakdown locale={locale} items={data.category_breakdown} />
+        <CategoryBreakdown
+          locale={locale}
+          items={data.category_breakdown}
+          workspaceId={workspaceId}
+          period={{ period: "custom", start: data.period.start, end: data.period.end }}
+        />
       </div>
     </div>
   );

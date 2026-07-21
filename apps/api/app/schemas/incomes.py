@@ -17,6 +17,7 @@ class Income(BaseModel):
     currency: Currency
     occurred_on: date
     description: str | None = None
+    category_id: UUID | None = None
     status: RecordStatus
     created_by: UUID
     created_at: datetime
@@ -33,6 +34,7 @@ class IncomeCreateRequest(BaseModel):
     amount_minor: int
     occurred_on: date
     description: str | None = None
+    category_id: UUID | None = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -41,6 +43,7 @@ class IncomeUpdateRequest(BaseModel):
     amount_minor: int | None = None
     occurred_on: date | None = None
     description: str | None = None
+    category_id: UUID | None = None
 
     model_config = ConfigDict(extra="forbid")
 

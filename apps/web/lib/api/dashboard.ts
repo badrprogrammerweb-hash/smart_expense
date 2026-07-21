@@ -20,6 +20,13 @@ export type CategoryBreakdownItem = {
   currency: SupportedCurrency;
 };
 
+export type SubcategoryBreakdownItem = {
+  subcategory_id: string | null;
+  subcategory_name: string;
+  total_minor: number;
+  currency: SupportedCurrency;
+};
+
 export type RecentRecord = {
   type: "income" | "expense";
   id: string;

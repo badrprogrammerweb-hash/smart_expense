@@ -32,7 +32,7 @@ def _stub_storage_and_provider(monkeypatch) -> None:
     async def get_object(key: str) -> bytes:
         return PDF_BYTES
 
-    async def extract_receipt(provider, api_key, file_bytes, content_type):
+    async def extract_receipt(provider, api_key, file_bytes, content_type, category_names=None):
         return ai_providers.ExtractedFields(amount_minor=4250, occurred_on="2026-07-01")
 
     monkeypatch.setattr("app.services.storage.put_object", put_object)

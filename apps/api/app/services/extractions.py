@@ -200,6 +200,43 @@ async def _has_active_extraction(session: AsyncSession, file_id: UUID) -> bool:
     return result.first() is not None
 
 
+async def _active_expense_categories(
+    session: AsyncSession, workspace_id: UUID
+) -> list[tuple[str, UUID]]:
+    """Every active expense category/subcategory name+id for this workspace
+    (research.md Decision 9). A subcategory is included only when its
+    parent main category is also active — matching the "effective
+    availability" rule (research.md Decision 5) — so a disabled category is
+    never offered to the model as a candidate in the first place (FR-020)."""
+    result = await session.execute(
+        text(
+            """
+            select c.id, c.name
+            from public.categories c
+            left join public.categories parent_c on parent_c.id = c.parent_id
+            where c.workspace_id = :workspace_id
+              and c.category_type = 'expense'
+              and not c.is_archived
+              and (c.parent_id is null or not coalesce(parent_c.is_archived, true))
+            """
+        ),
+        {"workspace_id": str(workspace_id)},
+    )
+    return [(row.name, row.id) for row in result]
+
+
+def _resolve_suggested_category_id(
+    categories: list[tuple[str, UUID]], suggested_name: str | None
+) -> UUID | None:
+    if not suggested_name:
+        return None
+    normalized = suggested_name.strip().casefold()
+    for name, category_id in categories:
+        if name.casefold() == normalized:
+            return category_id
+    return None
+
+
 async def _get_ai_key(session: AsyncSession, workspace_id: UUID) -> tuple[str, str] | None:
     try:
         result = await session.execute(
@@ -249,6 +286,7 @@ async def _persist_terminal_state(
     session: AsyncSession,
     extraction_id: UUID,
     outcome: ai_providers.ExtractedFields | ai_providers.ExtractionFailure,
+    suggested_category_id: UUID | None = None,
 ) -> None:
     if isinstance(outcome, ai_providers.ExtractionFailure):
         await session.execute(
@@ -276,6 +314,7 @@ async def _persist_terminal_state(
                 occurred_on = :occurred_on,
                 vendor_name = :vendor_name,
                 suggested_category = :suggested_category,
+                suggested_category_id = :suggested_category_id,
                 updated_at = now()
             where id = :id
               and status = 'processing'
@@ -288,6 +327,7 @@ async def _persist_terminal_state(
             "occurred_on": outcome.occurred_on,
             "vendor_name": outcome.vendor_name,
             "suggested_category": outcome.suggested_category,
+            "suggested_category_id": str(suggested_category_id) if suggested_category_id else None,
         },
     )
 
@@ -297,8 +337,8 @@ async def _extraction_row(session: AsyncSession, workspace_id: UUID, extraction_
         text(
             """
             select id, workspace_id, file_id, provider, status, amount_minor, extracted_currency,
-                   occurred_on, vendor_name, suggested_category, failure_reason,
-                   triggered_by, triggered_at, confirmed_by, confirmed_at,
+                   occurred_on, vendor_name, suggested_category, suggested_category_id,
+                   failure_reason, triggered_by, triggered_at, confirmed_by, confirmed_at,
                    discarded_by, discarded_at, expense_id
             from public.ai_extractions
             where workspace_id = :workspace_id
@@ -322,6 +362,7 @@ def _extraction_read_from_row(row, current_user_id: UUID, role: str) -> Extracti
             occurred_on=row.occurred_on,
             vendor_name=row.vendor_name,
             suggested_category=row.suggested_category,
+            suggested_category_id=row.suggested_category_id,
         )
 
     can_act = role in ("owner", "admin") or (
@@ -375,6 +416,8 @@ async def trigger_extraction(
             raise ai_not_configured()
         provider, api_key = key
 
+        active_categories = await _active_expense_categories(session, workspace_id)
+
         extraction_id = await _insert_processing_row(session, workspace_id, file_id, provider, user_id)
         storage_path = file_row.storage_path
         content_type = file_row.content_type
@@ -389,12 +432,22 @@ async def trigger_extraction(
         )
     else:
         outcome = await ai_providers.extract_receipt(
-            AiProvider(provider), api_key, file_bytes, content_type
+            AiProvider(provider),
+            api_key,
+            file_bytes,
+            content_type,
+            category_names=[name for name, _ in active_categories],
         )
     api_key = ""  # discard the decrypted key as soon as it is no longer needed
 
+    suggested_category_id = None
+    if isinstance(outcome, ai_providers.ExtractedFields):
+        suggested_category_id = _resolve_suggested_category_id(
+            active_categories, outcome.suggested_category
+        )
+
     async with open_rls_session(current_user) as session:
-        await _persist_terminal_state(session, extraction_id, outcome)
+        await _persist_terminal_state(session, extraction_id, outcome, suggested_category_id)
         row = await _extraction_row(session, workspace_id, extraction_id)
 
     return _extraction_read_from_row(row, user_id, role)
@@ -421,8 +474,8 @@ async def list_extractions(
                 f"""
                 select id, workspace_id, file_id, provider, status, amount_minor,
                        extracted_currency, occurred_on, vendor_name, suggested_category,
-                       failure_reason, triggered_by, triggered_at, confirmed_by,
-                       confirmed_at, discarded_by, discarded_at, expense_id
+                       suggested_category_id, failure_reason, triggered_by, triggered_at,
+                       confirmed_by, confirmed_at, discarded_by, discarded_at, expense_id
                 from public.ai_extractions
                 where {" and ".join(clauses)}
                 order by triggered_at desc, id desc
@@ -558,8 +611,8 @@ async def discard_extraction(
                       and status in ('ready_for_review', 'failed')
                     returning id, workspace_id, file_id, provider, status, amount_minor,
                               extracted_currency, occurred_on, vendor_name,
-                              suggested_category, failure_reason, triggered_by,
-                              triggered_at, confirmed_by, confirmed_at,
+                              suggested_category, suggested_category_id, failure_reason,
+                              triggered_by, triggered_at, confirmed_by, confirmed_at,
                               discarded_by, discarded_at, expense_id
                     """
                 ),

@@ -1,10 +1,10 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useMemo, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
+import { CategoryPicker } from "@/components/category/CategoryPicker";
 import { ApiError } from "@/lib/api/client";
-import type { Category } from "@/lib/api/categories";
 import {
   confirmExtraction,
   type ConfirmExtractionInput,
@@ -17,7 +17,6 @@ type ExtractionReviewFormProps = {
   workspaceId: string;
   currency: SupportedCurrency;
   extraction: ExtractionRecord;
-  categories: Category[];
   autoDeleteAfterExtraction?: boolean;
   onConfirmed?: (extraction: ExtractionRecord) => void;
 };
@@ -47,7 +46,6 @@ export function ExtractionReviewForm({
   workspaceId,
   currency,
   extraction,
-  categories,
   autoDeleteAfterExtraction = false,
   onConfirmed,
 }: ExtractionReviewFormProps) {
@@ -59,15 +57,10 @@ export function ExtractionReviewForm({
   const [occurredOn, setOccurredOn] = useState(draft?.occurred_on ?? "");
   const [merchantName, setMerchantName] = useState(draft?.vendor_name ?? "");
   const [description, setDescription] = useState("");
-  const [categoryId, setCategoryId] = useState("");
+  const [categoryId, setCategoryId] = useState(draft?.suggested_category_id ?? "");
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const amountInputId = `extraction-amount-${extraction.id}`;
-
-  const activeCategories = useMemo(
-    () => categories.filter((category) => !category.is_archived),
-    [categories],
-  );
 
   if (!draft) {
     return (
@@ -176,31 +169,20 @@ export function ExtractionReviewForm({
           />
         </label>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-medium">
-          {t("review.vendor")}
-          <input
-            className="mt-2 h-10 w-full rounded-md border bg-background px-3"
-            value={merchantName}
-            onChange={(event) => setMerchantName(event.target.value)}
-          />
-        </label>
-        <label className="block text-sm font-medium">
-          {t("review.category")}
-          <select
-            className="mt-2 h-10 w-full rounded-md border bg-background px-3"
-            value={categoryId}
-            onChange={(event) => setCategoryId(event.target.value)}
-          >
-            <option value="">{common("none")}</option>
-            {activeCategories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      <label className="block text-sm font-medium">
+        {t("review.vendor")}
+        <input
+          className="mt-2 h-10 w-full rounded-md border bg-background px-3"
+          value={merchantName}
+          onChange={(event) => setMerchantName(event.target.value)}
+        />
+      </label>
+      <CategoryPicker
+        workspaceId={workspaceId}
+        categoryType="expense"
+        value={categoryId || null}
+        onChange={(nextCategoryId) => setCategoryId(nextCategoryId ?? "")}
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm font-medium">
           {t("review.suggestedCategory")}

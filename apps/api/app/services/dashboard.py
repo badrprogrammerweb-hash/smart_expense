@@ -4,7 +4,7 @@ from uuid import UUID
 
 from sqlalchemy import text
 
-from app.schemas.dashboard import CategoryBreakdownItem, RecentRecord
+from app.schemas.dashboard import CategoryBreakdownItem, RecentRecord, SubcategoryBreakdownItem
 from app.schemas.currency import SupportedCurrency
 
 
@@ -70,22 +70,23 @@ async def get_workspace_currency(workspace_id: UUID, conn) -> SupportedCurrency:
 
 
 async def get_category_breakdown(
-    workspace_id: UUID, period_start: date, period_end: date, conn
+    workspace_id: UUID, period_start: date, period_end: date, conn, *, table: str = "expenses"
 ) -> list[CategoryBreakdownItem]:
     result = await conn.execute(
         text(
-            """
+            f"""
             select
-                e.category_id,
-                coalesce(c.name, 'Uncategorized') as category_name,
-                sum(e.amount_minor) as total_minor,
-                e.currency
-            from public.expenses e
-            left join public.categories c on c.id = e.category_id
-            where e.workspace_id = :workspace_id
-              and e.status = 'confirmed'
-              and e.occurred_on between :period_start and :period_end
-            group by e.category_id, c.name, e.currency
+                coalesce(c.parent_id, c.id) as category_id,
+                coalesce(parent_c.name, c.name, 'Uncategorized') as category_name,
+                sum(r.amount_minor) as total_minor,
+                r.currency
+            from public.{table} r
+            left join public.categories c on c.id = r.category_id
+            left join public.categories parent_c on parent_c.id = c.parent_id
+            where r.workspace_id = :workspace_id
+              and r.status = 'confirmed'
+              and r.occurred_on between :period_start and :period_end
+            group by coalesce(c.parent_id, c.id), coalesce(parent_c.name, c.name, 'Uncategorized'), r.currency
             order by total_minor desc
             """
         ),
@@ -99,6 +100,70 @@ async def get_category_breakdown(
         CategoryBreakdownItem(
             category_id=row.category_id,
             category_name=row.category_name,
+            total_minor=int(row.total_minor),
+            currency=row.currency,
+        )
+        for row in result
+    ]
+
+
+async def get_main_category(workspace_id: UUID, main_category_id: UUID, conn):
+    result = await conn.execute(
+        text(
+            """
+            select id, name, category_type
+            from public.categories
+            where id = :main_category_id
+              and workspace_id = :workspace_id
+              and parent_id is null
+            """
+        ),
+        {"main_category_id": str(main_category_id), "workspace_id": str(workspace_id)},
+    )
+    return result.first()
+
+
+async def get_subcategory_breakdown(
+    workspace_id: UUID,
+    main_category_id: UUID,
+    period_start: date,
+    period_end: date,
+    conn,
+    *,
+    table: str = "expenses",
+) -> list[SubcategoryBreakdownItem]:
+    result = await conn.execute(
+        text(
+            f"""
+            select
+                case when c.id = :main_category_id then null else c.id end as subcategory_id,
+                case when c.id = :main_category_id then 'No subcategory' else c.name end as subcategory_name,
+                sum(r.amount_minor) as total_minor,
+                r.currency
+            from public.{table} r
+            join public.categories c on c.id = r.category_id
+            where r.workspace_id = :workspace_id
+              and r.status = 'confirmed'
+              and r.occurred_on between :period_start and :period_end
+              and (c.id = :main_category_id or c.parent_id = :main_category_id)
+            group by
+                case when c.id = :main_category_id then null else c.id end,
+                case when c.id = :main_category_id then 'No subcategory' else c.name end,
+                r.currency
+            order by total_minor desc
+            """
+        ),
+        {
+            "workspace_id": str(workspace_id),
+            "main_category_id": str(main_category_id),
+            "period_start": period_start,
+            "period_end": period_end,
+        },
+    )
+    return [
+        SubcategoryBreakdownItem(
+            subcategory_id=row.subcategory_id,
+            subcategory_name=row.subcategory_name,
             total_minor=int(row.total_minor),
             currency=row.currency,
         )

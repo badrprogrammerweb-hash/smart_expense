@@ -69,7 +69,7 @@ def _stub_storage(monkeypatch) -> list[str]:
 
 
 def _stub_ready_extraction(monkeypatch, amount_minor: int = 4250) -> None:
-    async def extract_receipt(provider, api_key, file_bytes, content_type):
+    async def extract_receipt(provider, api_key, file_bytes, content_type, category_names=None):
         return ai_providers.ExtractedFields(
             amount_minor=amount_minor,
             currency="SAR",
@@ -82,7 +82,7 @@ def _stub_ready_extraction(monkeypatch, amount_minor: int = 4250) -> None:
 
 
 def _stub_failed_extraction(monkeypatch) -> None:
-    async def extract_receipt(provider, api_key, file_bytes, content_type):
+    async def extract_receipt(provider, api_key, file_bytes, content_type, category_names=None):
         return ai_providers.ExtractionFailure(failure_reason=FailureReason.TIMEOUT)
 
     monkeypatch.setattr("app.services.ai_providers.extract_receipt", extract_receipt)

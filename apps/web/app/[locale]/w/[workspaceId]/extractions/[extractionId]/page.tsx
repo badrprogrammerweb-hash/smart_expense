@@ -7,7 +7,6 @@ import { useTranslations } from "next-intl";
 import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
 import { DiscardExtractionDialog } from "@/components/extraction/DiscardExtractionDialog";
 import { ExtractionReviewForm } from "@/components/extraction/ExtractionReviewForm";
-import { getCategories } from "@/lib/api/categories";
 import { getExtraction } from "@/lib/api/extractions";
 import { getFileDownloadUrl } from "@/lib/api/files";
 import { useWorkspaceContext } from "@/lib/workspace-context";
@@ -23,22 +22,17 @@ export default function ExtractionReviewPage() {
     queryFn: () => getExtraction(workspaceId, params.extractionId),
     enabled: Boolean(workspaceId && params.extractionId),
   });
-  const categories = useQuery({
-    queryKey: ["categories", workspaceId, { includeArchived: false }],
-    queryFn: () => getCategories(workspaceId, { includeArchived: false }),
-    enabled: Boolean(workspaceId),
-  });
   const filePreview = useQuery({
     queryKey: ["files", workspaceId, extraction.data?.file_id, "preview"],
     queryFn: () => getFileDownloadUrl(workspaceId, extraction.data!.file_id),
     enabled: Boolean(workspaceId && extraction.data?.file_id),
   });
 
-  if (extraction.isLoading || categories.isLoading) {
+  if (extraction.isLoading) {
     return <p className="text-sm text-muted-foreground">{common("loading")}</p>;
   }
 
-  if (extraction.isError || categories.isError || !extraction.data) {
+  if (extraction.isError || !extraction.data) {
     return <ErrorState title={errors("requestFailed")} />;
   }
 
@@ -61,7 +55,6 @@ export default function ExtractionReviewPage() {
       <div className="space-y-4">
         <ExtractionReviewForm
           autoDeleteAfterExtraction={autoDeleteAfterExtraction}
-          categories={categories.data?.categories ?? []}
           currency={currency}
           extraction={extraction.data}
           workspaceId={workspaceId}

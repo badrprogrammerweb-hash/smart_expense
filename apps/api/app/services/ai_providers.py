@@ -34,14 +34,31 @@ GEMINI_ENDPOINT = (
 OPENAI_MODEL = "gpt-4o-mini"
 OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions"
 
-EXTRACTION_PROMPT = (
+EXTRACTION_PROMPT_BASE = (
     "Extract the transaction amount in the smallest currency unit "
     "(amount_minor), the ISO currency code (currency), the transaction date "
     "as YYYY-MM-DD (occurred_on), the vendor or merchant name (vendor_name), "
-    "and a short spending category suggestion (suggested_category) from this "
+    "and a spending category suggestion (suggested_category) from this "
     "receipt or invoice. Respond with a field left null if it cannot be "
     "determined."
 )
+
+
+def _build_extraction_prompt(category_names: list[str] | None) -> str:
+    """Constrains `suggested_category` to the workspace's own active
+    category catalog (research.md Decision 9), so a disabled category can
+    never be offered as a suggestion in the first place (FR-020) — this is
+    enforced by construction here, not by filtering the model's answer
+    afterward."""
+    if not category_names:
+        return f"{EXTRACTION_PROMPT_BASE} Leave suggested_category null."
+
+    catalog = ", ".join(category_names)
+    return (
+        f"{EXTRACTION_PROMPT_BASE} For suggested_category, choose the single "
+        f"best-fitting name exactly as written from this list only: {catalog}. "
+        "If none fit well, leave suggested_category null."
+    )
 
 SUMMARY_SYSTEM_PROMPT = (
     "You write concise spending summaries for a Saudi expense-tracking app. "
@@ -119,13 +136,13 @@ def _summary_user_prompt(aggregates: dict[str, Any], locale: str) -> str:
 
 
 async def _extract_gemini(
-    api_key: str, file_bytes: bytes, content_type: str
+    api_key: str, file_bytes: bytes, content_type: str, category_names: list[str] | None = None
 ) -> ExtractedFields | ExtractionFailure:
     payload = {
         "contents": [
             {
                 "parts": [
-                    {"text": EXTRACTION_PROMPT},
+                    {"text": _build_extraction_prompt(category_names)},
                     {
                         "inline_data": {
                             "mime_type": content_type,
@@ -166,7 +183,7 @@ async def _extract_gemini(
 
 
 async def _extract_openai(
-    api_key: str, file_bytes: bytes, content_type: str
+    api_key: str, file_bytes: bytes, content_type: str, category_names: list[str] | None = None
 ) -> ExtractedFields | ExtractionFailure:
     encoded = base64.b64encode(file_bytes).decode("ascii")
     data_url = f"data:{content_type};base64,{encoded}"
@@ -181,7 +198,7 @@ async def _extract_openai(
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": EXTRACTION_PROMPT},
+                    {"type": "text", "text": _build_extraction_prompt(category_names)},
                     file_part,
                 ],
             }
@@ -220,16 +237,20 @@ async def extract_receipt(
     api_key: str,
     file_bytes: bytes,
     content_type: str,
+    category_names: list[str] | None = None,
 ) -> ExtractedFields | ExtractionFailure:
     """Call the workspace's configured provider and return either a strictly
     parsed draft or a classified, safe failure. Never raises for a provider
     or parsing failure; the decrypted `api_key` is used only as a bound
     parameter of this one outbound request and is never logged or returned
-    (research.md Decisions 3, 6)."""
+    (research.md Decisions 3, 6). `category_names` is the workspace's active
+    expense category catalog (main + subcategory names) — when given, it
+    constrains the model's `suggested_category` answer to that closed list
+    (research.md Decision 9)."""
 
     if provider is AiProvider.GEMINI:
-        return await _extract_gemini(api_key, file_bytes, content_type)
-    return await _extract_openai(api_key, file_bytes, content_type)
+        return await _extract_gemini(api_key, file_bytes, content_type, category_names)
+    return await _extract_openai(api_key, file_bytes, content_type, category_names)
 
 
 async def _summarize_gemini(api_key: str, aggregates: dict[str, Any], locale: str) -> str:

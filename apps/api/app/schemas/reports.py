@@ -4,7 +4,12 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from app.schemas.dashboard import CategoryBreakdownItem, FinancialSummary, RecentRecord
+from app.schemas.dashboard import (
+    CategoryBreakdownItem,
+    FinancialSummary,
+    RecentRecord,
+    SubcategoryBreakdownItem,
+)
 from app.schemas.currency import SupportedCurrency
 
 
@@ -77,11 +82,20 @@ class ReportData(BaseModel):
     period: ReportPeriod
     summary: FinancialSummary
     category_breakdown: list[CategoryBreakdownItem]
+    income_category_breakdown: list[CategoryBreakdownItem]
     spending_trend: list[TrendPoint]
     top_merchants: list[MerchantTotal]
     recent_records: list[RecentRecord]
     team_activity: list[TeamActivityItem]
     pending_review_count: int
     spending_summary: SpendingSummary
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SubcategoryDrilldownResponse(BaseModel):
+    main_category_id: UUID
+    main_category_name: str
+    subcategory_breakdown: list[SubcategoryBreakdownItem]
 
     model_config = ConfigDict(from_attributes=True)

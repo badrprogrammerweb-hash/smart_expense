@@ -34,6 +34,7 @@ class ExtractionDraft(BaseModel):
     occurred_on: date | None = None
     vendor_name: str | None = None
     suggested_category: str | None = None
+    suggested_category_id: UUID | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

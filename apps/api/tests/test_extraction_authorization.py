@@ -40,7 +40,7 @@ def _stub_storage(monkeypatch) -> None:
 
 
 def _stub_ready_extraction(monkeypatch, amount_minor: int = 4250) -> None:
-    async def extract_receipt(provider, api_key, file_bytes, content_type):
+    async def extract_receipt(provider, api_key, file_bytes, content_type, category_names=None):
         return ai_providers.ExtractedFields(
             amount_minor=amount_minor,
             currency="SAR",

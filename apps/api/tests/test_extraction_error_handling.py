@@ -86,7 +86,7 @@ def _stub_successful_retry(monkeypatch) -> None:
     trigger earlier in the same test."""
     from app.services import ai_providers
 
-    async def extract_receipt(provider, api_key, file_bytes, content_type):
+    async def extract_receipt(provider, api_key, file_bytes, content_type, category_names=None):
         return ai_providers.ExtractedFields(amount_minor=1000)
 
     monkeypatch.setattr("app.services.ai_providers.extract_receipt", extract_receipt)
@@ -198,7 +198,7 @@ async def test_unreadable_file_bytes_maps_to_unreadable_file_reason(
 
     provider_calls: list[object] = []
 
-    async def extract_receipt(provider, api_key, file_bytes, content_type):
+    async def extract_receipt(provider, api_key, file_bytes, content_type, category_names=None):
         provider_calls.append(provider)
         raise AssertionError("the provider must never be called when the file is unreadable")
 

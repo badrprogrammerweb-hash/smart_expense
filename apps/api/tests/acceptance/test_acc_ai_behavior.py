@@ -271,7 +271,7 @@ async def test_app_fully_usable_with_no_ai_key(
     category = await api_client.post(
         f"/workspaces/{workspace_id}/categories",
         headers=owner.auth_header,
-        json={"name": "Manual no-AI category"},
+        json={"name": "Manual no-AI category", "category_type": "expense"},
     )
     _assert_status(category, 201)
 
@@ -298,7 +298,7 @@ async def test_app_fully_usable_with_no_ai_key(
     _assert_status(report, 200)
     assert report.json()["summary"] == summary
 
-    for endpoint in ("incomes", "expenses", "categories", "files"):
+    for endpoint in ("incomes", "expenses", "categories?category_type=expense", "files"):
         listing = await api_client.get(
             f"/workspaces/{workspace_id}/{endpoint}", headers=member.auth_header
         )

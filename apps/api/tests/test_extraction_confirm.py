@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import text
 
 from app.services import ai_providers
-from conftest import add_member, create_team_workspace, requires_supabase
+from conftest import add_member, create_team_workspace, default_category_id, requires_supabase
 
 
 pytestmark = [pytest.mark.asyncio, requires_supabase]
@@ -44,7 +44,7 @@ def _stub_storage(monkeypatch) -> None:
 
 
 def _stub_extraction(monkeypatch, amount_minor: int = 4250) -> None:
-    async def extract_receipt(provider, api_key, file_bytes, content_type):
+    async def extract_receipt(provider, api_key, file_bytes, content_type, category_names=None):
         return ai_providers.ExtractedFields(
             amount_minor=amount_minor,
             currency="USD",
@@ -139,6 +139,43 @@ async def test_confirm_by_triggering_member_creates_one_sar_expense_and_links_fi
     assert row.extraction_status == "confirmed"
     assert str(row.extraction_expense_id) == confirmed["expense_id"]
     assert await _expense_count(db_connection, workspace_id) == 1
+
+
+async def test_confirm_overrides_suggested_category_with_reviewers_final_choice(
+    api_client, signup_user, db_connection, monkeypatch
+) -> None:
+    """`ConfirmExtractionRequest.category_id` still accepts any active
+    main/sub category regardless of the original AI suggestion, and only
+    the reviewer's final submitted choice is ever persisted (FR-019) —
+    never auto-confirming the suggestion itself."""
+    owner = await signup_user("extract-confirm-category-owner")
+    workspace = await create_team_workspace(api_client, owner)
+    workspace_id = workspace["id"]
+    await _configure_ai(api_client, owner, workspace_id)
+    _stub_storage(monkeypatch)
+    _stub_extraction(monkeypatch)  # suggests "Groceries"
+
+    groceries_id = await default_category_id(db_connection, workspace_id, "Groceries")
+    rent_id = await default_category_id(db_connection, workspace_id, "Rent")
+
+    extraction = await _ready_extraction(api_client, owner, workspace_id, "override.pdf")
+    assert extraction["draft"]["suggested_category_id"] == groceries_id
+
+    response = await api_client.post(
+        f"/workspaces/{workspace_id}/extractions/{extraction['id']}/confirm",
+        headers=owner.auth_header,
+        json={"amount_minor": 4200, "occurred_on": "2026-07-03", "category_id": rent_id},
+    )
+    assert response.status_code == 200, response.text
+    expense_id = response.json()["expense_id"]
+
+    row = (
+        await db_connection.execute(
+            text("select category_id from public.expenses where id = :id"),
+            {"id": expense_id},
+        )
+    ).one()
+    assert str(row.category_id) == rent_id
 
 
 async def test_concurrent_confirm_does_not_create_duplicate_expenses(

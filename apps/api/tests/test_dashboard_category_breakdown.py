@@ -1,4 +1,5 @@
 import pytest
+from sqlalchemy import text
 
 from conftest import (
     create_expense,
@@ -75,3 +76,82 @@ async def test_dashboard_category_breakdown_totals_order_and_uncategorized(
         },
     ]
     assert fuel_id not in {item["category_id"] for item in breakdown}
+
+
+async def test_category_breakdown_rolls_up_subcategory_to_main_category(
+    api_client, signup_user, db_connection
+) -> None:
+    owner = await signup_user()
+    workspace = await create_team_workspace(api_client, owner)
+    workspace_id = workspace["id"]
+
+    restaurants_id = await default_category_id(db_connection, workspace_id, "Restaurants")
+    dining_out_id = await default_category_id(db_connection, workspace_id, "Dining Out")
+    cafes_id = await default_category_id(db_connection, workspace_id, "Cafes & Coffee")
+
+    responses = [
+        await create_expense(
+            api_client, owner, workspace_id,
+            {"amount_minor": 5000, "occurred_on": period_date(4), "category_id": restaurants_id},
+        ),
+        await create_expense(
+            api_client, owner, workspace_id,
+            {"amount_minor": 3000, "occurred_on": period_date(5), "category_id": dining_out_id},
+        ),
+        await create_expense(
+            api_client, owner, workspace_id,
+            {"amount_minor": 2000, "occurred_on": period_date(6), "category_id": cafes_id},
+        ),
+    ]
+    for response in responses:
+        assert response.status_code == 201, response.text
+
+    dashboard_response = await api_client.get(
+        f"/workspaces/{workspace_id}/dashboard",
+        headers=owner.auth_header,
+    )
+    assert dashboard_response.status_code == 200, dashboard_response.text
+    breakdown = dashboard_response.json()["category_breakdown"]
+
+    restaurants_entries = [item for item in breakdown if item["category_id"] == restaurants_id]
+    assert len(restaurants_entries) == 1
+    assert restaurants_entries[0]["category_name"] == "Restaurants"
+    assert restaurants_entries[0]["total_minor"] == 10000
+    assert dining_out_id not in {item["category_id"] for item in breakdown}
+    assert cafes_id not in {item["category_id"] for item in breakdown}
+
+
+async def test_category_breakdown_reflects_disabled_and_renamed_category_under_current_name(
+    api_client, signup_user, db_connection
+) -> None:
+    owner = await signup_user()
+    workspace = await create_team_workspace(api_client, owner)
+    workspace_id = workspace["id"]
+
+    groceries_id = await default_category_id(db_connection, workspace_id, "Groceries")
+
+    response = await create_expense(
+        api_client, owner, workspace_id,
+        {"amount_minor": 7500, "occurred_on": period_date(4), "category_id": groceries_id},
+    )
+    assert response.status_code == 201, response.text
+
+    await db_connection.execute(
+        text(
+            "update public.categories set name = 'Groceries & Essentials', is_archived = true "
+            "where id = :category_id"
+        ),
+        {"category_id": groceries_id},
+    )
+    await db_connection.commit()
+
+    dashboard_response = await api_client.get(
+        f"/workspaces/{workspace_id}/dashboard",
+        headers=owner.auth_header,
+    )
+    assert dashboard_response.status_code == 200, dashboard_response.text
+    breakdown = dashboard_response.json()["category_breakdown"]
+
+    entry = next(item for item in breakdown if item["category_id"] == groceries_id)
+    assert entry["category_name"] == "Groceries & Essentials"
+    assert entry["total_minor"] == 7500

@@ -23,6 +23,7 @@ type ReportSummaryProps = {
 
 export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
   const t = useTranslations("reports");
+  const dashboardT = useTranslations("dashboard");
   const common = useTranslations("common");
   const errors = useTranslations("errors");
   const reports = useReports(workspaceId);
@@ -78,8 +79,23 @@ export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
       </div>
       {isEmpty && <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />}
       <div className="grid gap-6 xl:grid-cols-2">
-        <CategoryBreakdown locale={locale} items={data.category_breakdown} />
+        <CategoryBreakdown
+          locale={locale}
+          items={data.category_breakdown}
+          workspaceId={workspaceId}
+          period={reports.period}
+        />
         <SpendingTrendChart locale={locale} points={data.spending_trend} />
+      </div>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <CategoryBreakdown
+          locale={locale}
+          items={data.income_category_breakdown}
+          workspaceId={workspaceId}
+          categoryType="income"
+          period={reports.period}
+          title={dashboardT("incomeCategoryBreakdown")}
+        />
       </div>
       <div className="grid gap-6 xl:grid-cols-2">
         <TopMerchants locale={locale} merchants={data.top_merchants} />

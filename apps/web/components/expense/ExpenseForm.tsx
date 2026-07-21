@@ -3,10 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { useCategories } from "@/hooks/use-categories";
+import { CategoryPicker } from "@/components/category/CategoryPicker";
 import { useCreateExpense, useUpdateExpense } from "@/hooks/use-expenses";
 import type { ExpenseRecord } from "@/lib/api/expenses";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
@@ -38,18 +38,6 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
   const [formError, setFormError] = useState<string | null>(null);
   const createExpense = useCreateExpense(workspaceId);
   const updateExpense = useUpdateExpense(workspaceId);
-  // Shares its cache entry with ExpenseHistoryList's own `includeArchived: true` fetch
-  // (same query key) instead of triggering a second, near-duplicate request. Archived
-  // categories are filtered out of the selectable options below, except one already
-  // assigned to the record being edited (FR-027: it must keep displaying correctly).
-  const categories = useCategories(workspaceId, { includeArchived: true });
-  const selectableCategories = useMemo(
-    () =>
-      (categories.data?.categories ?? []).filter(
-        (category) => !category.is_archived || category.id === record?.category_id,
-      ),
-    [categories.data?.categories, record?.category_id],
-  );
   const allowed = canSubmit ?? canCreateExpense(role);
   const schema = useMemo(
     () =>
@@ -124,23 +112,22 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
       {form.formState.errors.occurred_on && (
         <p className="text-sm text-destructive">{form.formState.errors.occurred_on.message}</p>
       )}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-medium">
-          {t("merchant")}
-          <input className="mt-2 h-10 w-full rounded-md border bg-background px-3" {...form.register("merchant_name")} />
-        </label>
-        <label className="block text-sm font-medium">
-          {t("category")}
-          <select className="mt-2 h-10 w-full rounded-md border bg-background px-3" {...form.register("category_id")}>
-            <option value="">{common("none")}</option>
-            {selectableCategories.map((category) => (
-              <option value={category.id} key={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      <label className="block text-sm font-medium">
+        {t("merchant")}
+        <input className="mt-2 h-10 w-full rounded-md border bg-background px-3" {...form.register("merchant_name")} />
+      </label>
+      <Controller
+        control={form.control}
+        name="category_id"
+        render={({ field }) => (
+          <CategoryPicker
+            workspaceId={workspaceId}
+            categoryType="expense"
+            value={field.value || null}
+            onChange={(categoryId) => field.onChange(categoryId ?? "")}
+          />
+        )}
+      />
       <label className="block text-sm font-medium">
         {t("description")}
         <textarea className="mt-2 min-h-24 w-full rounded-md border bg-background px-3 py-2" {...form.register("description")} />

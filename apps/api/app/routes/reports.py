@@ -7,10 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUser, get_current_user
 from app.db import get_rls_session
 from app.schemas.ai_summary import AiSummaryRequest, AiSummaryResponse
-from app.schemas.reports import ReportData, ReportPreset
+from app.schemas.reports import ReportData, ReportPreset, SubcategoryDrilldownResponse
 from app.services.ai_summary import generate_ai_summary
 from app.services.extractions import workspace_role
-from app.services.reports import get_report_data, resolve_report_period
+from app.services.reports import get_report_data, get_subcategory_drilldown, resolve_report_period
 
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/reports", tags=["reports"])
@@ -29,6 +29,24 @@ async def get_workspace_report(
     await workspace_role(session, workspace_id, current_user.user_id)
     report_period = resolve_report_period(period, start, end)
     return await get_report_data(workspace_id, report_period, session, recent_limit=recent_limit)
+
+
+@router.get(
+    "/category-breakdown/{main_category_id}/subcategories",
+    response_model=SubcategoryDrilldownResponse,
+)
+async def get_category_subcategory_breakdown(
+    workspace_id: UUID,
+    main_category_id: UUID,
+    period: ReportPreset = Query(default=ReportPreset.CURRENT_MONTH),
+    start: date | None = Query(default=None),
+    end: date | None = Query(default=None),
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_rls_session),
+) -> SubcategoryDrilldownResponse:
+    await workspace_role(session, workspace_id, current_user.user_id)
+    report_period = resolve_report_period(period, start, end)
+    return await get_subcategory_drilldown(workspace_id, main_category_id, report_period, session)
 
 
 @router.post("/ai-summary", response_model=AiSummaryResponse)

@@ -3,9 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { CategoryPicker } from "@/components/category/CategoryPicker";
 import { useCreateIncome, useUpdateIncome } from "@/hooks/use-incomes";
 import type { IncomeRecord } from "@/lib/api/incomes";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
@@ -42,6 +43,7 @@ export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCan
         amount: z.string().refine((value) => parseInputToMinor(value, currency) > 0, t("validationAmount")),
         occurred_on: z.string().min(1, t("validationDate")),
         description: z.string().optional(),
+        category_id: z.string().optional(),
       }),
     [currency, t],
   );
@@ -52,6 +54,7 @@ export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCan
       amount: record ? minorToInput(record.amount_minor, currency) : "",
       occurred_on: record?.occurred_on ?? new Date().toISOString().slice(0, 10),
       description: record?.description ?? "",
+      category_id: record?.category_id ?? "",
     },
   });
 
@@ -65,6 +68,7 @@ export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCan
       amount_minor: parseInputToMinor(values.amount, currency),
       occurred_on: values.occurred_on,
       description: values.description?.trim() || null,
+      category_id: values.category_id || null,
     };
 
     try {
@@ -76,6 +80,7 @@ export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCan
           amount: "",
           occurred_on: new Date().toISOString().slice(0, 10),
           description: "",
+          category_id: "",
         });
       }
       onSaved?.();
@@ -101,6 +106,18 @@ export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCan
       {form.formState.errors.occurred_on && (
         <p className="text-sm text-destructive">{form.formState.errors.occurred_on.message}</p>
       )}
+      <Controller
+        control={form.control}
+        name="category_id"
+        render={({ field }) => (
+          <CategoryPicker
+            workspaceId={workspaceId}
+            categoryType="income"
+            value={field.value || null}
+            onChange={(categoryId) => field.onChange(categoryId ?? "")}
+          />
+        )}
+      />
       <label className="block text-sm font-medium">
         {t("description")}
         <textarea className="mt-2 min-h-24 w-full rounded-md border bg-background px-3 py-2" {...form.register("description")} />
