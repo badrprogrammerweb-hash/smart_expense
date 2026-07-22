@@ -82,13 +82,121 @@ jobs:
 
       - name: Run frontend acceptance tests
         working-directory: apps/web
-        run: npx playwright test e2e --workers=1
+        # Visual regression is excluded here: bare ubuntu-latest renders fonts
+        # differently from the Linux baselines, which are captured in the
+        # dedicated `visual-regression` container job below against the exact
+        # mcr.microsoft.com/playwright:v1.61.1-noble image.
+        run: npx playwright test e2e --workers=1 --grep-invert "design refresh visual regression"
 
       - name: Upload test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results
+          if-no-files-found: ignore
+          path: |
+            apps/web/test-results
+            apps/web/playwright-report
+            ${{ runner.temp }}/api.log
+
+  visual-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/api/requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: supabase/setup-cli@v1
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r apps/api/requirements.txt
+          npm ci
+
+      - name: Start local Supabase and apply migrations
+        run: |
+          supabase start
+          supabase db reset
+
+      - name: Configure local test environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(supabase status -o env)"
+
+          cat > apps/api/.env <<EOF
+          SUPABASE_URL=$API_URL
+          SUPABASE_DB_URL=postgresql+asyncpg://postgres:postgres@127.0.0.1:54322/postgres
+          SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
+          SUPABASE_JWT_SECRET=$JWT_SECRET
+          CORS_ALLOW_ORIGINS=http://127.0.0.1:3000,http://localhost:3000
+          APP_ENV=test
+          EOF
+
+          cat > apps/web/.env.local <<EOF
+          NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+          NEXT_PUBLIC_SUPABASE_URL=$API_URL
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY
+          EOF
+
+      - name: Start API for browser acceptance tests
+        working-directory: apps/api
+        env:
+          PYTHONPATH: ${{ github.workspace }}/apps/api
+        run: |
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > "$RUNNER_TEMP/api.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/api.pid"
+
+      - name: Wait for API health check
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8000/health > /dev/null; then
+              echo "API is healthy"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API failed health check" >&2
+          cat "$RUNNER_TEMP/api.log" || true
+          exit 1
+
+      # Runs only the visual-regression spec inside the exact Playwright image
+      # used to capture the committed Linux baselines, so CI renders
+      # pixel-for-pixel identically to how they were generated.
+      # --network host (a plain `docker run` flag, not a job-level
+      # `container:` option, which GitHub Actions does not support) puts the
+      # container on the runner's own network namespace, so it reaches
+      # Supabase and the FastAPI server above via 127.0.0.1 with no extra
+      # networking setup, and Next.js picks up apps/web/.env.local
+      # (bind-mounted from the workspace) at build time automatically.
+      - name: Run visual regression tests in pinned Playwright image
+        run: |
+          docker run --rm --network host \
+            -v "${{ github.workspace }}:${{ github.workspace }}" \
+            -w "${{ github.workspace }}" \
+            -e CI=true \
+            mcr.microsoft.com/playwright:v1.61.1-noble \
+            bash -lc "npm ci && cd apps/web && npx playwright test e2e/visual-regression.spec.ts --workers=1 --project=chromium --project=mobile-rtl"
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-results
           if-no-files-found: ignore
           path: |
             apps/web/test-results
