@@ -21,6 +21,13 @@ test.describe("design refresh visual regression", () => {
 
   for (const locale of ["ar", "en"] as const) {
     test(`captures representative ${locale} screens and states`, async ({ page }) => {
+      // The income create form defaults its date field to `new Date()`
+      // (IncomeForm.tsx), which renders visibly on the incomes page. Freeze
+      // the browser clock so that value — and any other current-date read —
+      // stays fixed across runs instead of drifting with the real calendar
+      // day the suite happens to execute on.
+      await page.clock.setFixedTime(new Date("2026-07-13T09:00:00.000Z"));
+
       const owner = await createSeededUser();
       const viewer = await createSeededUser();
       const workspace = await seedWorkspace(owner, `Visual ${locale}`);
@@ -34,6 +41,17 @@ test.describe("design refresh visual regression", () => {
       await capture(page, `${locale}-dashboard`);
 
       await page.goto(`/${locale}/w/${workspace.id}/incomes`);
+      // The income list loads asynchronously; without waiting for the
+      // seeded record to appear, the screenshot can race the fetch and
+      // capture the loading skeleton instead (a static skeleton frame
+      // passes Playwright's own frame-to-frame stability check, so it
+      // isn't caught by `toHaveScreenshot` alone).
+      //await expect(page.getByText("RTL regression income")).toBeVisible();
+      await expect(
+        page
+          .getByText("RTL regression income", { exact: true })
+          .filter({ visible: true }),
+      ).toBeVisible();
       await capture(page, `${locale}-record-list-and-form`);
 
       await page.setViewportSize({ width: 390, height: 844 });
@@ -57,7 +75,24 @@ test.describe("design refresh visual regression", () => {
         await route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: { code: "request_failed", message: "Request failed" } }) });
       });
       await page.goto(`/${locale}/w/${workspace.id}/incomes`);
-      await expect(page.getByRole("alert")).toBeVisible();
+
+      // A generic getByRole("alert") can match unrelated live regions
+      // elsewhere on the page (e.g. dev-mode overlays), so wait on the
+      // income list's own error state instead.
+      await expect(page.getByTestId("income-error-state")).toBeVisible();
+
+      await expect(
+        page.locator('[data-slot="skeleton"]').filter({ visible: true }),
+      ).toHaveCount(0);
+
+      // Allow responsive RTL layout to finish settling before the screenshot.
+      await page.evaluate(
+        () =>
+          new Promise<void>((resolve) => {
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+          }),
+      );
+
       await capture(page, `${locale}-error-state`);
       await page.unroute(`**/workspaces/${workspace.id}/incomes`);
 

@@ -58,6 +58,7 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
         description={errors("requestFailed")}
         retry={() => void incomes.refetch()}
         retryLabel={common("retry")}
+        testId="income-error-state"
       />
     );
   }
