@@ -1,14 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
-import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
-import { FileRow } from "@/components/files/FileRow";
+import { FileRow, formatFileBytes } from "@/components/files/FileRow";
 import { listExtractions, type ExtractionRecord } from "@/lib/api/extractions";
 import { getFileDownloadUrl, listFiles, type FileMetadata } from "@/lib/api/files";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
+import { Button, DateDisplay, EmptyState, ErrorState, Ltr, MobileRecordCard, Skeleton } from "@/components/ui";
 
 type FileListProps = {
   role: WorkspaceRole;
@@ -27,6 +27,7 @@ function latestExtractionByFileId(extractions: ExtractionRecord[]) {
 }
 
 export function FileList({ role, workspaceId }: FileListProps) {
+  const locale = useLocale();
   const t = useTranslations("files");
   const common = useTranslations("common");
   const errors = useTranslations("errors");
@@ -60,22 +61,16 @@ export function FileList({ role, workspaceId }: FileListProps) {
   }
 
   if (files.isLoading) {
-    return <p className="text-sm text-muted-foreground">{common("loading")}</p>;
+    return <Skeleton className="h-48 w-full" label={common("loading")} />;
   }
 
   if (files.isError) {
     return (
       <ErrorState
         title={errors("requestFailed")}
-        action={
-          <button
-            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
-            type="button"
-            onClick={() => void files.refetch()}
-          >
-            {common("retry")}
-          </button>
-        }
+        description={errors("requestFailed")}
+        retry={() => void files.refetch()}
+        retryLabel={common("retry")}
       />
     );
   }
@@ -86,13 +81,13 @@ export function FileList({ role, workspaceId }: FileListProps) {
   }
 
   return (
-    <section className="rounded-lg border bg-card shadow-sm">
+    <section className="rounded-[var(--radius-card)] border bg-card shadow-[var(--shadow-card)]">
       <div className="border-b p-5">
         <h2 className="text-lg font-semibold">{t("title")}</h2>
         {downloadError && <p className="mt-2 text-sm text-destructive">{downloadError}</p>}
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1120px] table-fixed text-left rtl:text-right">
+      <div className="hidden overflow-x-auto md:block">
+        <table aria-label={t("title")} className="w-full min-w-[1120px] table-fixed text-left rtl:text-right">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
             <tr>
               <th className="w-60 px-4 py-3 font-medium">{t("list.name")}</th>
@@ -122,6 +117,21 @@ export function FileList({ role, workspaceId }: FileListProps) {
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="grid gap-3 p-4 md:hidden">
+        {records.map((file) => (
+          <MobileRecordCard
+            key={file.id}
+            title={<Ltr className="break-words">{file.original_filename}</Ltr>}
+            fields={[
+              { label: t("list.type"), value: <Ltr>{file.content_type}</Ltr> },
+              { label: t("list.size"), value: <Ltr>{formatFileBytes(file.size_bytes, locale)}</Ltr> },
+              { label: t("list.uploadedAt"), value: <DateDisplay date={file.created_at} /> },
+              { label: t("list.status"), value: file.status },
+            ]}
+            actions={<><Button size="compact" variant="secondary" disabled={openingFileId === file.id} onClick={() => void openSignedUrl(file)}>{t("actions.preview")}</Button><Button size="compact" variant="secondary" disabled={openingFileId === file.id} onClick={() => void openSignedUrl(file)}>{t("actions.download")}</Button></>}
+          />
+        ))}
       </div>
     </section>
   );

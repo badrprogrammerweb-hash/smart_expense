@@ -6,13 +6,13 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 
 import { CategoryBreakdown } from "@/components/dashboard/CategoryBreakdown";
-import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { SummaryCards } from "@/components/dashboard/SummaryCards";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { getAiSettings } from "@/lib/api/ai-settings";
 import { canCreateExpense, canManageIncome } from "@/lib/permissions";
 import { useWorkspaceContext } from "@/lib/workspace-context";
+import { EmptyState as PrimitiveEmptyState, ErrorState as PrimitiveErrorState, PageHeading, Skeleton } from "@/components/ui";
 
 export default function DashboardPage() {
   const locale = useLocale();
@@ -30,22 +30,16 @@ export default function DashboardPage() {
   const canAddExpense = canCreateExpense(role);
 
   if (dashboard.isLoading) {
-    return <p className="text-sm text-muted-foreground">{common("loading")}</p>;
+    return <Skeleton className="h-48 w-full" label={common("loading")} />;
   }
 
   if (dashboard.isError || !dashboard.data) {
     return (
-      <ErrorState
+      <PrimitiveErrorState
         title={errors("requestFailed")}
-        action={
-          <button
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-            type="button"
-            onClick={() => void dashboard.refetch()}
-          >
-            {common("retry")}
-          </button>
-        }
+        description={errors("requestFailed")}
+        retry={() => void dashboard.refetch()}
+        retryLabel={common("retry")}
       />
     );
   }
@@ -56,12 +50,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold">{t("title")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("subtitle", { start: data.period.start, end: data.period.end })}
-          </p>
-        </div>
+        <PageHeading title={t("title")} description={t("subtitle", { start: data.period.start, end: data.period.end })} />
         <div className="flex gap-2">
           {canAddIncome && (
             <Link
@@ -84,7 +73,7 @@ export default function DashboardPage() {
         </div>
       </div>
       <SummaryCards locale={locale} period={data.period} summary={data.summary} />
-      {isEmpty && <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />}
+      {isEmpty && <PrimitiveEmptyState title={t("emptyTitle")} description={t("emptyDescription")} />}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
         <RecentActivity
           aiConfigured={aiSettings.data?.configured}

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { useWorkspaces } from "@/hooks/use-workspaces";
 import { useWorkspaceContext } from "@/lib/workspace-context";
+import { Select } from "@/components/ui";
 
 export function WorkspaceSelector() {
   const locale = useLocale();
@@ -39,8 +40,8 @@ export function WorkspaceSelector() {
       <label className="mt-1 block text-xs font-medium text-muted-foreground" htmlFor="workspace-switcher">
         {t("switchWorkspace")}
       </label>
-      <select
-        className="h-9 max-w-xs rounded-md border bg-background px-2 text-sm"
+      <Select
+        className="max-w-xs"
         disabled={workspaces.isLoading}
         id="workspace-switcher"
         onChange={(event) => handleSwitch(event.target.value)}
@@ -51,7 +52,7 @@ export function WorkspaceSelector() {
             {workspace.name} ({workspace.type === "personal" ? t("workspaceTypePersonal") : t("workspaceTypeTeam")})
           </option>
         ))}
-      </select>
+      </Select>
       {workspaces.isError && (
         <p className="text-xs text-destructive">
           {errors("requestFailed")}{" "}

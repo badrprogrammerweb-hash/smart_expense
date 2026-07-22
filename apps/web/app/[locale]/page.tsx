@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { redirectToPreferredWorkspace } from "@/lib/auth-routing";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { Alert, InfoCard } from "@/components/ui";
 
 export default function LocaleHomePage() {
   const locale = useLocale();
@@ -46,10 +47,7 @@ export default function LocaleHomePage() {
 
   return (
     <main className="grid min-h-screen place-items-center p-6">
-      <section className="max-w-md rounded-lg border bg-card p-6 text-center text-card-foreground shadow-sm">
-        <h1 className="text-xl font-semibold">{t("appName")}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{error ?? t("loading")}</p>
-      </section>
+      <InfoCard title={t("appName")}><div className="mt-2">{error ? <Alert variant="error" title={error} /> : <p className="text-sm text-muted-foreground">{t("loading")}</p>}</div></InfoCard>
     </main>
   );
 }

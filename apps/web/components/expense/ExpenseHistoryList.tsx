@@ -4,7 +4,6 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
-import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
 import { ExpenseFileAttach } from "@/components/expense/ExpenseFileAttach";
 import { ExpenseForm } from "@/components/expense/ExpenseForm";
 import { useCategories } from "@/hooks/use-categories";
@@ -15,6 +14,7 @@ import { getCategoryLabel } from "@/lib/i18n/category-labels";
 import { toDisplayAmount } from "@/lib/money";
 import { canEditOrDeleteExpense } from "@/lib/permissions";
 import { useWorkspaceContext } from "@/lib/workspace-context";
+import { Button, DateDisplay, EmptyState, ErrorState, MobileRecordCard, Skeleton } from "@/components/ui";
 
 export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string; role: WorkspaceRole }) {
   const locale = useLocale();
@@ -65,32 +65,30 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
   }
 
   if (expenses.isLoading) {
-    return <p className="text-sm text-muted-foreground">{common("loading")}</p>;
+    return <Skeleton className="h-48 w-full" label={common("loading")} />;
   }
 
   if (expenses.isError) {
     return (
       <ErrorState
         title={errors("requestFailed")}
-        action={
-          <button className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground" onClick={() => void expenses.refetch()}>
-            {common("retry")}
-          </button>
-        }
+        description={errors("requestFailed")}
+        retry={() => void expenses.refetch()}
+        retryLabel={common("retry")}
       />
     );
   }
 
   if (records.length === 0) {
-    return <EmptyState title={t("noExpenses")} />;
+    return <EmptyState title={t("noExpenses")} description={t("noExpenses")} />;
   }
 
   return (
-    <section className="rounded-lg border bg-card shadow-sm">
+    <section className="rounded-[var(--radius-card)] border bg-card shadow-[var(--shadow-card)]">
       <div className="border-b p-5">
         <h2 className="text-lg font-semibold">{t("expenseHistory")}</h2>
       </div>
-      <ul className="divide-y">
+      <ul className="hidden divide-y md:block">
         {records.map((record) => {
           const isEditing = editingId === record.id;
           const canManageRecord = canEditOrDeleteExpense(record, role, currentUserId);
@@ -113,7 +111,7 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
                     <p className="text-base font-semibold text-destructive">
                       {toDisplayAmount(record.amount_minor, locale, record.currency)}
                     </p>
-                    <p className="text-sm text-muted-foreground">{record.occurred_on}</p>
+                    <p className="text-sm text-muted-foreground"><DateDisplay date={record.occurred_on} /></p>
                     <p className="mt-1 text-sm">
                       {record.description || record.merchant_name || categoryNames.get(record.category_id ?? "") || common("none")}
                     </p>
@@ -127,22 +125,22 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
                   </div>
                   {canManageRecord && (
                     <div className="flex gap-2">
-                      <button
-                        className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+                      <Button
+                        variant="secondary"
                         type="button"
                         onClick={() => setEditingId(record.id)}
                       >
                         <Pencil className="h-4 w-4" aria-hidden="true" />
                         {common("edit")}
-                      </button>
-                      <button
-                        className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm text-destructive hover:bg-destructive/10"
+                      </Button>
+                      <Button
+                        variant="destructive"
                         type="button"
                         onClick={() => void handleDelete(record)}
                       >
                         <Trash2 className="h-4 w-4" aria-hidden="true" />
                         {confirmingDeleteId === record.id ? t("confirmDelete") : common("delete")}
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -151,6 +149,27 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
           );
         })}
       </ul>
+      <div className="grid gap-3 p-4 md:hidden">
+        {records.map((record) => {
+          const isEditing = editingId === record.id;
+          const canManageRecord = canEditOrDeleteExpense(record, role, currentUserId);
+          const description = record.description || record.merchant_name || categoryNames.get(record.category_id ?? "") || common("none");
+          return isEditing ? (
+            <ExpenseForm key={record.id} workspaceId={workspaceId} role={role} currency={record.currency} record={record} canSubmit={canManageRecord} onSaved={() => setEditingId(null)} onCancel={() => setEditingId(null)} />
+          ) : (
+            <MobileRecordCard
+              key={record.id}
+              title={toDisplayAmount(record.amount_minor, locale, record.currency)}
+              fields={[
+                { label: t("date"), value: <DateDisplay date={record.occurred_on} /> },
+                { label: t("description"), value: description },
+                { label: t("category"), value: record.category_id ? categoryNames.get(record.category_id) ?? common("none") : common("none") },
+              ]}
+              actions={canManageRecord ? <><Button size="compact" variant="secondary" type="button" onClick={() => setEditingId(record.id)}><Pencil className="h-4 w-4" aria-hidden="true" />{common("edit")}</Button><Button size="compact" variant="destructive" type="button" onClick={() => void handleDelete(record)}><Trash2 className="h-4 w-4" aria-hidden="true" />{confirmingDeleteId === record.id ? t("confirmDelete") : common("delete")}</Button></> : undefined}
+            />
+          );
+        })}
+      </div>
     </section>
   );
 }

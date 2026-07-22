@@ -1,0 +1,2 @@
+import { cn } from "@/lib/utils";
+export function Tabs({ value, tabs, onChange }: { value: string; tabs: { value: string; label: string }[]; onChange: (value: string) => void }) { return <div role="tablist" className="flex gap-1 border-b">{tabs.map((tab) => <button key={tab.value} role="tab" aria-selected={value === tab.value} className={cn("min-h-11 border-b-2 px-3 text-sm", value === tab.value ? "border-primary text-primary" : "border-transparent text-muted-foreground")} onClick={() => onChange(tab.value)}>{tab.label}</button>)}</div>; }

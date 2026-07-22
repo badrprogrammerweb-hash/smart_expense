@@ -4,13 +4,13 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
-import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
 import { IncomeForm } from "@/components/income/IncomeForm";
 import { useDeleteIncome, useIncomes } from "@/hooks/use-incomes";
 import type { IncomeRecord } from "@/lib/api/incomes";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { toDisplayAmount } from "@/lib/money";
 import { canManageIncome } from "@/lib/permissions";
+import { Button, DateDisplay, EmptyState as PrimitiveEmptyState, ErrorState as PrimitiveErrorState, MobileRecordCard, Skeleton } from "@/components/ui";
 
 export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; role: WorkspaceRole }) {
   const locale = useLocale();
@@ -48,32 +48,31 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
   }
 
   if (incomes.isLoading) {
-    return <p className="text-sm text-muted-foreground">{common("loading")}</p>;
+    return <Skeleton className="h-48 w-full" label={common("loading")} />;
   }
 
   if (incomes.isError) {
     return (
-      <ErrorState
+      <PrimitiveErrorState
         title={errors("requestFailed")}
-        action={
-          <button className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground" onClick={() => void incomes.refetch()}>
-            {common("retry")}
-          </button>
-        }
+        description={errors("requestFailed")}
+        retry={() => void incomes.refetch()}
+        retryLabel={common("retry")}
+        testId="income-error-state"
       />
     );
   }
 
   if (records.length === 0) {
-    return <EmptyState title={t("noIncome")} />;
+    return <PrimitiveEmptyState title={t("noIncome")} description={t("noIncome")} />;
   }
 
   return (
-    <section className="rounded-lg border bg-card shadow-sm">
+    <section aria-label={t("incomeHistory")} className="rounded-[var(--radius-card)] border bg-card shadow-[var(--shadow-card)]">
       <div className="border-b p-5">
         <h2 className="text-lg font-semibold">{t("incomeHistory")}</h2>
       </div>
-      <ul className="divide-y">
+      <ul className="hidden divide-y md:block">
         {records.map((record) => {
           const isEditing = editingId === record.id;
 
@@ -94,7 +93,7 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
                     <p className="text-base font-semibold text-primary">
                       {toDisplayAmount(record.amount_minor, locale, record.currency)}
                     </p>
-                    <p className="text-sm text-muted-foreground">{record.occurred_on}</p>
+                    <p className="text-sm text-muted-foreground"><DateDisplay date={record.occurred_on} /></p>
                     {record.description && <p className="mt-1 text-sm">{record.description}</p>}
                     {confirmingDeleteId === record.id && deleteError && (
                       <p className="mt-1 text-sm text-destructive">{deleteError}</p>
@@ -102,22 +101,22 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
                   </div>
                   {canManageIncome(role) && (
                     <div className="flex gap-2">
-                      <button
-                        className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+                      <Button
+                        variant="secondary"
                         type="button"
                         onClick={() => setEditingId(record.id)}
                       >
                         <Pencil className="h-4 w-4" aria-hidden="true" />
                         {common("edit")}
-                      </button>
-                      <button
-                        className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm text-destructive hover:bg-destructive/10"
+                      </Button>
+                      <Button
+                        variant="destructive"
                         type="button"
                         onClick={() => void handleDelete(record)}
                       >
                         <Trash2 className="h-4 w-4" aria-hidden="true" />
                         {confirmingDeleteId === record.id ? t("confirmDelete") : common("delete")}
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -126,6 +125,24 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
           );
         })}
       </ul>
+      <div className="grid gap-3 p-4 md:hidden">
+        {records.map((record) => {
+          const isEditing = editingId === record.id;
+          return isEditing ? (
+            <IncomeForm key={record.id} workspaceId={workspaceId} role={role} currency={record.currency} record={record} onSaved={() => setEditingId(null)} onCancel={() => setEditingId(null)} />
+          ) : (
+            <MobileRecordCard
+              key={record.id}
+              title={toDisplayAmount(record.amount_minor, locale, record.currency)}
+              fields={[
+                { label: t("date"), value: <DateDisplay date={record.occurred_on} /> },
+                { label: t("description"), value: record.description || common("none") },
+              ]}
+              actions={canManageIncome(role) ? <><Button size="compact" variant="secondary" type="button" onClick={() => setEditingId(record.id)}><Pencil className="h-4 w-4" aria-hidden="true" />{common("edit")}</Button><Button size="compact" variant="destructive" type="button" onClick={() => void handleDelete(record)}><Trash2 className="h-4 w-4" aria-hidden="true" />{confirmingDeleteId === record.id ? t("confirmDelete") : common("delete")}</Button></> : undefined}
+            />
+          );
+        })}
+      </div>
     </section>
   );
 }

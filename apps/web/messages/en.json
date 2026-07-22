@@ -8,6 +8,7 @@
     "delete": "Delete",
     "edit": "Edit",
     "confirm": "Confirm",
+    "permissionRequired": "Permission required",
     "none": "None",
     "sar": "SAR"
   },
@@ -22,6 +23,8 @@
     "history": "History",
     "settings": "Settings",
     "signOut": "Sign out",
+    "openNavigation": "Open navigation",
+    "mobileNavigation": "Navigation",
     "workspaceRole": "{role} role",
     "memberCount": "{count, plural, one {# member} other {# members}}",
     "workspaceTypePersonal": "Personal",
@@ -232,7 +235,9 @@
     },
     "topMerchants": {
       "title": "Top merchants",
-      "empty": "No merchant spending for this period."
+      "empty": "No merchant spending for this period.",
+      "count": "Records",
+      "total": "Total"
     },
     "teamActivity": {
       "title": "Team activity",
@@ -266,6 +271,10 @@
     "loadMore": "Load more",
     "notAuthorized": "Only owners and admins can view activity history.",
     "unknownActor": "Unknown user",
+    "actor": "Actor",
+    "date": "Date",
+    "details": "Details",
+    "amount": "Amount",
     "events": {
       "income_created": "Income added",
       "income_updated": "Income updated",
@@ -319,6 +328,7 @@
     "removeTitle": "Remove AI key?",
     "removeDescription": "The stored key will be deleted from Vault and this workspace will return to not configured.",
     "manualFirstNote": "Saving a key does not trigger AI work in this phase.",
+    "viewerBlocked": "Your current role can view AI settings but cannot configure them.",
     "providers": {
       "gemini": "Gemini",
       "openai": "OpenAI"
@@ -328,6 +338,8 @@
       "notConfigured": "Not configured",
       "noKeyHint": "No provider key is stored for this workspace.",
       "updated": "Updated {date} by {user}",
+      "updatedPrefix": "Updated",
+      "updatedBy": "by {user}",
       "unknownUser": "unknown user"
     },
     "formatHints": {
@@ -423,9 +435,10 @@
       "vendor": "Vendor",
       "category": "Category",
       "description": "Description",
-      "suggestedCategory": "Suggested category",
-      "extractedCurrency": "Detected currency",
-      "autoDeleteNotice": "This file will be removed after you confirm, because auto-delete is on for this workspace."
+        "suggestedCategory": "Suggested category",
+        "extractedCurrency": "Detected currency",
+        "nonFinalNotice": "These are draft values. They will not affect your balance or reports until you confirm them.",
+        "autoDeleteNotice": "This file will be removed after you confirm, because auto-delete is on for this workspace."
     },
     "queue": {
       "title": "Pending review",

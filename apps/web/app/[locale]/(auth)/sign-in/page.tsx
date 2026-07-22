@@ -10,6 +10,7 @@ import { z } from "zod";
 
 import { redirectToPreferredWorkspace } from "@/lib/auth-routing";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { Button, FormError, FormField, FormLabel, Input } from "@/components/ui";
 
 const schema = z.object({
   email: z.string().email(),
@@ -48,41 +49,33 @@ export default function SignInPage() {
 
   return (
     <main className="grid min-h-screen place-items-center bg-background p-6">
-      <section className="w-full max-w-md rounded-lg border bg-card p-6 shadow-sm">
+      <section className="w-full max-w-md rounded-[var(--radius-card)] border bg-card p-6 shadow-[var(--shadow-dialog)]">
         <h1 className="text-2xl font-semibold">{t("signInTitle")}</h1>
         <form className="mt-6 space-y-4" onSubmit={form.handleSubmit(submit)}>
-          <label className="block text-sm font-medium">
-            {t("email")}
-            <input
-              className="mt-2 h-10 w-full rounded-md border bg-background px-3 text-sm"
+          <FormField><FormLabel htmlFor="sign-in-email">{t("email")}</FormLabel><Input
+              id="sign-in-email"
+              className="mt-2"
               type="email"
               autoComplete="email"
               {...form.register("email")}
-            />
-          </label>
-          {form.formState.errors.email && (
-            <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
-          )}
-          <label className="block text-sm font-medium">
-            {t("password")}
-            <input
-              className="mt-2 h-10 w-full rounded-md border bg-background px-3 text-sm"
+            /></FormField>
+          <FormError>{form.formState.errors.email?.message}</FormError>
+          <FormField><FormLabel htmlFor="sign-in-password">{t("password")}</FormLabel><Input
+              id="sign-in-password"
+              className="mt-2"
               type="password"
               autoComplete="current-password"
               {...form.register("password")}
-            />
-          </label>
-          {form.formState.errors.password && (
-            <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
-          )}
-          {formError && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{formError}</p>}
-          <button
-            className="h-10 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60"
+            /></FormField>
+          <FormError>{form.formState.errors.password?.message}</FormError>
+          <FormError>{formError}</FormError>
+          <Button
+            className="w-full"
             type="submit"
-            disabled={form.formState.isSubmitting}
+            loading={form.formState.isSubmitting}
           >
             {t("signIn")}
-          </button>
+          </Button>
         </form>
         <div className="mt-5 flex flex-wrap justify-between gap-3 text-sm">
           <Link href={`/${locale}/sign-up`}>{t("needAccount")}</Link>

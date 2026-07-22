@@ -62,7 +62,7 @@ export function CategoryBreakdown({
   }
 
   return (
-    <section className="rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
+    <section className="rounded-[var(--radius-card)] border bg-card p-5 text-card-foreground shadow-[var(--shadow-card)]">
       <h2 className="text-lg font-semibold">{title ?? t("categoryBreakdown")}</h2>
       {items.length === 0 ? (
         <p className="mt-3 text-sm text-muted-foreground">{t("emptyDescription")}</p>

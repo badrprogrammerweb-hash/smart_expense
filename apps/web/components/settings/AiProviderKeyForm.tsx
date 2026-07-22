@@ -8,6 +8,7 @@ import { useConfigureAiSettings } from "@/hooks/use-ai-settings";
 import type { AiProvider, AiSettingsStatus } from "@/lib/api/ai-settings";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { canManageAiSettings } from "@/lib/permissions";
+import { Alert, Button, Input, PermissionDeniedState, Select } from "@/components/ui";
 
 type AiProviderKeyFormProps = {
   role: WorkspaceRole;
@@ -47,7 +48,7 @@ export function AiProviderKeyForm({ role, status, workspaceId }: AiProviderKeyFo
   }, [status?.provider]);
 
   if (!canManageAiSettings(role)) {
-    return null;
+    return <PermissionDeniedState action={t("title").toLowerCase()} description={t("viewerBlocked")} role={role === "viewer" ? "Viewer" : "Member"} title={common("permissionRequired")} />;
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -79,8 +80,8 @@ export function AiProviderKeyForm({ role, status, workspaceId }: AiProviderKeyFo
           <label className="text-sm font-medium" htmlFor={providerId}>
             {t("providerLabel")}
           </label>
-          <select
-            className="mt-1 h-10 w-full rounded-md border bg-background px-3 text-sm"
+          <Select
+            className="mt-1"
             id={providerId}
             value={provider}
             onChange={(event) => setProvider(event.currentTarget.value as AiProvider)}
@@ -90,15 +91,15 @@ export function AiProviderKeyForm({ role, status, workspaceId }: AiProviderKeyFo
                 {t(`providers.${value}`)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div>
           <label className="text-sm font-medium" htmlFor={keyInputId}>
             {status?.configured ? t("replaceKeyLabel") : t("keyLabel")}
           </label>
-          <input
+          <Input
             autoComplete="off"
-            className="mt-1 h-10 w-full rounded-md border bg-background px-3 text-sm"
+            className="mt-1"
             id={keyInputId}
             type="password"
             value={apiKey}
@@ -110,24 +111,12 @@ export function AiProviderKeyForm({ role, status, workspaceId }: AiProviderKeyFo
           <p className="mt-1 text-xs text-muted-foreground">{t(`formatHints.${provider}`)}</p>
         </div>
       </div>
-      {validationError ? (
-        <p className="text-sm text-destructive" role="alert">
-          {validationError}
-        </p>
-      ) : null}
-      {requestError ? (
-        <p className="text-sm text-destructive" role="alert">
-          {requestError}
-        </p>
-      ) : null}
-      <button
-        className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
-        disabled={configure.isPending}
-        type="submit"
-      >
+      {validationError ? <Alert variant="error" title={validationError} /> : null}
+      {requestError ? <Alert variant="error" title={requestError} /> : null}
+      <Button loading={configure.isPending} type="submit">
         <Save className="h-4 w-4" aria-hidden="true" />
         {status?.configured ? t("replaceAction") : common("save")}
-      </button>
+      </Button>
     </form>
   );
 }

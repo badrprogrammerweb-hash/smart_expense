@@ -13,6 +13,7 @@ import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { minorUnitDigits, type SupportedCurrency } from "@/lib/currency";
 import { parseInputToMinor } from "@/lib/money";
 import { canCreateExpense } from "@/lib/permissions";
+import { AmountInput, Button, DateDisplay, FormError, FormField, FormLabel, Input, PermissionDeniedState, Textarea } from "@/components/ui";
 
 type ExpenseFormProps = {
   workspaceId: string;
@@ -61,9 +62,10 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
       category_id: record?.category_id ?? "",
     },
   });
+  const selectedDate = form.watch("occurred_on");
 
   if (!allowed) {
-    return <p className="rounded-lg border bg-muted p-4 text-sm text-muted-foreground">{t("viewerBlocked")}</p>;
+    return <PermissionDeniedState action={t("addExpense").toLowerCase()} description={t("viewerBlocked")} role={role === "viewer" ? "Viewer" : "Member"} title={common("permissionRequired")} />;
   }
 
   async function submit(values: FormValues) {
@@ -96,26 +98,15 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
   }
 
   return (
-    <form className="space-y-4 rounded-lg border bg-card p-5 shadow-sm" onSubmit={form.handleSubmit(submit)}>
+    <form className="space-y-4 rounded-[var(--radius-card)] border bg-card p-5 shadow-[var(--shadow-card)]" onSubmit={form.handleSubmit(submit)}>
       <h2 className="text-lg font-semibold">{record ? t("updateExpense") : t("addExpense")}</h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-medium">
-          {t("amount")}
-          <input className="mt-2 h-10 w-full rounded-md border bg-background px-3" inputMode="decimal" {...form.register("amount")} />
-        </label>
-        <label className="block text-sm font-medium">
-          {t("date")}
-          <input className="mt-2 h-10 w-full rounded-md border bg-background px-3" type="date" {...form.register("occurred_on")} />
-        </label>
+        <FormField><FormLabel htmlFor="expense-amount">{t("amount")}</FormLabel><AmountInput id="expense-amount" className="mt-2" currency={currency} {...form.register("amount")} /></FormField>
+        <FormField><FormLabel htmlFor="expense-date">{t("date")}</FormLabel><Input id="expense-date" className="mt-2" dir="ltr" type="date" {...form.register("occurred_on")} />{selectedDate ? <DateDisplay date={selectedDate} className="mt-1 text-xs text-muted-foreground" /> : null}</FormField>
       </div>
-      {form.formState.errors.amount && <p className="text-sm text-destructive">{form.formState.errors.amount.message}</p>}
-      {form.formState.errors.occurred_on && (
-        <p className="text-sm text-destructive">{form.formState.errors.occurred_on.message}</p>
-      )}
-      <label className="block text-sm font-medium">
-        {t("merchant")}
-        <input className="mt-2 h-10 w-full rounded-md border bg-background px-3" {...form.register("merchant_name")} />
-      </label>
+      <FormError>{form.formState.errors.amount?.message}</FormError>
+      <FormError>{form.formState.errors.occurred_on?.message}</FormError>
+      <FormField><FormLabel htmlFor="expense-merchant">{t("merchant")}</FormLabel><Input id="expense-merchant" className="mt-2" {...form.register("merchant_name")} /></FormField>
       <Controller
         control={form.control}
         name="category_id"
@@ -128,23 +119,19 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
           />
         )}
       />
-      <label className="block text-sm font-medium">
-        {t("description")}
-        <textarea className="mt-2 min-h-24 w-full rounded-md border bg-background px-3 py-2" {...form.register("description")} />
-      </label>
-      {formError && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{formError}</p>}
+      <FormField><FormLabel htmlFor="expense-description">{t("description")}</FormLabel><Textarea id="expense-description" className="mt-2" {...form.register("description")} /></FormField>
+      {formError && <FormError>{formError}</FormError>}
       <div className="flex flex-wrap gap-2">
-        <button
-          className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60"
+        <Button
           type="submit"
-          disabled={form.formState.isSubmitting || createExpense.isPending || updateExpense.isPending}
+          loading={form.formState.isSubmitting || createExpense.isPending || updateExpense.isPending}
         >
           {common("save")}
-        </button>
+        </Button>
         {onCancel && (
-          <button className="h-10 rounded-md border px-4 text-sm font-medium" type="button" onClick={onCancel}>
+          <Button variant="secondary" type="button" onClick={onCancel}>
             {common("cancel")}
-          </button>
+          </Button>
         )}
       </div>
     </form>

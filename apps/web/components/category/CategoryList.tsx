@@ -4,7 +4,7 @@ import { Archive, ArchiveRestore, ArrowDown, ArrowUp, ChevronDown, ChevronRight,
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
-import { ErrorState } from "@/components/dashboard/DataState";
+import { EmptyState, ErrorState, Skeleton } from "@/components/ui";
 import {
   useCategories,
   useDeleteCategory,
@@ -46,23 +46,22 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
   );
 
   if (categories.isLoading) {
-    return <p className="text-sm text-muted-foreground">{common("loading")}</p>;
+    return <Skeleton className="h-48 w-full" label={common("loading")} />;
   }
 
   if (categories.isError) {
     return (
       <ErrorState
         title={errors("requestFailed")}
-        action={
-          <button
-            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
-            onClick={() => void categories.refetch()}
-          >
-            {common("retry")}
-          </button>
-        }
+        description={errors("requestFailed")}
+        retry={() => void categories.refetch()}
+        retryLabel={common("retry")}
       />
     );
+  }
+
+  if (mains.length === 0) {
+    return <EmptyState title={categoryType === "expense" ? t("expenseCategories") : t("incomeCategories")} description={common("none")} />;
   }
 
   function toggleExpanded(id: string) {
@@ -234,7 +233,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
   }
 
   return (
-    <section className="rounded-lg border bg-card shadow-sm">
+    <section className="rounded-[var(--radius-card)] border bg-card shadow-[var(--shadow-card)]">
       <div className="border-b p-5">
         <h2 className="text-lg font-semibold">
           {categoryType === "expense" ? t("expenseCategories") : t("incomeCategories")}

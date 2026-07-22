@@ -11,12 +11,21 @@ export default defineConfig({
   fullyParallel: true,
   timeout: 120_000,
   workers,
+  snapshotPathTemplate: "{testDir}/__screenshots__/{projectName}/{testFilePath}/{arg}{ext}",
+  expect: {
+    toHaveScreenshot: {
+      threshold: 0.2,
+      maxDiffPixelRatio: 0.01,
+    },
+  },
   use: {
     baseURL,
     trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
   },
   webServer: {
-    command: "npm run dev",
+    command: "npm run build && npm run start",
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
@@ -25,6 +34,16 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "mobile-rtl",
+      testMatch: [
+        /e2e\/(accessibility|f001-dates|refresh-responsive|visual-regression)\.spec\.ts/,
+      ],
+      use: {
+        ...devices["Pixel 7"],
+        locale: "ar-SA",
+      },
     },
   ],
 });

@@ -4,6 +4,7 @@ import { AlertTriangle, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { Button } from "@/components/ui";
 import { useRemoveAiSettings } from "@/hooks/use-ai-settings";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { canManageAiSettings } from "@/lib/permissions";
@@ -38,14 +39,14 @@ export function RemoveAiKeyDialog({ configured, role, workspaceId }: RemoveAiKey
 
   if (!isConfirming) {
     return (
-      <button
-        className="inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium text-destructive hover:bg-destructive/10"
+      <Button
+        variant="destructive"
         type="button"
         onClick={() => setIsConfirming(true)}
       >
         <Trash2 className="h-4 w-4" aria-hidden="true" />
         {t("removeAction")}
-      </button>
+      </Button>
     );
   }
 
@@ -64,23 +65,23 @@ export function RemoveAiKeyDialog({ configured, role, workspaceId }: RemoveAiKey
         </p>
       ) : null}
       <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          className="inline-flex h-9 items-center gap-2 rounded-md bg-destructive px-3 text-sm font-medium text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={removeKey.isPending}
+        <Button
+          variant="destructive"
+          loading={removeKey.isPending}
           type="button"
           onClick={() => void onConfirmRemove()}
         >
           <Trash2 className="h-4 w-4" aria-hidden="true" />
           {common("confirm")}
-        </button>
-        <button
-          className="h-9 rounded-md border px-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+        </Button>
+        <Button
+          variant="secondary"
           disabled={removeKey.isPending}
           type="button"
           onClick={() => setIsConfirming(false)}
         >
           {common("cancel")}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -4,12 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
-import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
 import { DiscardExtractionDialog } from "@/components/extraction/DiscardExtractionDialog";
 import { ExtractionReviewForm } from "@/components/extraction/ExtractionReviewForm";
 import { getExtraction } from "@/lib/api/extractions";
 import { getFileDownloadUrl } from "@/lib/api/files";
 import { useWorkspaceContext } from "@/lib/workspace-context";
+import { EmptyState, ErrorState, Skeleton } from "@/components/ui";
 
 export default function ExtractionReviewPage() {
   const params = useParams<{ extractionId: string }>();
@@ -29,11 +29,11 @@ export default function ExtractionReviewPage() {
   });
 
   if (extraction.isLoading) {
-    return <p className="text-sm text-muted-foreground">{common("loading")}</p>;
+    return <Skeleton className="h-64 w-full" label={common("loading")} />;
   }
 
   if (extraction.isError || !extraction.data) {
-    return <ErrorState title={errors("requestFailed")} />;
+    return <ErrorState title={errors("requestFailed")} description={errors("requestFailed")} retry={() => void extraction.refetch()} retryLabel={common("retry")} />;
   }
 
   const previewUrl = filePreview.data?.url;

@@ -9,6 +9,7 @@ import { ApiError } from "@/lib/api/client";
 import { uploadFile } from "@/lib/api/files";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { canUploadFile } from "@/lib/permissions";
+import { Alert, Button, PermissionDeniedState } from "@/components/ui";
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "application/pdf"]);
@@ -51,6 +52,7 @@ function uploadErrorMessage(error: unknown, t: ReturnType<typeof useTranslations
 
 export function FileUpload({ workspaceId, role }: FileUploadProps) {
   const t = useTranslations("files");
+  const common = useTranslations("common");
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -59,7 +61,7 @@ export function FileUpload({ workspaceId, role }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
 
   if (!canUploadFile(role)) {
-    return null;
+    return <PermissionDeniedState action={t("upload.action").toLowerCase()} description={t("errors.forbidden")} role="Viewer" title={common("permissionRequired")} />;
   }
 
   function onFileChange(file: File | undefined) {
@@ -99,7 +101,7 @@ export function FileUpload({ workspaceId, role }: FileUploadProps) {
   }
 
   return (
-    <form className="space-y-3 rounded-md border bg-card p-4" onSubmit={(event) => void onSubmit(event)}>
+    <form className="space-y-3 rounded-[var(--radius-card)] border bg-card p-4 shadow-[var(--shadow-card)]" onSubmit={(event) => void onSubmit(event)}>
       <div>
         <label className="text-sm font-medium" htmlFor="file-upload">
           {t("upload.title")}
@@ -115,17 +117,17 @@ export function FileUpload({ workspaceId, role }: FileUploadProps) {
           accept="image/png,image/jpeg,image/webp,application/pdf"
           onChange={(event) => onFileChange(event.target.files?.[0])}
         />
-        <button
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
+        <Button
           type="submit"
-          disabled={!selectedFile || isUploading}
+          loading={isUploading}
+          disabled={!selectedFile}
         >
           <Upload className="h-4 w-4" aria-hidden="true" />
           {t("upload.action")}
-        </button>
+        </Button>
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      {success && <p className="text-sm text-muted-foreground">{success}</p>}
+      {error && <Alert variant="error" title={error} />}
+      {success && <Alert variant="success" title={success} />}
     </form>
   );
 }

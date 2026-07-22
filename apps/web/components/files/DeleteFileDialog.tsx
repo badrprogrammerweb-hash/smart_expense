@@ -8,6 +8,7 @@ import { useState } from "react";
 import { deleteFile, type FileMetadata } from "@/lib/api/files";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { canDeleteFile } from "@/lib/permissions";
+import { Button, FormError } from "@/components/ui";
 
 type DeleteFileDialogProps = {
   file: FileMetadata;
@@ -50,14 +51,14 @@ export function DeleteFileDialog({ file, role, workspaceId }: DeleteFileDialogPr
 
   if (!isConfirming) {
     return (
-      <button
-        className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm text-destructive hover:bg-destructive/10"
+      <Button
+        variant="destructive"
         type="button"
         onClick={() => setIsConfirming(true)}
       >
         <Trash2 className="h-4 w-4" aria-hidden="true" />
         {t("actions.delete")}
-      </button>
+      </Button>
     );
   }
 
@@ -70,24 +71,24 @@ export function DeleteFileDialog({ file, role, workspaceId }: DeleteFileDialogPr
           <p className="mt-1 break-words text-xs text-muted-foreground">{file.original_filename}</p>
         </div>
       </div>
-      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+      {error && <div className="mt-2"><FormError>{error}</FormError></div>}
       <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          className="h-8 rounded-md bg-destructive px-3 text-xs font-medium text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isDeleting}
+        <Button
+          variant="destructive"
+          loading={isDeleting}
           type="button"
           onClick={() => void onConfirmDelete()}
         >
           {common("confirm")}
-        </button>
-        <button
-          className="h-8 rounded-md border px-3 text-xs font-medium"
+        </Button>
+        <Button
+          variant="secondary"
           disabled={isDeleting}
           type="button"
           onClick={() => setIsConfirming(false)}
         >
           {common("cancel")}
-        </button>
+        </Button>
       </div>
     </div>
   );

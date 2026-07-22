@@ -13,6 +13,7 @@ import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { minorUnitDigits, type SupportedCurrency } from "@/lib/currency";
 import { parseInputToMinor } from "@/lib/money";
 import { canManageIncome } from "@/lib/permissions";
+import { AmountInput, Button, DateDisplay, FormError, FormField, FormLabel, Input, PermissionDeniedState, Textarea } from "@/components/ui";
 
 type IncomeFormProps = {
   workspaceId: string;
@@ -57,9 +58,10 @@ export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCan
       category_id: record?.category_id ?? "",
     },
   });
+  const selectedDate = form.watch("occurred_on");
 
   if (!canManageIncome(role)) {
-    return <p className="rounded-lg border bg-muted p-4 text-sm text-muted-foreground">{t("incomeBlocked")}</p>;
+    return <PermissionDeniedState action={t("addIncome").toLowerCase()} description={t("incomeBlocked")} role={role === "viewer" ? "Viewer" : "Member"} title={common("permissionRequired")} />;
   }
 
   async function submit(values: FormValues) {
@@ -90,22 +92,14 @@ export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCan
   }
 
   return (
-    <form className="space-y-4 rounded-lg border bg-card p-5 shadow-sm" onSubmit={form.handleSubmit(submit)}>
+    <form className="space-y-4 rounded-[var(--radius-card)] border bg-card p-5 shadow-[var(--shadow-card)]" onSubmit={form.handleSubmit(submit)}>
       <h2 className="text-lg font-semibold">{record ? t("updateIncome") : t("addIncome")}</h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-medium">
-          {t("amount")}
-          <input className="mt-2 h-10 w-full rounded-md border bg-background px-3" inputMode="decimal" {...form.register("amount")} />
-        </label>
-        <label className="block text-sm font-medium">
-          {t("date")}
-          <input className="mt-2 h-10 w-full rounded-md border bg-background px-3" type="date" {...form.register("occurred_on")} />
-        </label>
+        <FormField><FormLabel htmlFor="income-amount">{t("amount")}</FormLabel><AmountInput id="income-amount" className="mt-2" currency={currency} {...form.register("amount")} /></FormField>
+        <FormField><FormLabel htmlFor="income-date">{t("date")}</FormLabel><Input id="income-date" className="mt-2" dir="ltr" type="date" {...form.register("occurred_on")} />{selectedDate ? <DateDisplay date={selectedDate} className="mt-1 text-xs text-muted-foreground" /> : null}</FormField>
       </div>
-      {form.formState.errors.amount && <p className="text-sm text-destructive">{form.formState.errors.amount.message}</p>}
-      {form.formState.errors.occurred_on && (
-        <p className="text-sm text-destructive">{form.formState.errors.occurred_on.message}</p>
-      )}
+      <FormError>{form.formState.errors.amount?.message}</FormError>
+      <FormError>{form.formState.errors.occurred_on?.message}</FormError>
       <Controller
         control={form.control}
         name="category_id"
@@ -118,23 +112,19 @@ export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCan
           />
         )}
       />
-      <label className="block text-sm font-medium">
-        {t("description")}
-        <textarea className="mt-2 min-h-24 w-full rounded-md border bg-background px-3 py-2" {...form.register("description")} />
-      </label>
-      {formError && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{formError}</p>}
+      <FormField><FormLabel htmlFor="income-description">{t("description")}</FormLabel><Textarea id="income-description" className="mt-2" {...form.register("description")} /></FormField>
+      {formError && <FormError>{formError}</FormError>}
       <div className="flex flex-wrap gap-2">
-        <button
-          className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60"
+        <Button
           type="submit"
-          disabled={form.formState.isSubmitting || createIncome.isPending || updateIncome.isPending}
+          loading={form.formState.isSubmitting || createIncome.isPending || updateIncome.isPending}
         >
           {common("save")}
-        </button>
+        </Button>
         {onCancel && (
-          <button className="h-10 rounded-md border px-4 text-sm font-medium" type="button" onClick={onCancel}>
+          <Button variant="secondary" type="button" onClick={onCancel}>
             {common("cancel")}
-          </button>
+          </Button>
         )}
       </div>
     </form>

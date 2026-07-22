@@ -44,7 +44,7 @@ export function AutoDeleteToggle({
   }
 
   return (
-    <section className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
+    <section className="rounded-[var(--radius-card)] border bg-card p-6 text-card-foreground shadow-[var(--shadow-card)]">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <label className="text-lg font-semibold" htmlFor={inputId}>

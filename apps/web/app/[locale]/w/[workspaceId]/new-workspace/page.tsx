@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { useCreateWorkspace } from "@/hooks/use-workspaces";
+import { Button, FormError, FormField, FormLabel, Input } from "@/components/ui";
 
 export default function NewWorkspacePage() {
   const locale = useLocale();
@@ -34,21 +35,17 @@ export default function NewWorkspacePage() {
   }
 
   return (
-    <form className="mx-auto max-w-md space-y-4 rounded-lg border bg-card p-5 shadow-sm" onSubmit={form.handleSubmit(submit)}>
+    <form className="mx-auto max-w-md space-y-4 rounded-[var(--radius-card)] border bg-card p-5 shadow-[var(--shadow-card)]" onSubmit={form.handleSubmit(submit)}>
       <h1 className="text-lg font-semibold">{t("createWorkspace")}</h1>
-      <label className="block text-sm font-medium">
-        {t("workspaceName")}
-        <input className="mt-2 h-10 w-full rounded-md border bg-background px-3" {...form.register("name")} />
-      </label>
-      {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
-      {formError && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{formError}</p>}
-      <button
-        className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60"
+      <FormField><FormLabel htmlFor="workspace-name">{t("workspaceName")}</FormLabel><Input id="workspace-name" className="mt-2" {...form.register("name")} /></FormField>
+      <FormError>{form.formState.errors.name?.message}</FormError>
+      <FormError>{formError}</FormError>
+      <Button
         type="submit"
-        disabled={form.formState.isSubmitting || createWorkspace.isPending}
+        loading={form.formState.isSubmitting || createWorkspace.isPending}
       >
         {t("create")}
-      </button>
+      </Button>
     </form>
   );
 }

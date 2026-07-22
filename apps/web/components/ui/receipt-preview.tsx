@@ -1,0 +1,1 @@
+export function ReceiptPreview({ src, alt, fileName }: { src: string; alt: string; fileName: string }) { return <figure className="overflow-hidden rounded-[var(--radius-card)] border bg-muted"><img src={src} alt={alt} className="h-auto w-full object-contain" /><figcaption className="p-3 text-sm text-muted-foreground" dir="ltr">{fileName}</figcaption></figure>; }
