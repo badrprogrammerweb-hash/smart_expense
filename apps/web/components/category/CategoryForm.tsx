@@ -11,6 +11,7 @@ import type { CategoryType } from "@/lib/api/categories";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { getCategoryLabel } from "@/lib/i18n/category-labels";
 import { canManageCategories } from "@/lib/permissions";
+import { Button, FormError, FormField, FormLabel, Input, PermissionDeniedState, Select } from "@/components/ui";
 
 type CategoryFormProps = {
   workspaceId: string;
@@ -40,7 +41,7 @@ export function CategoryForm({ workspaceId, role, categoryType }: CategoryFormPr
   });
 
   if (!canManageCategories(role)) {
-    return <p className="rounded-lg border bg-muted p-4 text-sm text-muted-foreground">{t("viewerBlocked")}</p>;
+    return <PermissionDeniedState action={t("addCategory").toLowerCase()} description={t("viewerBlocked")} role={role === "viewer" ? "Viewer" : "Member"} title={common("permissionRequired")} />;
   }
 
   async function submit(values: FormValues) {
@@ -59,16 +60,11 @@ export function CategoryForm({ workspaceId, role, categoryType }: CategoryFormPr
   }
 
   return (
-    <form className="space-y-4 rounded-lg border bg-card p-5 shadow-sm" onSubmit={form.handleSubmit(submit)}>
+    <form className="space-y-4 rounded-[var(--radius-card)] border bg-card p-5 shadow-[var(--shadow-card)]" onSubmit={form.handleSubmit(submit)}>
       <h2 className="text-lg font-semibold">{t("addCategory")}</h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-medium">
-          {t("categoryName")}
-          <input className="mt-2 h-10 w-full rounded-md border bg-background px-3" {...form.register("name")} />
-        </label>
-        <label className="block text-sm font-medium">
-          {t("parentCategory")}
-          <select className="mt-2 h-10 w-full rounded-md border bg-background px-3" {...form.register("parentId")}>
+        <FormField><FormLabel htmlFor="category-name">{t("categoryName")}</FormLabel><Input id="category-name" className="mt-2" {...form.register("name")} /></FormField>
+        <FormField><FormLabel htmlFor="category-parent">{t("parentCategory")}</FormLabel><Select id="category-parent" className="mt-2" {...form.register("parentId")}>
             <option value="">{t("newMainCategory")}</option>
             {(mainCategories.data?.categories ?? [])
               .filter((main) => !main.is_archived)
@@ -77,18 +73,16 @@ export function CategoryForm({ workspaceId, role, categoryType }: CategoryFormPr
                   {getCategoryLabel(catalogT, main)}
                 </option>
               ))}
-          </select>
-        </label>
+          </Select></FormField>
       </div>
-      {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
-      {formError && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{formError}</p>}
-      <button
-        className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60"
+      <FormError>{form.formState.errors.name?.message}</FormError>
+      <FormError>{formError}</FormError>
+      <Button
         type="submit"
-        disabled={form.formState.isSubmitting || createCategory.isPending}
+        loading={form.formState.isSubmitting || createCategory.isPending}
       >
         {common("save")}
-      </button>
+      </Button>
     </form>
   );
 }

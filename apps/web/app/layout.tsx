@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
+import { Tajawal } from "next/font/google";
 import { getLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { directionForLocale, isLocale } from "@/i18n/routing";
 
 import "./globals.css";
+
+const tajawal = Tajawal({
+  variable: "--font-arabic",
+  subsets: ["arabic", "latin"],
+  weight: ["400", "500", "700"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Smart Expense - AI",
@@ -17,7 +25,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
   return (
     <html lang={locale} dir={directionForLocale(locale)}>
-      <body>{children}</body>
+      <body className={tajawal.variable}>{children}</body>
     </html>
   );
 }

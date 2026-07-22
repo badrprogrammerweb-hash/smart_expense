@@ -30,7 +30,7 @@ export function PlainLanguageSummary({ summary, locale }: PlainLanguageSummaryPr
     summary.top_category === null;
 
   return (
-    <section className="rounded-lg border bg-card p-5 text-card-foreground shadow-sm" dir={dir}>
+    <section className="rounded-[var(--radius-card)] border bg-card p-5 text-card-foreground shadow-[var(--shadow-card)]" dir={dir}>
       <h2 className="text-lg font-semibold">{t("title")}</h2>
       {isEmpty ? (
         <p className="mt-3 text-sm text-muted-foreground">{t("empty")}</p>

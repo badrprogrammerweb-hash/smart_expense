@@ -2,12 +2,12 @@
 
 import { useLocale, useTranslations } from "next-intl";
 
-import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
 import { HistoryEmptyState } from "@/components/history/HistoryEmptyState";
 import { HistoryList } from "@/components/history/HistoryList";
 import { useHistory } from "@/hooks/use-history";
 import { canViewHistory } from "@/lib/permissions";
 import { useWorkspaceContext } from "@/lib/workspace-context";
+import { ErrorState, PermissionDeniedState, Skeleton } from "@/components/ui";
 
 export default function HistoryPage() {
   const locale = useLocale();
@@ -19,26 +19,20 @@ export default function HistoryPage() {
   const items = history.data?.pages.flatMap((page) => page.items) ?? [];
 
   if (!canViewHistory(role)) {
-    return <EmptyState title={t("title")} description={t("notAuthorized")} />;
+    return <PermissionDeniedState action={t("title").toLowerCase()} description={t("notAuthorized")} role={role === "viewer" ? "Viewer" : "Member"} title={common("permissionRequired")} />;
   }
 
   if (history.isLoading) {
-    return <p className="text-sm text-muted-foreground">{common("loading")}</p>;
+    return <Skeleton className="h-48 w-full" label={common("loading")} />;
   }
 
   if (history.isError) {
     return (
       <ErrorState
         title={errors("requestFailed")}
-        action={
-          <button
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-            onClick={() => void history.refetch()}
-            type="button"
-          >
-            {common("retry")}
-          </button>
-        }
+        description={errors("requestFailed")}
+        retry={() => void history.refetch()}
+        retryLabel={common("retry")}
       />
     );
   }

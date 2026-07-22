@@ -272,7 +272,7 @@ test.describe("extraction", () => {
     await gotoReliably(page, `/ar/w/${workspaceId}/extractions`);
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.getByRole("heading", { name: "بانتظار المراجعة" })).toBeVisible();
-    await expect(page.getByText("جاهز للمراجعة")).toBeVisible();
+    await expect(page.getByText("جاهز للمراجعة").first()).toBeVisible();
 
     await gotoReliably(page, `/ar/w/${workspaceId}/extractions/${extractionId}`);
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");

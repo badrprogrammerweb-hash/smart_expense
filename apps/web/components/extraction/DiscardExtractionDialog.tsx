@@ -1,12 +1,13 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { ApiError } from "@/lib/api/client";
 import { discardExtraction, type ExtractionRecord } from "@/lib/api/extractions";
+import { Alert, Button, ConfirmDialog } from "@/components/ui";
 
 type DiscardExtractionDialogProps = {
   workspaceId: string;
@@ -61,50 +62,14 @@ export function DiscardExtractionDialog({
 
   if (!isConfirming) {
     return (
-      <button
-        className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm text-destructive hover:bg-destructive/10"
-        type="button"
-        onClick={() => setIsConfirming(true)}
-      >
+      <Button variant="destructive" size="compact" type="button" onClick={() => setIsConfirming(true)}>
         <Trash2 className="h-4 w-4" aria-hidden="true" />
         {t("actions.discard")}
-      </button>
+      </Button>
     );
   }
 
   return (
-    <div className="min-w-64 rounded-md border bg-background p-3 shadow-sm" role="dialog">
-      <div className="flex items-start gap-2">
-        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden="true" />
-        <div>
-          <p className="text-sm font-medium">{t("actions.confirmDiscard")}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{t("discard.description")}</p>
-        </div>
-      </div>
-      {error && (
-        <p className="mt-2 text-sm text-destructive" role="alert">
-          {error}
-        </p>
-      )}
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          className="inline-flex h-8 items-center gap-2 rounded-md bg-destructive px-3 text-xs font-medium text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isDiscarding}
-          type="button"
-          onClick={() => void onConfirmDiscard()}
-        >
-          <Trash2 className="h-4 w-4" aria-hidden="true" />
-          {common("confirm")}
-        </button>
-        <button
-          className="h-8 rounded-md border px-3 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isDiscarding}
-          type="button"
-          onClick={() => setIsConfirming(false)}
-        >
-          {common("cancel")}
-        </button>
-      </div>
-    </div>
+    <><ConfirmDialog open onOpenChange={setIsConfirming} title={t("actions.confirmDiscard")} consequence={t("discard.description")} confirmLabel={common("confirm")} loading={isDiscarding} onConfirm={() => void onConfirmDiscard()} />{error && <Alert className="mt-2" variant="error" title={error} />}</>
   );
 }

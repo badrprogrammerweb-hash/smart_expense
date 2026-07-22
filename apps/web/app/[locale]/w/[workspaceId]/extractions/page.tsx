@@ -4,11 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 
-import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
 import { DiscardExtractionDialog } from "@/components/extraction/DiscardExtractionDialog";
 import { ExtractionStatusBadge } from "@/components/extraction/ExtractionStatusBadge";
 import { listExtractions } from "@/lib/api/extractions";
 import { useWorkspaceContext } from "@/lib/workspace-context";
+import { DateDisplay, EmptyState, ErrorState, Ltr, MobileRecordCard, Skeleton, Table } from "@/components/ui";
 
 export default function ExtractionsPage() {
   const locale = useLocale();
@@ -23,22 +23,16 @@ export default function ExtractionsPage() {
   });
 
   if (extractions.isLoading) {
-    return <p className="text-sm text-muted-foreground">{common("loading")}</p>;
+    return <Skeleton className="h-48 w-full" label={common("loading")} />;
   }
 
   if (extractions.isError) {
     return (
       <ErrorState
         title={errors("requestFailed")}
-        action={
-          <button
-            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
-            type="button"
-            onClick={() => void extractions.refetch()}
-          >
-            {common("retry")}
-          </button>
-        }
+        description={errors("requestFailed")}
+        retry={() => void extractions.refetch()}
+        retryLabel={common("retry")}
       />
     );
   }
@@ -51,55 +45,34 @@ export default function ExtractionsPage() {
   }
 
   return (
-    <section className="rounded-lg border bg-card shadow-sm">
+    <section className="rounded-[var(--radius-card)] border bg-card shadow-[var(--shadow-card)]">
       <div className="border-b p-5">
         <h1 className="text-lg font-semibold">{t("queue.title")}</h1>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] table-fixed text-left rtl:text-right">
-          <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
-            <tr>
-              <th className="w-64 px-4 py-3 font-medium">{t("queue.file")}</th>
-              <th className="w-48 px-4 py-3 font-medium">{t("queue.status")}</th>
-              <th className="w-48 px-4 py-3 font-medium">{t("queue.triggeredAt")}</th>
-              <th className="w-64 px-4 py-3 font-medium">{t("queue.actions")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {records.map((extraction) => (
-              <tr className="border-b last:border-b-0" key={extraction.id}>
-                <td className="px-4 py-3 text-sm">{extraction.file_id.slice(0, 8)}</td>
-                <td className="px-4 py-3">
-                  <ExtractionStatusBadge
-                    failureReason={extraction.failure_reason}
-                    status={extraction.status}
-                  />
-                </td>
-                <td className="px-4 py-3 text-sm">
-                  {new Intl.DateTimeFormat(locale, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  }).format(new Date(extraction.triggered_at))}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      className="inline-flex h-9 items-center rounded-md border px-3 text-sm no-underline hover:bg-muted"
-                      href={`/${locale}/w/${workspaceId}/extractions/${extraction.id}`}
-                    >
-                      {t("actions.review")}
-                    </Link>
-                    <DiscardExtractionDialog
-                      extraction={extraction}
-                      workspaceId={workspaceId}
-                      onDiscarded={() => void extractions.refetch()}
-                    />
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="hidden md:block">
+        <Table
+          caption={t("queue.title")}
+          data={records}
+          columns={[
+            { key: "file", header: t("queue.file"), cell: (extraction) => <Ltr>{extraction.file_id.slice(0, 8)}</Ltr> },
+            { key: "status", header: t("queue.status"), cell: (extraction) => <ExtractionStatusBadge failureReason={extraction.failure_reason} status={extraction.status} /> },
+            { key: "triggered", header: t("queue.triggeredAt"), cell: (extraction) => <DateDisplay date={extraction.triggered_at} /> },
+            { key: "actions", header: t("queue.actions"), cell: (extraction) => <div className="flex flex-wrap gap-2"><Link className="inline-flex min-h-11 items-center rounded-[var(--radius-control)] border px-3 text-sm no-underline hover:bg-muted" href={`/${locale}/w/${workspaceId}/extractions/${extraction.id}`}>{t("actions.review")}</Link><DiscardExtractionDialog extraction={extraction} workspaceId={workspaceId} onDiscarded={() => void extractions.refetch()} /></div> },
+          ]}
+        />
+      </div>
+      <div className="grid gap-3 p-4 md:hidden">
+        {records.map((extraction) => (
+          <MobileRecordCard
+            key={extraction.id}
+            title={<Ltr>{extraction.file_id.slice(0, 8)}</Ltr>}
+            fields={[
+              { label: t("queue.status"), value: <ExtractionStatusBadge failureReason={extraction.failure_reason} status={extraction.status} /> },
+              { label: t("queue.triggeredAt"), value: <DateDisplay date={extraction.triggered_at} /> },
+            ]}
+            actions={<><Link className="inline-flex min-h-11 items-center rounded-[var(--radius-control)] border px-3 text-sm no-underline hover:bg-muted" href={`/${locale}/w/${workspaceId}/extractions/${extraction.id}`}>{t("actions.review")}</Link><DiscardExtractionDialog extraction={extraction} workspaceId={workspaceId} onDiscarded={() => void extractions.refetch()} /></>}
+          />
+        ))}
       </div>
     </section>
   );

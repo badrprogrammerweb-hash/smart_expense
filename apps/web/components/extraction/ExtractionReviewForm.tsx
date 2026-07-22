@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/extractions";
 import { minorUnitDigits, type SupportedCurrency } from "@/lib/currency";
 import { parseInputToMinor, toDisplayAmount } from "@/lib/money";
+import { Alert, Button, DateDisplay, FormField, FormLabel, Input, StatusBadge, Textarea } from "@/components/ui";
 
 type ExtractionReviewFormProps = {
   workspaceId: string;
@@ -66,7 +67,7 @@ export function ExtractionReviewForm({
     return (
       <section className="rounded-lg border bg-card p-5 shadow-sm">
         <h2 className="text-lg font-semibold">{t("review.title")}</h2>
-        <p className="mt-2 text-sm text-muted-foreground">{t(`status.${extraction.status}`)}</p>
+        <div className="mt-3"><StatusBadge status={extraction.status === "confirmed" ? "confirmed" : extraction.status === "failed" ? "failed" : "neutral"} label={t(`status.${extraction.status}`)} /></div>
       </section>
     );
   }
@@ -75,6 +76,7 @@ export function ExtractionReviewForm({
     return (
       <section className="space-y-4 rounded-lg border bg-card p-5 shadow-sm">
         <h2 className="text-lg font-semibold">{t("review.title")}</h2>
+        <StatusBadge status={extraction.status === "confirmed" ? "confirmed" : extraction.status === "failed" ? "failed" : "neutral"} label={t(`status.${extraction.status}`)} />
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-muted-foreground">{t("review.amount")}</dt>
@@ -84,7 +86,7 @@ export function ExtractionReviewForm({
           </div>
           <div>
             <dt className="text-muted-foreground">{t("review.date")}</dt>
-            <dd className="font-medium">{draft.occurred_on ?? common("none")}</dd>
+            <dd className="font-medium">{draft.occurred_on ? <DateDisplay date={draft.occurred_on} /> : common("none")}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">{t("review.vendor")}</dt>
@@ -129,9 +131,10 @@ export function ExtractionReviewForm({
   }
 
   return (
-    <form className="space-y-4 rounded-lg border bg-card p-5 shadow-sm" onSubmit={submit}>
+    <form data-testid="ai-review-form" className="space-y-4 rounded-[var(--radius-card)] border bg-card p-5 shadow-[var(--shadow-card)]" onSubmit={submit}>
       <div>
         <h2 className="text-lg font-semibold">{t("review.title")}</h2>
+        <Alert className="mt-3" variant="info" title={t("review.nonFinalNotice")} />
         {draft.extracted_currency && (
           <p className="mt-1 text-sm text-muted-foreground">
             {t("review.extractedCurrency")}: {draft.extracted_currency}
@@ -144,39 +147,42 @@ export function ExtractionReviewForm({
         )}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="block text-sm font-medium">
+        <FormField>
           <div className="flex items-center justify-between gap-2">
-            <label htmlFor={amountInputId}>{t("review.amount")}</label>
+            <FormLabel htmlFor={amountInputId}>{t("review.amount")}</FormLabel>
             <span className="text-xs text-muted-foreground" aria-hidden="true">
               {currency}
             </span>
           </div>
-          <input
+          <Input
             id={amountInputId}
             className="mt-2 h-10 w-full rounded-md border bg-background px-3"
             inputMode="decimal"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
           />
-        </div>
-        <label className="block text-sm font-medium">
-          {t("review.date")}
-          <input
+        </FormField>
+        <FormField>
+          <FormLabel htmlFor={`extraction-date-${extraction.id}`}>{t("review.date")}</FormLabel>
+          <Input
+            id={`extraction-date-${extraction.id}`}
             className="mt-2 h-10 w-full rounded-md border bg-background px-3"
+            dir="ltr"
             type="date"
             value={occurredOn}
             onChange={(event) => setOccurredOn(event.target.value)}
           />
-        </label>
+        </FormField>
       </div>
-      <label className="block text-sm font-medium">
-        {t("review.vendor")}
-        <input
+      <FormField>
+        <FormLabel htmlFor={`extraction-vendor-${extraction.id}`}>{t("review.vendor")}</FormLabel>
+        <Input
+          id={`extraction-vendor-${extraction.id}`}
           className="mt-2 h-10 w-full rounded-md border bg-background px-3"
           value={merchantName}
           onChange={(event) => setMerchantName(event.target.value)}
         />
-      </label>
+      </FormField>
       <CategoryPicker
         workspaceId={workspaceId}
         categoryType="expense"
@@ -184,31 +190,29 @@ export function ExtractionReviewForm({
         onChange={(nextCategoryId) => setCategoryId(nextCategoryId ?? "")}
       />
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-medium">
-          {t("review.suggestedCategory")}
-          <input
+        <FormField>
+          <FormLabel htmlFor={`extraction-suggested-category-${extraction.id}`}>{t("review.suggestedCategory")}</FormLabel>
+          <Input
+            id={`extraction-suggested-category-${extraction.id}`}
             className="mt-2 h-10 w-full rounded-md border bg-muted px-3 text-muted-foreground"
             readOnly
             value={draft.suggested_category ?? ""}
           />
-        </label>
-        <label className="block text-sm font-medium">
-          {t("review.description")}
-          <textarea
+        </FormField>
+        <FormField>
+          <FormLabel htmlFor={`extraction-description-${extraction.id}`}>{t("review.description")}</FormLabel>
+          <Textarea
+            id={`extraction-description-${extraction.id}`}
             className="mt-2 min-h-24 w-full rounded-md border bg-background px-3 py-2"
             value={description}
             onChange={(event) => setDescription(event.target.value)}
           />
-        </label>
+        </FormField>
       </div>
-      {formError && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{formError}</p>}
-      <button
-        className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60"
-        disabled={isSubmitting}
-        type="submit"
-      >
+      {formError && <Alert variant="error" title={formError} />}
+      <Button loading={isSubmitting} type="submit">
         {t("actions.confirm")}
-      </button>
+      </Button>
     </form>
   );
 }

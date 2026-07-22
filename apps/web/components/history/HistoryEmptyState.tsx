@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-import { EmptyState } from "@/components/dashboard/DataState";
+import { EmptyState } from "@/components/ui";
 
 export function HistoryEmptyState() {
   const t = useTranslations("history");

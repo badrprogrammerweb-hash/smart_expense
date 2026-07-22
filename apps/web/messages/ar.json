@@ -8,6 +8,7 @@
     "delete": "حذف",
     "edit": "تعديل",
     "confirm": "تأكيد",
+    "permissionRequired": "يتطلب إذن",
     "none": "بدون",
     "sar": "ريال"
   },
@@ -22,6 +23,8 @@
     "history": "السجل",
     "settings": "الإعدادات",
     "signOut": "تسجيل الخروج",
+    "openNavigation": "فتح التنقل",
+    "mobileNavigation": "التنقل",
     "workspaceRole": "دورك: {role}",
     "memberCount": "{count, plural, one {عضو واحد} two {عضوان} few {# أعضاء} many {# عضوًا} other {# عضو}}",
     "workspaceTypePersonal": "شخصية",
@@ -232,7 +235,9 @@
     },
     "topMerchants": {
       "title": "أعلى التجار",
-      "empty": "لا يوجد إنفاق حسب التاجر لهذه الفترة."
+      "empty": "لا يوجد إنفاق حسب التاجر لهذه الفترة.",
+      "count": "السجلات",
+      "total": "الإجمالي"
     },
     "teamActivity": {
       "title": "نشاط الفريق",
@@ -266,6 +271,10 @@
     "loadMore": "تحميل المزيد",
     "notAuthorized": "يمكن للمالك والمشرف فقط عرض سجل النشاط.",
     "unknownActor": "مستخدم غير معروف",
+    "actor": "المنفذ",
+    "date": "التاريخ",
+    "details": "التفاصيل",
+    "amount": "المبلغ",
     "events": {
       "income_created": "تمت إضافة دخل",
       "income_updated": "تم تحديث دخل",
@@ -319,6 +328,7 @@
     "removeTitle": "حذف مفتاح الذكاء الاصطناعي؟",
     "removeDescription": "سيتم حذف المفتاح المخزن من Vault وستعود مساحة العمل إلى حالة غير مهيأة.",
     "manualFirstNote": "حفظ المفتاح لا يشغّل أي عمل بالذكاء الاصطناعي في هذه المرحلة.",
+    "viewerBlocked": "دورك الحالي يسمح بعرض إعدادات الذكاء الاصطناعي فقط ولا يسمح بتهيئتها.",
     "providers": {
       "gemini": "Gemini",
       "openai": "OpenAI"
@@ -328,6 +338,8 @@
       "notConfigured": "غير مهيأ",
       "noKeyHint": "لا يوجد مفتاح مزود مخزن لهذه مساحة العمل.",
       "updated": "تم التحديث في {date} بواسطة {user}",
+      "updatedPrefix": "تم التحديث",
+      "updatedBy": "بواسطة {user}",
       "unknownUser": "مستخدم غير معروف"
     },
     "formatHints": {
@@ -424,7 +436,8 @@
       "category": "التصنيف",
       "description": "الوصف",
       "suggestedCategory": "التصنيف المقترح",
-      "extractedCurrency": "العملة المكتشفة",
+        "extractedCurrency": "العملة المكتشفة",
+        "nonFinalNotice": "هذه قيم مسودة. لن تؤثر في رصيدك أو تقاريرك حتى تؤكدها.",
       "autoDeleteNotice": "سيُحذف هذا الملف بعد التأكيد، لأن الحذف التلقائي مفعّل لمساحة العمل هذه."
     },
     "queue": {

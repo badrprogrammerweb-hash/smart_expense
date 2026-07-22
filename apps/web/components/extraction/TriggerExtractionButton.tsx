@@ -9,6 +9,7 @@ import { ApiError } from "@/lib/api/client";
 import { triggerExtraction, type ExtractionRecord } from "@/lib/api/extractions";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { canTriggerExtraction } from "@/lib/permissions";
+import { Alert, Button, PermissionDeniedState } from "@/components/ui";
 
 type TriggerExtractionButtonProps = {
   fileId: string;
@@ -33,13 +34,14 @@ function triggerErrorMessage(error: unknown, t: ReturnType<typeof useTranslation
 
 export function TriggerExtractionButton({ fileId, role, workspaceId }: TriggerExtractionButtonProps) {
   const t = useTranslations("extraction");
+  const common = useTranslations("common");
   const queryClient = useQueryClient();
   const [isTriggering, setIsTriggering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ExtractionRecord | null>(null);
 
   if (!canTriggerExtraction(role)) {
-    return null;
+    return <PermissionDeniedState action={t("actions.trigger").toLowerCase()} description={t("errors.forbidden")} role="Viewer" title={common("permissionRequired")} />;
   }
 
   async function onTrigger() {
@@ -63,16 +65,11 @@ export function TriggerExtractionButton({ fileId, role, workspaceId }: TriggerEx
 
   return (
     <div className="flex flex-col items-start gap-1">
-      <button
-        className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-        disabled={isTriggering}
-        type="button"
-        onClick={() => void onTrigger()}
-      >
+      <Button variant="secondary" loading={isTriggering} loadingLabel={t("status.processing")} disabled={isTriggering} type="button" onClick={() => void onTrigger()}>
         <Sparkles className="h-4 w-4" aria-hidden="true" />
-        {isTriggering ? t("status.processing") : t("actions.trigger")}
-      </button>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+        {t("actions.trigger")}
+      </Button>
+      {error && <Alert variant="error" title={error} />}
       {result && !error && (
         <p className="text-sm text-muted-foreground">
           {result.status === "failed" && result.failure_reason

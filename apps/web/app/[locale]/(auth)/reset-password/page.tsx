@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { Alert, Button } from "@/components/ui";
 
 const schema = z.object({
   email: z.string().email(),
@@ -35,7 +36,7 @@ export default function ResetPasswordPage() {
 
   return (
     <main className="grid min-h-screen place-items-center bg-background p-6">
-      <section className="w-full max-w-md rounded-lg border bg-card p-6 shadow-sm">
+      <section className="w-full max-w-md rounded-[var(--radius-card)] border bg-card p-6 shadow-[var(--shadow-dialog)]">
         <h1 className="text-2xl font-semibold">{t("resetTitle")}</h1>
         <form className="mt-6 space-y-4" onSubmit={form.handleSubmit(submit)}>
           <label className="block text-sm font-medium">
@@ -50,14 +51,14 @@ export default function ResetPasswordPage() {
           {form.formState.errors.email && (
             <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
           )}
-          {message && <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">{message}</p>}
-          <button
-            className="h-10 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60"
+          {message && <Alert variant="info" title={message} />}
+          <Button
+            className="w-full"
             type="submit"
-            disabled={form.formState.isSubmitting}
+            loading={form.formState.isSubmitting}
           >
             {t("resetAction")}
-          </button>
+          </Button>
         </form>
         <p className="mt-5 text-sm">
           <Link href={`/${locale}/sign-in`}>{t("signIn")}</Link>

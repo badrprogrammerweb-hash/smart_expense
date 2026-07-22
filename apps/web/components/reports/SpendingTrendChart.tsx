@@ -4,21 +4,12 @@ import { useTranslations } from "next-intl";
 
 import type { TrendPoint } from "@/lib/api/reports";
 import { toDisplayAmount } from "@/lib/money";
+import { DateDisplay } from "@/components/ui";
 
 type SpendingTrendChartProps = {
   points: TrendPoint[];
   locale: string;
 };
-
-function formatBucket(bucket: string, granularity: TrendPoint["granularity"], locale: string) {
-  const date = new Date(`${bucket}T00:00:00Z`);
-  const options: Intl.DateTimeFormatOptions =
-    granularity === "month"
-      ? { month: "short", timeZone: "UTC", year: "numeric" }
-      : { day: "numeric", month: "short", timeZone: "UTC" };
-
-  return new Intl.DateTimeFormat(locale, options).format(date);
-}
 
 function barWidth(value: number, maxValue: number) {
   if (value === 0) {
@@ -37,7 +28,7 @@ export function SpendingTrendChart({ points, locale }: SpendingTrendChartProps) 
   );
 
   return (
-    <section className="rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
+    <section className="rounded-[var(--radius-card)] border bg-card p-5 text-card-foreground shadow-[var(--shadow-card)]">
       <h2 className="text-lg font-semibold">{t("title")}</h2>
       {points.length === 0 ? (
         <p className="mt-3 text-sm text-muted-foreground">{t("empty")}</p>
@@ -52,7 +43,13 @@ export function SpendingTrendChart({ points, locale }: SpendingTrendChartProps) 
               <article className="space-y-2" key={`${point.granularity}-${point.bucket}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-medium">
-                    {formatBucket(point.bucket, point.granularity, locale)}
+                    {/* The backend already truncates month buckets to the
+                        first day (date_trunc('month', ...)::date), so
+                        `point.bucket` is a complete YYYY-MM-DD string for
+                        both granularities — appending another day segment
+                        here produced an invalid date string that crashed
+                        formatDisplayDate. */}
+                    <DateDisplay date={point.bucket} />
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {toDisplayAmount(point.remaining_minor, locale, point.currency)}

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -69,12 +69,13 @@ describe("FileList", () => {
 
     renderWithProviders(<FileList workspaceId="workspace-1" role="member" />);
 
-    expect(await screen.findByText("receipt.pdf")).toBeInTheDocument();
-    expect(screen.getByText("application/pdf")).toBeInTheDocument();
-    expect(screen.getByText("2 KB")).toBeInTheDocument();
-    expect(screen.getByText("user-1")).toBeInTheDocument();
-    expect(screen.getByText("expense-")).toBeInTheDocument();
-    expect(screen.getByText("active")).toBeInTheDocument();
+    const desktopTable = await screen.findByRole("table", { name: "Files" });
+    expect(within(desktopTable).getByText("receipt.pdf")).toBeInTheDocument();
+    expect(within(desktopTable).getByText("application/pdf")).toBeInTheDocument();
+    expect(within(desktopTable).getByText("2 KB")).toBeInTheDocument();
+    expect(within(desktopTable).getByText("user-1")).toBeInTheDocument();
+    expect(within(desktopTable).getByText("expense-")).toBeInTheDocument();
+    expect(within(desktopTable).getByText("active")).toBeInTheDocument();
   });
 
   it("shows the empty state", async () => {

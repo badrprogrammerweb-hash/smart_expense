@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useCategories } from "@/hooks/use-categories";
 import type { CategoryType, MainCategory } from "@/lib/api/categories";
 import { getCategoryLabel } from "@/lib/i18n/category-labels";
+import { FormField, FormLabel, Select } from "@/components/ui";
 
 type CategoryPickerProps = {
   workspaceId: string;
@@ -57,11 +58,12 @@ export function CategoryPicker({ workspaceId, categoryType, value, onChange }: C
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <label className="block text-sm font-medium">
-        {t("category")}
-        <select
+      <FormField>
+        <FormLabel htmlFor="category-main">{t("category")}</FormLabel>
+        <Select
+          id="category-main"
           aria-label={t("category")}
-          className="mt-2 h-10 w-full rounded-md border bg-background px-3"
+          className="mt-2"
           value={selectedMainId}
           onChange={(event) => handleMainChange(event.target.value)}
         >
@@ -71,13 +73,14 @@ export function CategoryPicker({ workspaceId, categoryType, value, onChange }: C
               {getCategoryLabel(catalogT, main)}
             </option>
           ))}
-        </select>
-      </label>
-      <label className="block text-sm font-medium">
-        {t("subcategory")}
-        <select
+        </Select>
+      </FormField>
+      <FormField>
+        <FormLabel htmlFor="category-sub">{t("subcategory")}</FormLabel>
+        <Select
+          id="category-sub"
           aria-label={t("subcategory")}
-          className="mt-2 h-10 w-full rounded-md border bg-background px-3 disabled:opacity-60"
+          className="mt-2"
           value={selectedSubId}
           disabled={!selectedMainId || selectableSubcategories.length === 0}
           onChange={(event) => handleSubChange(event.target.value)}
@@ -88,8 +91,8 @@ export function CategoryPicker({ workspaceId, categoryType, value, onChange }: C
               {getCategoryLabel(catalogT, sub)}
             </option>
           ))}
-        </select>
-      </label>
+        </Select>
+      </FormField>
     </div>
   );
 }

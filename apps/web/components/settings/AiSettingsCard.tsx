@@ -9,6 +9,7 @@ import { RemoveAiKeyDialog } from "@/components/settings/RemoveAiKeyDialog";
 import { useAiSettings } from "@/hooks/use-ai-settings";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { canManageAiSettings } from "@/lib/permissions";
+import { ErrorState, Skeleton } from "@/components/ui";
 
 type AiSettingsCardProps = {
   role: WorkspaceRole;
@@ -23,7 +24,7 @@ export function AiSettingsCard({ role, workspaceId }: AiSettingsCardProps) {
   const status = query.data ?? null;
 
   return (
-    <section className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
+    <section className="rounded-[var(--radius-card)] border bg-card p-6 text-card-foreground shadow-[var(--shadow-card)]">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold">{t("title")}</h2>
@@ -36,18 +37,9 @@ export function AiSettingsCard({ role, workspaceId }: AiSettingsCardProps) {
       </div>
 
       <div className="mt-5 space-y-5">
-        {query.isLoading ? <p className="text-sm text-muted-foreground">{common("loading")}</p> : null}
+        {query.isLoading ? <Skeleton className="h-24 w-full" label={common("loading")} /> : null}
         {query.isError ? (
-          <div className="rounded-md border border-destructive/40 p-4">
-            <p className="text-sm text-destructive">{errors("requestFailed")}</p>
-            <button
-              className="mt-3 h-9 rounded-md border px-3 text-sm font-medium"
-              type="button"
-              onClick={() => void query.refetch()}
-            >
-              {common("retry")}
-            </button>
-          </div>
+          <ErrorState title={errors("requestFailed")} description={errors("requestFailed")} retry={() => void query.refetch()} retryLabel={common("retry")} />
         ) : null}
         {status ? <AiKeyStatus status={status} /> : null}
         {canManageAiSettings(role) && status ? (

@@ -200,7 +200,7 @@ test.describe("category management", () => {
     await page.getByLabel("Date").fill("2026-07-15");
     await page.getByLabel("Category", { exact: true }).selectOption({ label: "Fuel" });
     await page.getByRole("button", { name: "Save" }).click();
-    const fuelExpenseRow = page.locator("li").filter({ hasText: "2026-07-15" });
+    const fuelExpenseRow = page.locator("li").filter({ hasText: "15/07/2026" });
     await expect(fuelExpenseRow.getByText("Fuel").first()).toBeVisible();
 
     await page.goto(`/en/w/${workspaceId}/categories`);
@@ -221,7 +221,7 @@ test.describe("category management", () => {
     await expect(fuelRowAfterEdit).toBeVisible();
 
     await page.goto(`/en/w/${workspaceId}/expenses`);
-    await expect(page.locator("li").filter({ hasText: "2026-07-15" }).getByText("Petrol & Fuel").first()).toBeVisible();
+    await expect(page.locator("li").filter({ hasText: "15/07/2026" }).getByText("Petrol & Fuel").first()).toBeVisible();
     await expect(page.getByText("Fuel", { exact: true })).toHaveCount(0);
 
     // 11-12: viewer can read but not mutate.

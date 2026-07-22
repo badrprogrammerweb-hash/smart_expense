@@ -3,7 +3,6 @@
 import { useTranslations } from "next-intl";
 
 import { CategoryBreakdown } from "@/components/dashboard/CategoryBreakdown";
-import { EmptyState, ErrorState } from "@/components/dashboard/DataState";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { SummaryCards } from "@/components/dashboard/SummaryCards";
 import { AiSpendingSummary } from "@/components/reports/AiSpendingSummary";
@@ -15,6 +14,7 @@ import { TeamActivitySummary } from "@/components/reports/TeamActivitySummary";
 import { TopMerchants } from "@/components/reports/TopMerchants";
 import { useReports } from "@/hooks/use-reports";
 import { useWorkspaceContext } from "@/lib/workspace-context";
+import { EmptyState as PrimitiveEmptyState, ErrorState as PrimitiveErrorState, PageHeading, Skeleton } from "@/components/ui";
 
 type ReportSummaryProps = {
   workspaceId: string;
@@ -30,22 +30,16 @@ export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
   const { role } = useWorkspaceContext();
 
   if (reports.isLoading) {
-    return <p className="text-sm text-muted-foreground">{common("loading")}</p>;
+    return <Skeleton className="h-64 w-full" label={common("loading")} />;
   }
 
   if (reports.isError || !reports.data) {
     return (
-      <ErrorState
+      <PrimitiveErrorState
         title={errors("requestFailed")}
-        action={
-          <button
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-            onClick={() => void reports.refetch()}
-            type="button"
-          >
-            {common("retry")}
-          </button>
-        }
+        description={errors("requestFailed")}
+        retry={() => void reports.refetch()}
+        retryLabel={common("retry")}
       />
     );
   }
@@ -58,12 +52,7 @@ export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold">{t("title")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("subtitle", { start: data.period.start, end: data.period.end })}
-        </p>
-      </div>
+      <PageHeading title={t("title")} description={t("subtitle", { start: data.period.start, end: data.period.end })} />
       <PeriodSelector onChange={reports.setPeriod} value={reports.period} />
       <SummaryCards locale={locale} period={data.period} summary={data.summary} />
       <PlainLanguageSummary locale={locale} summary={data.spending_summary} />
@@ -77,7 +66,7 @@ export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
         <TeamActivitySummary items={data.team_activity} />
         <PendingReviewSummary count={data.pending_review_count} />
       </div>
-      {isEmpty && <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />}
+      {isEmpty && <PrimitiveEmptyState title={t("emptyTitle")} description={t("emptyDescription")} />}
       <div className="grid gap-6 xl:grid-cols-2">
         <CategoryBreakdown
           locale={locale}

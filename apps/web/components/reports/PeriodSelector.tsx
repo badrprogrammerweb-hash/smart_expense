@@ -5,6 +5,7 @@ import { CalendarDays } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import type { ReportPeriodInput, ReportPeriodPreset } from "@/lib/api/reports";
+import { DateDisplay } from "@/components/ui";
 
 type PeriodSelectorProps = {
   value: ReportPeriodInput;
@@ -78,7 +79,7 @@ export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
   }
 
   return (
-    <section className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
+    <section className="rounded-[var(--radius-card)] border bg-card p-4 text-card-foreground shadow-[var(--shadow-card)]">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-2 text-sm font-medium">
@@ -109,18 +110,22 @@ export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
             <input
               className="mt-1 block w-full rounded-md border bg-background px-3 py-2 text-sm"
               onChange={(event) => setStart(event.target.value)}
+              dir="ltr"
               type="date"
               value={start}
             />
+            {start ? <DateDisplay date={start} className="mt-1 text-xs text-muted-foreground" /> : null}
           </label>
           <label className="text-sm font-medium">
             {t("end")}
             <input
               className="mt-1 block w-full rounded-md border bg-background px-3 py-2 text-sm"
               onChange={(event) => setEnd(event.target.value)}
+              dir="ltr"
               type="date"
               value={end}
             />
+            {end ? <DateDisplay date={end} className="mt-1 text-xs text-muted-foreground" /> : null}
           </label>
           <button
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"

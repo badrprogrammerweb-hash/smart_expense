@@ -1,0 +1,2 @@
+import { Select } from "@/components/ui/select";
+export function WorkspaceSwitcher({ value, options, onChange }: { value: string; options: { id: string; name: string }[]; onChange: (id: string) => void }) { return <label className="block text-sm font-medium">Workspace<Select value={value} onChange={(event) => onChange(event.target.value)} className="mt-1">{options.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</Select></label>; }

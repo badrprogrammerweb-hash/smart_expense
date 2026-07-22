@@ -148,7 +148,7 @@ test.describe("files", () => {
 
     await signIn(page, viewer);
     await page.goto(`/en/w/${workspaceId}/files`);
-    await expect(page.getByText(viewerFilename)).toBeVisible();
+    await expect(page.getByLabel("Files").getByText(viewerFilename)).toBeVisible();
     await expect(page.getByLabel("Upload receipt or invoice")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Delete file" })).toHaveCount(0);
   });

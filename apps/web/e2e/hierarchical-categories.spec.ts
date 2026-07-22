@@ -128,7 +128,7 @@ test.describe("hierarchical categories", () => {
     await page.getByLabel("Category", { exact: true }).selectOption({ label: "Transportation" });
     await page.getByLabel("Subcategory").selectOption({ label: "Vehicle Maintenance" });
     await page.getByRole("button", { name: "Save" }).click();
-    const vehicleMaintenanceRow = page.locator("li").filter({ hasText: "2026-07-10" });
+    const vehicleMaintenanceRow = page.locator("li").filter({ hasText: "10/07/2026" });
     await expect(vehicleMaintenanceRow.getByText("Vehicle Maintenance").first()).toBeVisible();
 
     // Expense with only a main category (no subcategory).
@@ -136,7 +136,7 @@ test.describe("hierarchical categories", () => {
     await page.getByLabel("Date").fill("2026-07-11");
     await page.getByLabel("Category", { exact: true }).selectOption({ label: "Rent" });
     await page.getByRole("button", { name: "Save" }).click();
-    const rentRow = page.locator("li").filter({ hasText: "2026-07-11" });
+    const rentRow = page.locator("li").filter({ hasText: "11/07/2026" });
     await expect(rentRow.getByText("Rent").first()).toBeVisible();
 
     // Edit the first expense: changing the main category clears the stale
@@ -151,7 +151,7 @@ test.describe("hierarchical categories", () => {
     await editForm.getByLabel("Category", { exact: true }).selectOption({ label: "Utilities" });
     await expect(editForm.getByLabel("Subcategory")).toHaveValue("");
     await editForm.getByRole("button", { name: "Save" }).click();
-    await expect(page.locator("li").filter({ hasText: "2026-07-10" }).getByText("Utilities").first()).toBeVisible();
+    await expect(page.locator("li").filter({ hasText: "10/07/2026" }).getByText("Utilities").first()).toBeVisible();
     await expect(page.getByText("Vehicle Maintenance")).toHaveCount(0);
 
     // Income with main category + subcategory.
@@ -161,7 +161,7 @@ test.describe("hierarchical categories", () => {
     await page.getByLabel("Category", { exact: true }).selectOption({ label: "Salary" });
     await page.getByLabel("Subcategory").selectOption({ label: "Bonus & Commission" });
     await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.locator("li").filter({ hasText: "2026-07-01" })).toBeVisible();
+    await expect(page.locator("li").filter({ hasText: "01/07/2026" })).toBeVisible();
 
     const { incomes } = await apiFetch<{ incomes: { category_id: string | null }[] }>(
       `/workspaces/${workspaceId}/incomes`,

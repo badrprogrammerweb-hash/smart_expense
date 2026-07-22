@@ -9,6 +9,7 @@ import { TriggerExtractionButton } from "@/components/extraction/TriggerExtracti
 import type { ExtractionRecord } from "@/lib/api/extractions";
 import type { FileMetadata } from "@/lib/api/files";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
+import { DateDisplay, Ltr } from "@/components/ui";
 
 type FileRowProps = {
   extraction?: ExtractionRecord;
@@ -20,7 +21,7 @@ type FileRowProps = {
   workspaceId: string;
 };
 
-function formatBytes(value: number, locale: string) {
+export function formatFileBytes(value: number, locale: string) {
   if (value < 1024) {
     return new Intl.NumberFormat(locale).format(value) + " B";
   }
@@ -42,13 +43,6 @@ function formatBytes(value: number, locale: string) {
   );
 }
 
-function formatDate(value: string, locale: string) {
-  return new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
-
 export function FileRow({
   extraction,
   file,
@@ -67,23 +61,26 @@ export function FileRow({
     <tr className="border-b last:border-b-0">
       <td className="min-w-56 px-4 py-3 align-top">
         <div>
-          <p className="break-words text-sm font-medium">{file.original_filename}</p>
+          <Ltr className="break-words text-sm font-medium">{file.original_filename}</Ltr>
         </div>
       </td>
-      <td className="px-4 py-3 align-top text-sm">{file.content_type}</td>
+      <td className="px-4 py-3 align-top text-sm"><Ltr>{file.content_type}</Ltr></td>
       <td className="whitespace-nowrap px-4 py-3 align-top text-sm">
-        {formatBytes(file.size_bytes, locale)}
+        <Ltr>{formatFileBytes(file.size_bytes, locale)}</Ltr>
       </td>
       <td className="whitespace-nowrap px-4 py-3 align-top text-sm">
-        {formatDate(file.created_at, locale)}
+        <DateDisplay date={file.created_at} />
       </td>
-      <td className="max-w-44 break-words px-4 py-3 align-top text-sm">{file.uploaded_by}</td>
+      <td className="max-w-44 break-words px-4 py-3 align-top text-sm"><Ltr>{file.uploaded_by}</Ltr></td>
       <td className="px-4 py-3 align-top text-sm">
         <span
           className="inline-flex max-w-36 items-center rounded-md border px-2 py-1 text-xs"
           title={file.expense_id ?? linkedLabel}
         >
-          {linkedLabel}
+          {/* Only the expense-id slice is a technical value; the "none"
+              fallback is translated Arabic/English UI copy and must not be
+              forced into an LTR isolation span (FR-006/007). */}
+          {file.expense_id ? <Ltr>{linkedLabel}</Ltr> : linkedLabel}
         </span>
       </td>
       <td className="px-4 py-3 align-top text-sm">

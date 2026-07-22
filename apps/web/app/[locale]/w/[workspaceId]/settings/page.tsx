@@ -7,6 +7,7 @@ import { AutoDeleteToggle } from "@/components/settings/AutoDeleteToggle";
 import { LanguageSwitcher } from "@/components/settings/LanguageSwitcher";
 import { WorkspaceCurrencySelector } from "@/components/settings/WorkspaceCurrencySelector";
 import { useWorkspaceContext } from "@/lib/workspace-context";
+import { InfoCard, PageHeading } from "@/components/ui";
 
 export default function SettingsPage() {
   const t = useTranslations("settings");
@@ -24,9 +25,8 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-semibold">{t("title")}</h1>
-      <section className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
-        <h2 className="text-lg font-semibold">{t("workspaceInfo")}</h2>
+      <PageHeading title={t("title")} />
+      <InfoCard title={t("workspaceInfo")}>
         <p className="mt-2 text-xs uppercase tracking-wide text-muted-foreground">
           {workspaceType === "personal" ? nav("workspaceTypePersonal") : nav("workspaceTypeTeam")}
         </p>
@@ -36,12 +36,11 @@ export default function SettingsPage() {
             {memberCount <= 1 ? nav("noTeamMembersYet") : nav("memberCount", { count: memberCount })}
           </p>
         )}
-      </section>
-      <section className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
-        <h2 className="text-lg font-semibold">{t("language")}</h2>
+      </InfoCard>
+      <InfoCard title={t("language")}>
         <p className="mt-2 text-sm text-muted-foreground">{t("languageDescription")}</p>
         <LanguageSwitcher />
-      </section>
+      </InfoCard>
       <AutoDeleteToggle
         autoDeleteAfterExtraction={autoDeleteAfterExtraction}
         role={role}
