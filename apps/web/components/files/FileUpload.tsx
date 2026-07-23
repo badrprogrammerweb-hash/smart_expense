@@ -1,16 +1,15 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import { ApiError } from "@/lib/api/client";
 import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { uploadFile } from "@/lib/api/files";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { canUploadFile } from "@/lib/permissions";
-import { Alert, Button, PermissionDeniedState } from "@/components/ui";
+import { Alert, Button, FileUpload as FilePicker, PermissionDeniedState } from "@/components/ui";
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "application/pdf"]);
@@ -55,8 +54,8 @@ export function FileUpload({ workspaceId, role }: FileUploadProps) {
   const t = useTranslations("files");
   const common = useTranslations("common");
   const queryClient = useQueryClient();
-  const inputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [pickerResetKey, setPickerResetKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -91,9 +90,7 @@ export function FileUpload({ workspaceId, role }: FileUploadProps) {
       await uploadFile(workspaceId, { file: selectedFile });
       await queryClient.invalidateQueries({ queryKey: ["files", workspaceId] });
       setSelectedFile(null);
-      if (inputRef.current) {
-        inputRef.current.value = "";
-      }
+      setPickerResetKey((value) => value + 1);
       setSuccess(t("upload.success"));
     } catch (uploadError) {
       setError(uploadErrorMessage(uploadError, t));
@@ -111,21 +108,23 @@ export function FileUpload({ workspaceId, role }: FileUploadProps) {
         <p className="mt-1 text-sm text-muted-foreground">{t("upload.hint")}</p>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <input
-          ref={inputRef}
+        <FilePicker
           id="file-upload"
-          className="text-sm"
-          type="file"
+          label={t("upload.title")}
+          captureLabel={t("capture.action")}
+          removeLabel={t("capture.remove")}
+          previewLabel={t("capture.preview")}
           accept="image/png,image/jpeg,image/webp,application/pdf"
-          onChange={(event) => onFileChange(event.target.files?.[0])}
           disabled={!canMutate || isUploading}
+          resetKey={pickerResetKey}
+          onFileSelected={onFileChange}
         />
         <Button
           type="submit"
           loading={isUploading}
+          loadingLabel={t("capture.uploading")}
           disabled={!selectedFile || !canMutate}
         >
-          <Upload className="h-4 w-4" aria-hidden="true" />
           {t("upload.action")}
         </Button>
       </div>
