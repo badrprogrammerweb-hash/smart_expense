@@ -57,16 +57,23 @@ export function AutoDeleteToggle({
             {t("description")}
           </p>
         </div>
-        <input
-          aria-describedby={descriptionId}
-          aria-busy={updateSetting.isPending}
-          checked={checked}
-          className="h-5 w-5 shrink-0 rounded border-border accent-primary disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={!canEdit || updateSetting.isPending || !canMutate}
-          id={inputId}
-          onChange={(event) => void handleChange(event.currentTarget.checked)}
-          type="checkbox"
-        />
+        {/* The checkbox's own visual box (h-5 w-5) stays small by design,
+            so the wrapping label expands the tappable region to the shared
+            44x44 minimum (contract T-1) without inflating the checkbox
+            itself; a `<label htmlFor>` wrapping an input is natively
+            clickable across its whole box. */}
+        <label className="flex h-11 w-11 shrink-0 items-center justify-center" htmlFor={inputId}>
+          <input
+            aria-describedby={descriptionId}
+            aria-busy={updateSetting.isPending}
+            checked={checked}
+            className="h-5 w-5 shrink-0 rounded border-border accent-primary disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={!canEdit || updateSetting.isPending || !canMutate}
+            id={inputId}
+            onChange={(event) => void handleChange(event.currentTarget.checked)}
+            type="checkbox"
+          />
+        </label>
       </div>
       <MutationDisabledNotice />
       {error ? (

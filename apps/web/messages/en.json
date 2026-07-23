@@ -25,6 +25,7 @@
     "signOut": "Sign out",
     "openNavigation": "Open navigation",
     "mobileNavigation": "Navigation",
+    "bottomNav": "Mobile navigation",
     "more": "More",
     "workspaceRole": "{role} role",
     "memberCount": "{count, plural, one {# member} other {# members}}",

@@ -53,7 +53,7 @@ export function LanguageSwitcher() {
           key={option}
           aria-pressed={option === locale}
           className={cn(
-            "px-3 py-2 text-sm font-medium first:rounded-s-md last:rounded-e-md",
+            "min-h-11 px-3 py-2 text-sm font-medium first:rounded-s-md last:rounded-e-md",
             option === locale
               ? "bg-primary text-primary-foreground"
               : "bg-background text-foreground hover:bg-muted",

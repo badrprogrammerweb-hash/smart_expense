@@ -14,7 +14,7 @@ import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { minorUnitDigits, type SupportedCurrency } from "@/lib/currency";
 import { parseInputToMinor } from "@/lib/money";
 import { canCreateExpense } from "@/lib/permissions";
-import { AmountInput, Button, DateDisplay, FormError, FormField, FormLabel, Input, PermissionDeniedState, Textarea } from "@/components/ui";
+import { AmountInput, Button, DateDisplay, FormError, FormField, FormFooter, FormLabel, Input, PermissionDeniedState, Textarea } from "@/components/ui";
 
 type ExpenseFormProps = {
   workspaceId: string;
@@ -124,7 +124,7 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
       />
       <FormField><FormLabel htmlFor="expense-description">{t("description")}</FormLabel><Textarea id="expense-description" className="mt-2" {...form.register("description")} /></FormField>
       {formError && <FormError>{formError}</FormError>}
-      <div className="flex flex-wrap gap-2">
+      <FormFooter>
         <Button
           type="submit"
           disabled={!canMutate}
@@ -138,7 +138,7 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
             {common("cancel")}
           </Button>
         )}
-      </div>
+      </FormFooter>
     </form>
   );
 }

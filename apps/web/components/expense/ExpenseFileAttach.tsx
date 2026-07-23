@@ -97,7 +97,7 @@ export function ExpenseFileAttach({ expense, role, workspaceId }: ExpenseFileAtt
                 </span>
                 {canAttach && (
                   <button
-                    className="inline-flex h-8 items-center gap-2 rounded-md border bg-background px-3 text-xs hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-md border bg-background px-3 text-xs hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={isMutating || !canMutate}
                     type="button"
                     onClick={() => detachMutation.mutate(file.id)}
@@ -118,7 +118,7 @@ export function ExpenseFileAttach({ expense, role, workspaceId }: ExpenseFileAtt
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <select
             aria-label={t("linked.choose")}
-            className="h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm"
+            className="h-11 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm"
             disabled={files.isLoading || attachableFiles.length === 0 || isMutating || !canMutate}
             value={selectedFileId}
             onChange={(event) => setSelectedFileId(event.target.value)}
@@ -131,7 +131,7 @@ export function ExpenseFileAttach({ expense, role, workspaceId }: ExpenseFileAtt
             ))}
           </select>
           <button
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border bg-background px-3 text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border bg-background px-3 text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
             disabled={!selectedFileId || isMutating || !canMutate}
             type="button"
             onClick={onAttach}

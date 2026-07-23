@@ -80,7 +80,7 @@ export function WorkspaceCurrencySelector({
         <select
           aria-describedby={descriptionId}
           aria-busy={updateCurrency.isPending}
-          className="h-10 min-w-36 rounded-md border bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-11 min-w-36 rounded-md border bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           disabled={disabled}
           id={selectId}
           onChange={(event) => void handleChange(event.currentTarget.value as SupportedCurrency)}

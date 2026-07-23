@@ -13,7 +13,7 @@ import {
 } from "@/lib/api/extractions";
 import { minorUnitDigits, type SupportedCurrency } from "@/lib/currency";
 import { parseInputToMinor, toDisplayAmount } from "@/lib/money";
-import { Alert, Button, DateDisplay, FormField, FormLabel, Input, StatusBadge, Textarea } from "@/components/ui";
+import { Alert, Button, DateDisplay, FormField, FormFooter, FormLabel, Input, StatusBadge, Textarea } from "@/components/ui";
 
 type ExtractionReviewFormProps = {
   workspaceId: string;
@@ -159,7 +159,7 @@ export function ExtractionReviewForm({
           </div>
           <Input
             id={amountInputId}
-            className="mt-2 h-10 w-full rounded-md border bg-background px-3"
+            className="mt-2 h-11 w-full rounded-md border bg-background px-3"
             inputMode="decimal"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
@@ -169,7 +169,7 @@ export function ExtractionReviewForm({
           <FormLabel htmlFor={`extraction-date-${extraction.id}`}>{t("review.date")}</FormLabel>
           <Input
             id={`extraction-date-${extraction.id}`}
-            className="mt-2 h-10 w-full rounded-md border bg-background px-3"
+            className="mt-2 h-11 w-full rounded-md border bg-background px-3"
             dir="ltr"
             type="date"
             value={occurredOn}
@@ -181,7 +181,7 @@ export function ExtractionReviewForm({
         <FormLabel htmlFor={`extraction-vendor-${extraction.id}`}>{t("review.vendor")}</FormLabel>
         <Input
           id={`extraction-vendor-${extraction.id}`}
-          className="mt-2 h-10 w-full rounded-md border bg-background px-3"
+          className="mt-2 h-11 w-full rounded-md border bg-background px-3"
           value={merchantName}
           onChange={(event) => setMerchantName(event.target.value)}
         />
@@ -197,7 +197,7 @@ export function ExtractionReviewForm({
           <FormLabel htmlFor={`extraction-suggested-category-${extraction.id}`}>{t("review.suggestedCategory")}</FormLabel>
           <Input
             id={`extraction-suggested-category-${extraction.id}`}
-            className="mt-2 h-10 w-full rounded-md border bg-muted px-3 text-muted-foreground"
+            className="mt-2 h-11 w-full rounded-md border bg-muted px-3 text-muted-foreground"
             readOnly
             value={draft.suggested_category ?? ""}
           />
@@ -213,10 +213,12 @@ export function ExtractionReviewForm({
         </FormField>
       </div>
       {formError && <Alert variant="error" title={formError} />}
-      <Button loading={isSubmitting} disabled={!canMutate} type="submit">
-        {t("actions.confirm")}
-      </Button>
-      <MutationDisabledNotice />
+      <FormFooter>
+        <Button loading={isSubmitting} disabled={!canMutate} type="submit">
+          {t("actions.confirm")}
+        </Button>
+        <MutationDisabledNotice />
+      </FormFooter>
     </form>
   );
 }

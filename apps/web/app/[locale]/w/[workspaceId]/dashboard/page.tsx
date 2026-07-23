@@ -54,7 +54,7 @@ export default function DashboardPage() {
         <div className="flex gap-2">
           {canAddIncome && (
             <Link
-              className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground no-underline"
+              className="inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground no-underline"
               href={`/${locale}/w/${workspaceId}/incomes`}
             >
               <Plus className="h-4 w-4" aria-hidden="true" />
@@ -63,7 +63,7 @@ export default function DashboardPage() {
           )}
           {canAddExpense && (
             <Link
-              className="inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium no-underline hover:bg-muted"
+              className="inline-flex min-h-11 items-center gap-2 rounded-md border px-4 text-sm font-medium no-underline hover:bg-muted"
               href={`/${locale}/w/${workspaceId}/expenses`}
             >
               <Plus className="h-4 w-4" aria-hidden="true" />

@@ -31,6 +31,10 @@ describe("feedback primitives", () => {
     const retryButton = screen.getByRole("button", { name: "إعادة المحاولة" });
     expect(retryButton).toBeVisible();
     expect(screen.queryByText("Try again")).not.toBeInTheDocument();
+    // Touch-target minimum (contract T-1) -- this primitive is reused by
+    // seven-plus screens (category, expense/income history, AI settings,
+    // reports, files), so fixing it here covers all of them at once.
+    expect(retryButton.className).toMatch(/\bmin-h-11\b/);
   });
 
   it("announces loading skeletons", () => { render(<Skeleton />); expect(screen.getByRole("status", { name: "Loading content" })).toBeVisible(); });

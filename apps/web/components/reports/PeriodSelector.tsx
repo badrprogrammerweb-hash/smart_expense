@@ -91,8 +91,8 @@ export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
               <button
                 className={
                   value.period === preset
-                    ? "rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
-                    : "rounded-md border px-3 py-2 text-sm font-medium"
+                    ? "min-h-11 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+                    : "min-h-11 rounded-md border px-3 py-2 text-sm font-medium"
                 }
                 key={preset}
                 onClick={() => selectPreset(preset)}
@@ -108,7 +108,7 @@ export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
           <label className="text-sm font-medium">
             {t("start")}
             <input
-              className="mt-1 block w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className="mt-1 block min-h-11 w-full rounded-md border bg-background px-3 py-2 text-sm"
               onChange={(event) => setStart(event.target.value)}
               dir="ltr"
               type="date"
@@ -119,7 +119,7 @@ export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
           <label className="text-sm font-medium">
             {t("end")}
             <input
-              className="mt-1 block w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className="mt-1 block min-h-11 w-full rounded-md border bg-background px-3 py-2 text-sm"
               onChange={(event) => setEnd(event.target.value)}
               dir="ltr"
               type="date"
@@ -128,7 +128,7 @@ export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
             {end ? <DateDisplay date={end} className="mt-1 text-xs text-muted-foreground" /> : null}
           </label>
           <button
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-11 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
             disabled={Boolean(validationError)}
             onClick={applyCustom}
             type="button"

@@ -25,6 +25,7 @@
     "signOut": "تسجيل الخروج",
     "openNavigation": "فتح التنقل",
     "mobileNavigation": "التنقل",
+    "bottomNav": "شريط التنقل",
     "more": "المزيد",
     "workspaceRole": "دورك: {role}",
     "memberCount": "{count, plural, one {عضو واحد} two {عضوان} few {# أعضاء} many {# عضوًا} other {# عضو}}",
