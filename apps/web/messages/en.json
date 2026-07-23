@@ -25,6 +25,7 @@
     "signOut": "Sign out",
     "openNavigation": "Open navigation",
     "mobileNavigation": "Navigation",
+    "more": "More",
     "workspaceRole": "{role} role",
     "memberCount": "{count, plural, one {# member} other {# members}}",
     "workspaceTypePersonal": "Personal",
@@ -32,6 +33,26 @@
     "switchWorkspace": "Switch workspace",
     "noTeamMembersYet": "No team members yet",
     "newWorkspace": "Create a team workspace"
+  },
+  "pwa": {
+    "install": {
+      "title": "Install Smart Expense",
+      "description": "Add the app to your home screen for faster access.",
+      "action": "Install app",
+      "dismiss": "Not now",
+      "manualInstructions": "Open your browser menu and choose Add to Home Screen.",
+      "settingsEntry": "Install app"
+    },
+    "offline": {
+      "title": "You are offline",
+      "description": "Check your connection and try again.",
+      "status": "Offline",
+      "degraded": "The service is temporarily unavailable despite an internet connection.",
+      "mutationsDisabled": "Changes are unavailable until the connection returns."
+    },
+    "cached": {
+      "lastUpdated": "Cached - last updated {time}"
+    }
   },
   "auth": {
     "email": "Email",
@@ -359,6 +380,16 @@
       "action": "Upload file",
       "hint": "PNG, JPEG, WebP, or PDF up to 10 MB.",
       "success": "File uploaded."
+    },
+    "capture": {
+      "action": "Take a photo",
+      "hint": "Use your camera to capture a receipt.",
+      "unavailable": "Camera capture is not available on this device.",
+      "preview": "Selected file preview",
+      "replace": "Replace photo",
+      "remove": "Remove photo",
+      "cancelled": "No photo was captured.",
+      "uploading": "Uploading file..."
     },
     "list": {
       "name": "Name",

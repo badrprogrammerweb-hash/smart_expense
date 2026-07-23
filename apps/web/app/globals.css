@@ -119,6 +119,45 @@
   --color-info-border: var(--info-border);
 }
 
+@layer utilities {
+  /*
+   * Safe-area insets are PHYSICAL: env(safe-area-inset-left) is always the
+   * device's left edge, regardless of writing direction. Horizontal utilities
+   * therefore use physical padding properties — pairing padding-inline-start
+   * with safe-area-inset-left would swap the insets under RTL and clip content
+   * on the notched side in Arabic landscape.
+   *
+   * Block-axis utilities are safe as logical properties because both locales
+   * use a horizontal-tb writing mode, where block-start/end map to top/bottom.
+   */
+  .safe-area-block-start {
+    padding-block-start: env(safe-area-inset-top);
+  }
+
+  .safe-area-block-end {
+    padding-block-end: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-area-right {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Both horizontal edges at once — direction-agnostic, and the common case. */
+  .safe-area-x {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .full-height-dvh {
+    min-block-size: 100vh; /* fallback for engines without dvh */
+    min-block-size: 100dvh;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

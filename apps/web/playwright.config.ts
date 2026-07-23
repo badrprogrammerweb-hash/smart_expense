@@ -4,6 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
 // unrelated process; CI and the documented default both stay on 3000.
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 const workers = process.env.PLAYWRIGHT_WORKERS ? Number(process.env.PLAYWRIGHT_WORKERS) : 1;
+const phase15MobileTests = /e2e\/(pwa-installability|offline-behavior|cache-isolation|mobile-capture|mobile-navigation)\.spec\.ts/;
 
 export default defineConfig({
   testDir: ".",
@@ -39,10 +40,19 @@ export default defineConfig({
       name: "mobile-rtl",
       testMatch: [
         /e2e\/(accessibility|f001-dates|refresh-responsive|visual-regression)\.spec\.ts/,
+        phase15MobileTests,
       ],
       use: {
         ...devices["Pixel 7"],
         locale: "ar-SA",
+      },
+    },
+    {
+      name: "mobile-ltr",
+      testMatch: [phase15MobileTests],
+      use: {
+        ...devices["Pixel 7"],
+        locale: "en-US",
       },
     },
   ],
