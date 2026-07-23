@@ -4,6 +4,7 @@ import { getLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { directionForLocale, isLocale } from "@/i18n/routing";
+import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar";
 
 import "./globals.css";
 
@@ -36,7 +37,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       <head>
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
-      <body className={tajawal.variable}>{children}</body>
+      <body className={tajawal.variable}><ServiceWorkerRegistrar />{children}</body>
     </html>
   );
 }

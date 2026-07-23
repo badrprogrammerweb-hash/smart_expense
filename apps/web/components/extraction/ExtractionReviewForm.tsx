@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
 import { CategoryPicker } from "@/components/category/CategoryPicker";
+import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { ApiError } from "@/lib/api/client";
 import {
   confirmExtraction,
@@ -61,6 +62,7 @@ export function ExtractionReviewForm({
   const [categoryId, setCategoryId] = useState(draft?.suggested_category_id ?? "");
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { canMutate } = useConnectivity();
   const amountInputId = `extraction-amount-${extraction.id}`;
 
   if (!draft) {
@@ -103,6 +105,7 @@ export function ExtractionReviewForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canMutate) return;
     setFormError(null);
 
     const amountMinor = parseInputToMinor(amount, currency);
@@ -210,9 +213,10 @@ export function ExtractionReviewForm({
         </FormField>
       </div>
       {formError && <Alert variant="error" title={formError} />}
-      <Button loading={isSubmitting} type="submit">
+      <Button loading={isSubmitting} disabled={!canMutate} type="submit">
         {t("actions.confirm")}
       </Button>
+      <MutationDisabledNotice />
     </form>
   );
 }

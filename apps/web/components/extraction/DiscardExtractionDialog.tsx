@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { ApiError } from "@/lib/api/client";
+import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { discardExtraction, type ExtractionRecord } from "@/lib/api/extractions";
 import { Alert, Button, ConfirmDialog } from "@/components/ui";
 
@@ -36,13 +37,14 @@ export function DiscardExtractionDialog({
   const [isConfirming, setIsConfirming] = useState(false);
   const [isDiscarding, setIsDiscarding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { canMutate } = useConnectivity();
 
   if (!extraction.can_discard) {
     return null;
   }
 
   async function onConfirmDiscard() {
-    if (isDiscarding) {
+    if (isDiscarding || !canMutate) {
       return;
     }
 
@@ -62,14 +64,14 @@ export function DiscardExtractionDialog({
 
   if (!isConfirming) {
     return (
-      <Button variant="destructive" size="compact" type="button" onClick={() => setIsConfirming(true)}>
+      <><Button variant="destructive" size="compact" type="button" disabled={!canMutate} onClick={() => setIsConfirming(true)}>
         <Trash2 className="h-4 w-4" aria-hidden="true" />
         {t("actions.discard")}
-      </Button>
+      </Button><MutationDisabledNotice /></>
     );
   }
 
   return (
-    <><ConfirmDialog open onOpenChange={setIsConfirming} title={t("actions.confirmDiscard")} consequence={t("discard.description")} confirmLabel={common("confirm")} loading={isDiscarding} onConfirm={() => void onConfirmDiscard()} />{error && <Alert className="mt-2" variant="error" title={error} />}</>
+    <><ConfirmDialog open onOpenChange={setIsConfirming} title={t("actions.confirmDiscard")} consequence={t("discard.description")} confirmLabel={common("confirm")} loading={isDiscarding || !canMutate} onConfirm={() => void onConfirmDiscard()} /><MutationDisabledNotice />{error && <Alert className="mt-2" variant="error" title={error} />}</>
   );
 }

@@ -8,6 +8,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
 import { WorkspaceSelector } from "@/components/layout/WorkspaceSelector";
+import { IndeterminateOutcomeNotice, OfflineBanner, StaleDataNotice, useConnectivity } from "@/components/connectivity";
 import { WorkspaceProvider, useWorkspaceContext } from "@/lib/workspace-context";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
@@ -43,6 +44,7 @@ function WorkspaceFrame({ children }: { children: ReactNode }) {
   const dashboardT = useTranslations("dashboard");
   const filesT = useTranslations("files");
   const { workspaceId, role } = useWorkspaceContext();
+  const { canMutate } = useConnectivity();
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
 
   async function signOut() {
@@ -73,5 +75,5 @@ function WorkspaceFrame({ children }: { children: ReactNode }) {
 
   const mobileNavigation = <div className="space-y-6">{navigation}<div className="border-t pt-4"><div className="grid gap-2">{quickActions.map((action) => { const Icon = action.icon; return <Link className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] bg-secondary px-4 text-sm font-medium text-secondary-foreground no-underline hover:bg-[var(--color-surface-hover)]" href={action.href} key={action.href} onClick={() => setMobileNavigationOpen(false)}><Icon className="size-4" aria-hidden="true" />{action.label}</Link>; })}</div></div></div>;
 
-  return <AppShell sidebar={<div className="hidden lg:block">{navigation}</div>} header={<TopHeader title={t("workspaceRole", { role })} actions={<><Button className="lg:hidden" variant="ghost" size="icon" aria-label={t("openNavigation")} onClick={() => setMobileNavigationOpen(true)}><Menu className="size-4" /></Button><WorkspaceSelector /><Button variant="secondary" onClick={() => void signOut()}><LogOut className="size-4" aria-hidden="true" />{t("signOut")}</Button><MobileNavDrawer open={mobileNavigationOpen} onOpenChange={setMobileNavigationOpen} title={t("mobileNavigation")}>{mobileNavigation}</MobileNavDrawer></>} />}><div className="mx-auto max-w-7xl">{children}</div></AppShell>;
+  return <AppShell connectivity={<OfflineBanner />} staleNotice={<><IndeterminateOutcomeNotice /><StaleDataNotice /></>} sidebar={<div className="hidden lg:block">{navigation}</div>} header={<TopHeader title={t("workspaceRole", { role })} actions={<><Button className="lg:hidden" variant="ghost" size="icon" aria-label={t("openNavigation")} onClick={() => setMobileNavigationOpen(true)}><Menu className="size-4" /></Button><WorkspaceSelector /><Button variant="secondary" onClick={() => void signOut()}><LogOut className="size-4" aria-hidden="true" />{t("signOut")}</Button><MobileNavDrawer open={mobileNavigationOpen} onOpenChange={setMobileNavigationOpen} title={t("mobileNavigation")}>{mobileNavigation}</MobileNavDrawer></>} />}><div className="mx-auto max-w-7xl" aria-disabled={!canMutate}>{children}</div></AppShell>;
 }

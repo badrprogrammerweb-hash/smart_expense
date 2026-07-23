@@ -7,6 +7,7 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { CategoryPicker } from "@/components/category/CategoryPicker";
+import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { useCreateExpense, useUpdateExpense } from "@/hooks/use-expenses";
 import type { ExpenseRecord } from "@/lib/api/expenses";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
@@ -37,6 +38,7 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
   const t = useTranslations("records");
   const common = useTranslations("common");
   const [formError, setFormError] = useState<string | null>(null);
+  const { canMutate } = useConnectivity();
   const createExpense = useCreateExpense(workspaceId);
   const updateExpense = useUpdateExpense(workspaceId);
   const allowed = canSubmit ?? canCreateExpense(role);
@@ -69,6 +71,7 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
   }
 
   async function submit(values: FormValues) {
+    if (!canMutate) return;
     setFormError(null);
     const input = {
       amount_minor: parseInputToMinor(values.amount, currency),
@@ -124,10 +127,12 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
       <div className="flex flex-wrap gap-2">
         <Button
           type="submit"
+          disabled={!canMutate}
           loading={form.formState.isSubmitting || createExpense.isPending || updateExpense.isPending}
         >
           {common("save")}
         </Button>
+        <MutationDisabledNotice />
         {onCancel && (
           <Button variant="secondary" type="button" onClick={onCancel}>
             {common("cancel")}

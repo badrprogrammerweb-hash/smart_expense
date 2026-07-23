@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
 import { ApiError } from "@/lib/api/client";
+import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { uploadFile } from "@/lib/api/files";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { canUploadFile } from "@/lib/permissions";
@@ -59,6 +60,7 @@ export function FileUpload({ workspaceId, role }: FileUploadProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const { canMutate } = useConnectivity();
 
   if (!canUploadFile(role)) {
     return <PermissionDeniedState action={t("upload.action").toLowerCase()} description={t("errors.forbidden")} role="Viewer" title={common("permissionRequired")} />;
@@ -72,7 +74,7 @@ export function FileUpload({ workspaceId, role }: FileUploadProps) {
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selectedFile || isUploading) {
+    if (!selectedFile || isUploading || !canMutate) {
       return;
     }
 
@@ -116,16 +118,18 @@ export function FileUpload({ workspaceId, role }: FileUploadProps) {
           type="file"
           accept="image/png,image/jpeg,image/webp,application/pdf"
           onChange={(event) => onFileChange(event.target.files?.[0])}
+          disabled={!canMutate || isUploading}
         />
         <Button
           type="submit"
           loading={isUploading}
-          disabled={!selectedFile}
+          disabled={!selectedFile || !canMutate}
         >
           <Upload className="h-4 w-4" aria-hidden="true" />
           {t("upload.action")}
         </Button>
       </div>
+      <MutationDisabledNotice />
       {error && <Alert variant="error" title={error} />}
       {success && <Alert variant="success" title={success} />}
     </form>

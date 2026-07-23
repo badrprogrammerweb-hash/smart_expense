@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 import type { ExpenseRecord } from "@/lib/api/expenses";
+import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import {
   detachFileFromExpense,
   linkFileToExpense,
@@ -28,6 +29,7 @@ export function ExpenseFileAttach({ expense, role, workspaceId }: ExpenseFileAtt
   const queryClient = useQueryClient();
   const [selectedFileId, setSelectedFileId] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const { canMutate } = useConnectivity();
   const canAttach = canCreateExpense(role);
   const files = useQuery({
     queryKey: ["files", workspaceId],
@@ -69,7 +71,7 @@ export function ExpenseFileAttach({ expense, role, workspaceId }: ExpenseFileAtt
   const isMutating = linkMutation.isPending || detachMutation.isPending;
 
   function onAttach() {
-    if (!selectedFileId || isMutating) {
+    if (!selectedFileId || isMutating || !canMutate) {
       return;
     }
     linkMutation.mutate(selectedFileId);
@@ -96,7 +98,7 @@ export function ExpenseFileAttach({ expense, role, workspaceId }: ExpenseFileAtt
                 {canAttach && (
                   <button
                     className="inline-flex h-8 items-center gap-2 rounded-md border bg-background px-3 text-xs hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-                    disabled={isMutating}
+                    disabled={isMutating || !canMutate}
                     type="button"
                     onClick={() => detachMutation.mutate(file.id)}
                   >
@@ -117,7 +119,7 @@ export function ExpenseFileAttach({ expense, role, workspaceId }: ExpenseFileAtt
           <select
             aria-label={t("linked.choose")}
             className="h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm"
-            disabled={files.isLoading || attachableFiles.length === 0 || isMutating}
+            disabled={files.isLoading || attachableFiles.length === 0 || isMutating || !canMutate}
             value={selectedFileId}
             onChange={(event) => setSelectedFileId(event.target.value)}
           >
@@ -130,7 +132,7 @@ export function ExpenseFileAttach({ expense, role, workspaceId }: ExpenseFileAtt
           </select>
           <button
             className="inline-flex h-9 items-center justify-center gap-2 rounded-md border bg-background px-3 text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={!selectedFileId || isMutating}
+            disabled={!selectedFileId || isMutating || !canMutate}
             type="button"
             onClick={onAttach}
           >
@@ -141,6 +143,7 @@ export function ExpenseFileAttach({ expense, role, workspaceId }: ExpenseFileAtt
       )}
 
       {files.isError && <p className="text-sm text-destructive">{errors("requestFailed")}</p>}
+      <MutationDisabledNotice />
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );

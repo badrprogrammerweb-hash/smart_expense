@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui";
+import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import {
   useCategories,
   useDeleteCategory,
@@ -39,6 +40,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const canManage = canManageCategories(role);
+  const { canMutate } = useConnectivity();
 
   const mains = useMemo(
     () => [...(categories.data?.categories ?? [])].sort((a, b) => a.sort_order - b.sort_order),
@@ -84,6 +86,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
   }
 
   async function saveRename(item: RowItem) {
+    if (!canMutate) return;
     const trimmed = nameDraft.trim();
 
     if (!trimmed) {
@@ -101,6 +104,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
   }
 
   async function toggleArchive(item: RowItem) {
+    if (!canMutate) return;
     setRowError(null);
 
     try {
@@ -111,6 +115,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
   }
 
   async function handleDelete(item: RowItem, hasChildren: boolean) {
+    if (!canMutate) return;
     if (hasChildren) {
       return;
     }
@@ -131,6 +136,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
   }
 
   async function moveMain(index: number, direction: -1 | 1) {
+    if (!canMutate) return;
     const targetIndex = index + direction;
     if (targetIndex < 0 || targetIndex >= mains.length) {
       return;
@@ -146,6 +152,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
   }
 
   async function moveSub(main: MainCategory, index: number, direction: -1 | 1) {
+    if (!canMutate) return;
     const subs = [...main.subcategories].sort((a, b) => a.sort_order - b.sort_order);
     const targetIndex = index + direction;
     if (targetIndex < 0 || targetIndex >= subs.length) {
@@ -182,7 +189,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
         <button
           aria-label={t("moveUp")}
           className="inline-flex h-9 w-9 items-center justify-center rounded-md border hover:bg-muted disabled:opacity-40"
-          disabled={!options.canMoveUp || reorderCategories.isPending}
+          disabled={!options.canMoveUp || reorderCategories.isPending || !canMutate}
           onClick={options.onMoveUp}
           type="button"
         >
@@ -191,7 +198,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
         <button
           aria-label={t("moveDown")}
           className="inline-flex h-9 w-9 items-center justify-center rounded-md border hover:bg-muted disabled:opacity-40"
-          disabled={!options.canMoveDown || reorderCategories.isPending}
+          disabled={!options.canMoveDown || reorderCategories.isPending || !canMutate}
           onClick={options.onMoveDown}
           type="button"
         >
@@ -199,6 +206,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
         </button>
         <button
           className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
+          disabled={!canMutate}
           onClick={() => startEditing(item)}
           type="button"
         >
@@ -207,7 +215,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
         </button>
         <button
           className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted"
-          disabled={updateCategory.isPending}
+          disabled={updateCategory.isPending || !canMutate}
           onClick={() => void toggleArchive(item)}
           type="button"
         >
@@ -220,7 +228,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
         </button>
         <button
           className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-40"
-          disabled={options.hasChildren}
+          disabled={options.hasChildren || !canMutate}
           onClick={() => void handleDelete(item, options.hasChildren)}
           title={options.hasChildren ? t("deleteBlocked") : undefined}
           type="button"
@@ -239,6 +247,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
           {categoryType === "expense" ? t("expenseCategories") : t("incomeCategories")}
         </h2>
       </div>
+      <div className="px-5"><MutationDisabledNotice /></div>
       <ul className="divide-y">
         {mains.map((main, mainIndex) => {
           const isEditing = editingId === main.id;
@@ -271,7 +280,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
                       />
                       <button
                         className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
-                        disabled={updateCategory.isPending}
+                        disabled={updateCategory.isPending || !canMutate}
                         onClick={() => void saveRename(main)}
                         type="button"
                       >
@@ -326,7 +335,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
                             />
                             <button
                               className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
-                              disabled={updateCategory.isPending}
+                              disabled={updateCategory.isPending || !canMutate}
                               onClick={() => void saveRename(sub)}
                               type="button"
                             >

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { isLocale, locales, type Locale } from "@/i18n/routing";
+import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { updateLocale } from "@/lib/api/me";
 import { rememberExplicitLocale } from "@/lib/auth-routing";
 import { cn } from "@/lib/utils";
@@ -23,9 +24,10 @@ export function LanguageSwitcher() {
   const router = useRouter();
   const t = useTranslations("settings");
   const [error, setError] = useState<string | null>(null);
+  const { canMutate } = useConnectivity();
 
   async function switchTo(nextLocale: Locale) {
-    if (nextLocale === locale) {
+    if (nextLocale === locale || !canMutate) {
       return;
     }
 
@@ -45,7 +47,7 @@ export function LanguageSwitcher() {
   }
 
   return (
-    <div className="mt-3 inline-flex rounded-md border" role="group" aria-label={t("language")}>
+    <div className="mt-3" role="group" aria-label={t("language")}><div className="inline-flex rounded-md border">
       {locales.map((option) => (
         <button
           key={option}
@@ -57,16 +59,18 @@ export function LanguageSwitcher() {
               : "bg-background text-foreground hover:bg-muted",
           )}
           onClick={() => void switchTo(option)}
+          disabled={!canMutate}
           type="button"
         >
           {nativeLabel[option]}
         </button>
       ))}
-      {error && (
+      </div>{error && (
         <p className="sr-only" role="status">
           {error}
         </p>
       )}
+      <MutationDisabledNotice />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Button } from "@/components/ui";
+import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { useRemoveAiSettings } from "@/hooks/use-ai-settings";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { canManageAiSettings } from "@/lib/permissions";
@@ -22,12 +23,14 @@ export function RemoveAiKeyDialog({ configured, role, workspaceId }: RemoveAiKey
   const removeKey = useRemoveAiSettings(workspaceId);
   const [isConfirming, setIsConfirming] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const { canMutate } = useConnectivity();
 
   if (!canManageAiSettings(role) || !configured) {
     return null;
   }
 
   async function onConfirmRemove() {
+    if (!canMutate) return;
     setRequestError(null);
     try {
       await removeKey.mutateAsync();
@@ -39,14 +42,18 @@ export function RemoveAiKeyDialog({ configured, role, workspaceId }: RemoveAiKey
 
   if (!isConfirming) {
     return (
+      <>
       <Button
         variant="destructive"
         type="button"
+        disabled={!canMutate}
         onClick={() => setIsConfirming(true)}
       >
         <Trash2 className="h-4 w-4" aria-hidden="true" />
         {t("removeAction")}
       </Button>
+      <MutationDisabledNotice />
+      </>
     );
   }
 
@@ -68,6 +75,7 @@ export function RemoveAiKeyDialog({ configured, role, workspaceId }: RemoveAiKey
         <Button
           variant="destructive"
           loading={removeKey.isPending}
+          disabled={!canMutate}
           type="button"
           onClick={() => void onConfirmRemove()}
         >

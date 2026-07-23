@@ -48,7 +48,8 @@
       "description": "Check your connection and try again.",
       "status": "Offline",
       "degraded": "The service is temporarily unavailable despite an internet connection.",
-      "mutationsDisabled": "Changes are unavailable until the connection returns."
+      "mutationsDisabled": "Changes are unavailable until the connection returns.",
+      "indeterminate": "The result of your last change is unknown. Reconnect and confirm it from the refreshed list before trying again."
     },
     "cached": {
       "lastUpdated": "Cached - last updated {time}"

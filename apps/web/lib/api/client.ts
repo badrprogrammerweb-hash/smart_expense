@@ -20,6 +20,17 @@ export class ApiError extends Error {
   }
 }
 
+export class ConnectivityError extends Error {
+  constructor(message = "The network request could not be completed.") {
+    super(message);
+    this.name = "ConnectivityError";
+  }
+}
+
+export function isConnectivityError(error: unknown): error is ConnectivityError {
+  return error instanceof ConnectivityError;
+}
+
 function apiBaseUrl() {
   return (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 }
@@ -68,10 +79,17 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`${apiBaseUrl()}${path}`, {
-    ...init,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl()}${path}`, {
+      ...init,
+      headers,
+      signal: init.signal ?? AbortSignal.timeout(15_000),
+    });
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ConnectivityError(error instanceof Error ? error.message : undefined);
+  }
 
   if (response.status === 204) {
     return undefined as T;
