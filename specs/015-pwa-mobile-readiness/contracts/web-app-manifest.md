@@ -67,6 +67,16 @@ The Next `viewport` export in `app/layout.tsx` MUST set:
 | Installation unsupported | Show nothing — no dead control (FR-005) |
 | Dismissed this session | Do not re-show the banner; the Settings entry remains available |
 
+**Transient capability note**: workspace navigation in this application is a
+full document load (the sidebar renders plain anchors), so any deferred install
+prompt is discarded on every navigation and must be re-captured. Between the
+load and the browser re-firing the event, the affordance falls back to the
+`manual` row — generic add-to-home-screen guidance with no prompt trigger. This
+is deliberate graceful degradation, not the `unsupported` state, and it is what
+the M-8 test exercises. Phase 4 introduces the service worker, which changes
+when a browser considers the app installable and therefore how often this
+fallback is visible; re-check the affordance on Chromium after that lands.
+
 Additional rules:
 
 - The affordance MUST NOT be a modal or blocking overlay and MUST NOT obstruct
