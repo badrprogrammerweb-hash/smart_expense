@@ -1,5 +1,6 @@
 import { isLocale, routing } from "@/i18n/routing";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { clearInMemoryQueryCache } from "@/lib/query-client";
 
 type ErrorShape = {
   error?: {
@@ -40,6 +41,7 @@ function redirectToSignIn() {
     return;
   }
 
+  clearInMemoryQueryCache();
   const [, maybeLocale] = window.location.pathname.split("/");
   const locale = isLocale(maybeLocale) ? maybeLocale : routing.defaultLocale;
   window.location.assign(`/${locale}/sign-in`);

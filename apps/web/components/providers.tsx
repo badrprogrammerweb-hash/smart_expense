@@ -2,10 +2,11 @@
 
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ConnectivityProvider, reportConnectivityFailure, reportConnectivitySuccess, reportIndeterminateOutcome } from "@/components/connectivity";
 import { isConnectivityError } from "@/lib/api/client";
+import { registerQueryClient } from "@/lib/query-client";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -40,5 +41,6 @@ export function AppProviders({ children }: { children: ReactNode }) {
       }),
   );
 
+  useEffect(() => registerQueryClient(queryClient), [queryClient]);
   return <ConnectivityProvider><QueryClientProvider client={queryClient}>{children}</QueryClientProvider></ConnectivityProvider>;
 }

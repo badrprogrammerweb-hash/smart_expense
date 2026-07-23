@@ -42,3 +42,18 @@ self.addEventListener("fetch", (event) => {
     return response;
   })));
 });
+
+function isShellUrl(url) {
+  return url.origin === self.location.origin && (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname === "/manifest.webmanifest" || url.pathname === "/en/offline" || url.pathname === "/ar/offline");
+}
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type !== "CLEAR_NON_SHELL_CACHES") return;
+  event.waitUntil((async () => {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.filter((name) => name !== CACHE_VERSION).map((name) => caches.delete(name)));
+    const shellCache = await caches.open(CACHE_VERSION);
+    const requests = await shellCache.keys();
+    await Promise.all(requests.filter((request) => !isShellUrl(new URL(request.url))).map((request) => shellCache.delete(request)));
+  })());
+});

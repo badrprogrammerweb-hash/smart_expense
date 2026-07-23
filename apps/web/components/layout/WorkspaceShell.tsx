@@ -53,6 +53,13 @@ function WorkspaceFrame({ children }: { children: ReactNode }) {
     // Drop every cached query (including ["auth","currentUserId"]) so a
     // different account signing in on the same tab never reads stale data.
     queryClient.clear();
+    if ("serviceWorker" in navigator) {
+      const clearNonShellCaches = (registration: ServiceWorkerRegistration) => {
+        registration.active?.postMessage({ type: "CLEAR_NON_SHELL_CACHES" });
+      };
+      void navigator.serviceWorker.ready.then(clearNonShellCaches).catch(() => undefined);
+      navigator.serviceWorker.controller?.postMessage({ type: "CLEAR_NON_SHELL_CACHES" });
+    }
     router.replace(`/${locale}/sign-in`);
   }
 
