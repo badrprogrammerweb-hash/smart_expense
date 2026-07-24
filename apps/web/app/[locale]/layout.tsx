@@ -4,6 +4,7 @@ import { setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { LocaleDirectionSync } from "@/components/layout/LocaleDirectionSync";
+import { NativeDeepLinkRouter } from "@/components/platform/NativeDeepLinkRouter";
 import { AppProviders } from "@/components/providers";
 import { isLocale, locales } from "@/i18n/routing";
 
@@ -34,6 +35,7 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <LocaleDirectionSync />
+      <NativeDeepLinkRouter />
       <AppProviders>{children}</AppProviders>
     </NextIntlClientProvider>
   );

@@ -190,3 +190,12 @@ export function writeLastWorkspaceId(workspaceId: string) {
     window.localStorage.setItem(LAST_WORKSPACE_KEY, workspaceId);
   }
 }
+
+// The native shell keeps this preference in a module variable rather than
+// persistent storage (contracts/on-device-security.md). That variable
+// outlives a single sign-out within the same app process, so a different
+// user signing in afterwards would otherwise inherit the previous user's
+// last-workspace hint. Sign-out must clear it explicitly (FR-024).
+export function clearNativeLastWorkspaceId() {
+  nativeLastWorkspaceId = null;
+}
