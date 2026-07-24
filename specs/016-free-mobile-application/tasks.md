@@ -113,17 +113,17 @@ web for the same workspace/period and role restrictions match the web.
 
 ### Tests for User Story 2
 
-- [ ] T028 [P] [US2] Native/e2e test: dashboard + report totals equal backend/web values for the same workspace/period in `apps/mobile/e2e/finance-parity.spec.*`
-- [ ] T029 [P] [US2] Native/e2e test: role restriction (Viewer cannot mutate; same behaviour as web) in `apps/mobile/e2e/roles.spec.*`
+- [X] T028 [P] [US2] Native/e2e test: dashboard + report totals equal backend/web values for the same workspace/period in `apps/mobile/e2e/finance-parity.spec.*`
+- [X] T029 [P] [US2] Native/e2e test: role restriction (Viewer cannot mutate; same behaviour as web) in `apps/mobile/e2e/roles.spec.*`
 
 ### Implementation for User Story 2
 
-- [ ] T030 [US2] Verify the dashboard renders backend-provided remaining balance, income/expense totals, period, top categories, recent expenses, and pending-review count in the native shell (FR-011, FR-012)
-- [ ] T031 [US2] Verify income/expense create/edit/delete per role against the existing endpoints, with no local financial logic (FR-011, FR-012, FR-014)
-- [ ] T032 [US2] Verify income/expense history and filtering on device (FR-011)
-- [ ] T033 [US2] Verify category management on device (FR-011)
-- [ ] T034 [US2] Verify report totals equal dashboard totals for the same workspace/period, reusing backend confirmed-only calculations (FR-013)
-- [ ] T035 [US2] Verify settings flows on device and confirm no permission/financial decision is made or cached locally (FR-014, FR-015)
+- [X] T030 [US2] Verify the dashboard renders backend-provided remaining balance, income/expense totals, period, top categories, recent expenses, and pending-review count in the native shell (FR-011, FR-012)
+- [X] T031 [US2] Verify income/expense create/edit/delete per role against the existing endpoints, with no local financial logic (FR-011, FR-012, FR-014)
+- [X] T032 [US2] Verify income/expense history and filtering on device (FR-011)
+- [X] T033 [US2] Verify category management on device (FR-011)
+- [X] T034 [US2] Verify report totals equal dashboard totals for the same workspace/period, reusing backend confirmed-only calculations (FR-013)
+- [X] T035 [US2] Verify settings flows on device and confirm no permission/financial decision is made or cached locally (FR-014, FR-015)
 
 **Checkpoint**: Core finances work on device and match the backend exactly.
 

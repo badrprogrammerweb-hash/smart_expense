@@ -33,7 +33,7 @@ test.describe("reports", () => {
     await page.getByRole("link", { name: "Incomes" }).click();
     await page.waitForURL(/\/incomes$/);
     await page.getByLabel("Amount").fill("2000.00");
-    await page.getByLabel("Date").fill(new Date().toISOString().slice(0, 10));
+    await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill("Salary");
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("SAR 2,000.00").first()).toBeVisible();
@@ -41,7 +41,7 @@ test.describe("reports", () => {
     await page.getByRole("link", { name: "Expenses" }).click();
     await page.waitForURL(/\/expenses$/);
     await page.getByLabel("Amount").fill("300.00");
-    await page.getByLabel("Date").fill(new Date().toISOString().slice(0, 10));
+    await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Merchant").fill("Market");
     await page.getByLabel("Description").fill("Groceries run");
     await page.getByLabel("Category").selectOption({ label: "Groceries" });

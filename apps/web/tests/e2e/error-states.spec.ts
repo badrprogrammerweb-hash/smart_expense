@@ -26,7 +26,7 @@ test.describe("error states", () => {
     await page.getByRole("link", { name: "Incomes" }).click();
     await page.waitForURL(/\/incomes$/);
     await page.getByLabel("Amount").fill("100.00");
-    await page.getByLabel("Date").fill(new Date().toISOString().slice(0, 10));
+    await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill("Small income");
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("SAR 100.00").first()).toBeVisible();
@@ -34,7 +34,7 @@ test.describe("error states", () => {
     await page.getByRole("link", { name: "Expenses" }).click();
     await page.waitForURL(/\/expenses$/);
     await page.getByLabel("Amount").fill("500.00");
-    await page.getByLabel("Date").fill(new Date().toISOString().slice(0, 10));
+    await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill("Big expense");
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("Big expense")).toBeVisible();

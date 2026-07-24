@@ -133,7 +133,7 @@ test("owner sees newest history entries and viewer is denied", async ({ page }) 
 
   await page.getByRole("link", { name: "Expenses" }).click();
   await page.getByLabel("Amount").fill("12.00");
-  await page.getByLabel("Date").fill(new Date().toISOString().slice(0, 10));
+  await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
   await page.getByLabel("Merchant").fill("History Market");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("listitem").getByText("History Market")).toBeVisible();

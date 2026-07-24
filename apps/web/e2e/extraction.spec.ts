@@ -229,7 +229,7 @@ test.describe("extraction", () => {
     await expect(page.getByLabel("Amount")).toHaveValue("42.50");
 
     await page.getByLabel("Amount").fill("99.00");
-    await page.getByLabel("Date").fill("2026-07-05");
+    await page.getByLabel("Date", { exact: true }).fill("2026-07-05");
     const confirmResponse = page.waitForResponse(
       (response) => response.url().includes(`/extractions/${extractionId}/confirm`),
     );

@@ -6,6 +6,11 @@ import { useMemo, useState } from "react";
 
 import { IncomeForm } from "@/components/income/IncomeForm";
 import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
+import {
+  EMPTY_HISTORY_FILTERS,
+  RecordHistoryFilters,
+  filterHistoryRecords,
+} from "@/components/records/RecordHistoryFilters";
 import { useDeleteIncome, useIncomes } from "@/hooks/use-incomes";
 import type { IncomeRecord } from "@/lib/api/incomes";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
@@ -24,13 +29,18 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const records = useMemo(
+  const [filters, setFilters] = useState(EMPTY_HISTORY_FILTERS);
+  const allRecords = useMemo(
     () =>
       [...(incomes.data?.incomes ?? [])].sort((a, b) => {
         const dateCompare = b.occurred_on.localeCompare(a.occurred_on);
         return dateCompare || b.created_at.localeCompare(a.created_at);
       }),
     [incomes.data?.incomes],
+  );
+  const records = useMemo(
+    () => filterHistoryRecords(allRecords, filters, (record) => [record.description]),
+    [allRecords, filters],
   );
 
   async function handleDelete(record: IncomeRecord) {
@@ -66,7 +76,7 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
     );
   }
 
-  if (records.length === 0) {
+  if (allRecords.length === 0) {
     return <PrimitiveEmptyState title={t("noIncome")} description={t("noIncome")} />;
   }
 
@@ -76,6 +86,12 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
         <h2 className="text-lg font-semibold">{t("incomeHistory")}</h2>
       </div>
       <div className="px-5 pt-3"><MutationDisabledNotice /></div>
+      <div className="px-5 pt-3">
+        <RecordHistoryFilters value={filters} onChange={setFilters} />
+      </div>
+      {records.length === 0 && (
+        <p className="p-5 text-sm text-muted-foreground">{t("filters.noMatching")}</p>
+      )}
       <ul className="hidden divide-y md:block">
         {records.map((record) => {
           const isEditing = editingId === record.id;

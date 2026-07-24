@@ -35,7 +35,7 @@ test.describe("categories", () => {
     // confirm the archived category still displays correctly on that expense.
     await page.getByRole("link", { name: "Expenses" }).click();
     await page.getByLabel("Amount").fill("25.00");
-    await page.getByLabel("Date").fill(new Date().toISOString().slice(0, 10));
+    await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill("Category archive check");
     await page.getByLabel("Category").selectOption({ label: categoryName });
     await page.getByRole("button", { name: "Save" }).click();

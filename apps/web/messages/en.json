@@ -113,7 +113,16 @@
     "validationDate": "Enter a valid date.",
     "categoryPlaceholder": "Choose a category",
     "subcategory": "Subcategory",
-    "subcategoryPlaceholder": "No subcategory"
+    "subcategoryPlaceholder": "No subcategory",
+    "filters": {
+      "label": "History filters",
+      "search": "Search history",
+      "searchPlaceholder": "Description, merchant, or category",
+      "from": "From date",
+      "to": "To date",
+      "clear": "Clear filters",
+      "noMatching": "No records match these filters."
+    }
   },
   "categories": {
     "title": "Categories",

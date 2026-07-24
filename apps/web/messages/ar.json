@@ -113,7 +113,16 @@
     "validationDate": "أدخل تاريخًا صحيحًا.",
     "categoryPlaceholder": "اختر تصنيفًا",
     "subcategory": "الفئة الفرعية",
-    "subcategoryPlaceholder": "بدون فئة فرعية"
+    "subcategoryPlaceholder": "بدون فئة فرعية",
+    "filters": {
+      "label": "عوامل تصفية السجل",
+      "search": "بحث في السجل",
+      "searchPlaceholder": "الوصف أو التاجر أو التصنيف",
+      "from": "من تاريخ",
+      "to": "إلى تاريخ",
+      "clear": "مسح عوامل التصفية",
+      "noMatching": "لا توجد سجلات مطابقة لعوامل التصفية."
+    }
   },
   "categories": {
     "title": "التصنيفات",
