@@ -10,7 +10,7 @@ import { useState, type ReactNode } from "react";
 import { WorkspaceSelector } from "@/components/layout/WorkspaceSelector";
 import { IndeterminateOutcomeNotice, OfflineBanner, StaleDataNotice, useConnectivity } from "@/components/connectivity";
 import { WorkspaceProvider, clearNativeLastWorkspaceId, useWorkspaceContext } from "@/lib/workspace-context";
-import { isNative } from "@/lib/platform/capacitor";
+import { isNative, nativeSecureSession } from "@/lib/platform/capacitor";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { canCreateExpense, canManageIncome, canUploadFile } from "@/lib/permissions";
@@ -51,6 +51,13 @@ function WorkspaceFrame({ children }: { children: ReactNode }) {
   async function signOut() {
     const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
+    // Supabase's own signOut() already removes the specific storage keys it
+    // knows about, but that is trusting an external SDK's exact key list.
+    // Sweep everything under our own prefix as an explicit backstop
+    // (contracts/on-device-security.md rule 5) — after signOut() so the
+    // network call above still had a valid access token to invalidate the
+    // session server-side first.
+    await nativeSecureSession()?.clear();
     // Drop every cached query (including ["auth","currentUserId"]) so a
     // different account signing in on the same tab never reads stale data.
     queryClient.clear();
