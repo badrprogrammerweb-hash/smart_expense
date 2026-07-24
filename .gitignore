@@ -56,6 +56,11 @@ htmlcov/
 pip-wrap.log
 celerybeat-schedule
 
+# --- Capacitor mobile app (apps/mobile) ---
+# www/ is the locally bundled web export copied in by build-web-bundle.mjs;
+# ios/ and android/ carry their own generated .gitignore for build output.
+apps/mobile/www/
+
 # --- Supabase local dev (keep migrations & config tracked) ---
 supabase/.branches/
 supabase/.temp/

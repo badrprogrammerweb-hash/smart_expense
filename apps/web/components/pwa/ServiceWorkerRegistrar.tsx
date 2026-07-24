@@ -2,9 +2,14 @@
 
 import { useEffect } from "react";
 
+import { isNative } from "@/lib/platform/capacitor";
+
 export function ServiceWorkerRegistrar() {
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return;
+    // The Capacitor shell is already locally bundled. Registering the PWA
+    // service worker there could persist API data in the WebView cache, which
+    // is forbidden for the native session model.
+    if (isNative() || process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return;
     let disposed = false;
     void navigator.serviceWorker.register("/sw.js").then((registration) => {
       if (disposed) return;

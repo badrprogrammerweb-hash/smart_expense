@@ -10,8 +10,10 @@ import { useWorkspace } from "@/hooks/use-workspaces";
 import { ApiError } from "@/lib/api/client";
 import type { WorkspaceRole, WorkspaceType } from "@/lib/api/workspaces";
 import type { SupportedCurrency } from "@/lib/currency";
+import { isNative } from "@/lib/platform/capacitor";
 
 const LAST_WORKSPACE_KEY = "smart-expense.lastWorkspaceId";
+let nativeLastWorkspaceId: string | null = null;
 
 export type WorkspaceContextValue = {
   workspaceId: string;
@@ -107,7 +109,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (workspaceQuery.data?.id) {
-      window.localStorage.setItem(LAST_WORKSPACE_KEY, workspaceQuery.data.id);
+      if (isNative()) {
+        nativeLastWorkspaceId = workspaceQuery.data.id;
+      } else {
+        window.localStorage.setItem(LAST_WORKSPACE_KEY, workspaceQuery.data.id);
+      }
     }
   }, [workspaceQuery.data?.id]);
 
@@ -174,9 +180,13 @@ export function readLastWorkspaceId() {
     return null;
   }
 
-  return window.localStorage.getItem(LAST_WORKSPACE_KEY);
+  return isNative() ? nativeLastWorkspaceId : window.localStorage.getItem(LAST_WORKSPACE_KEY);
 }
 
 export function writeLastWorkspaceId(workspaceId: string) {
-  window.localStorage.setItem(LAST_WORKSPACE_KEY, workspaceId);
+  if (isNative()) {
+    nativeLastWorkspaceId = workspaceId;
+  } else {
+    window.localStorage.setItem(LAST_WORKSPACE_KEY, workspaceId);
+  }
 }

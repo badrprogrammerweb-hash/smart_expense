@@ -5,6 +5,11 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  ...(process.env.CAPACITOR_BUILD === "1" ? {
+    output: "export",
+    images: { unoptimized: true },
+    trailingSlash: true,
+  } : {}),
   turbopack: {
     root: path.join(__dirname, "../.."),
   },

@@ -4,8 +4,18 @@
   "private": true,
   "workspaces": [
     "apps/web",
+    "apps/mobile",
     "packages/shared"
   ],
+  "scripts": {
+    "mobile:bundle": "npm --prefix apps/mobile run build:web",
+    "mobile:sync": "npm --prefix apps/mobile run sync",
+    "mobile:android": "npm --prefix apps/mobile run open:android",
+    "mobile:ios": "npm --prefix apps/mobile run open:ios",
+    "mobile:run:android": "npm --prefix apps/mobile run run:android",
+    "mobile:run:ios": "npm --prefix apps/mobile run run:ios",
+    "mobile:test": "npm --prefix apps/mobile run test:e2e"
+  },
   "overrides": {
     "next@16.2.9": {
       "postcss": "8.5.10"

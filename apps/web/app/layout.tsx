@@ -29,7 +29,10 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
-  const requested = await getLocale();
+  // The local Capacitor package is pre-rendered at build time. Locale routing
+  // remains client-side there, so reading request headers would make the export
+  // dynamic and prevent producing a local shell.
+  const requested = process.env.CAPACITOR_BUILD === "1" ? "en" : await getLocale();
   const locale = isLocale(requested) ? requested : "en";
 
   return (
