@@ -348,9 +348,23 @@ test.describe("mobile navigation", () => {
       const extractionId = seedReadyForReviewExtraction({ workspaceId: workspaceA.id, fileId: uploadedFileId, triggeredBy: decodeJwtSub(owner.accessToken) });
       await page.goto(`/${locale}/w/${workspaceA.id}/extractions/${extractionId}`);
       await expect(page.getByRole("heading", { name: messages.extraction.review.title })).toBeVisible();
-      const confirmResponse = page.waitForResponse((response) => response.url().includes(`/extractions/${extractionId}/confirm`));
-      await page.getByRole("button", { name: messages.extraction.actions.confirm }).click();
-      await confirmResponse;
+      const confirmButton = page.getByRole("button", { name: messages.extraction.actions.confirm });
+      // Confirm the click target is actually ready before relying on it --
+      // `.click()`'s own actionability wait covers the same ground, but
+      // folds a disabled-button case into the same generic timeout as every
+      // other failure mode here. Asserting explicitly turns "confirm was
+      // disabled/never became clickable" into its own clear failure instead
+      // of a 180s hang diagnosed only from a video recording.
+      await expect(confirmButton).toBeVisible();
+      await expect(confirmButton).toBeEnabled();
+      // Bounded well under the test's own 180s budget: if the POST is never
+      // even sent (rather than sent-but-slow), this fails in ~20s with a
+      // specific "confirm response" message instead of exhausting the whole
+      // test on a generic waitForResponse timeout.
+      const confirmResponse = page.waitForResponse((response) => response.url().includes(`/extractions/${extractionId}/confirm`), { timeout: 20_000 });
+      await confirmButton.click();
+      const response = await confirmResponse;
+      expect(response.status(), "extraction confirm response status").toBe(200);
 
       // 6. Switch workspace.
       await page.goto(`/${locale}/w/${workspaceA.id}/dashboard`);
