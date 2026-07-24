@@ -204,5 +204,30 @@ The baseline criteria below are retained for the phase-end comparison:
 
 ### Post-phase comparison (to be completed at phase end)
 
-- Repeat the above and confirm no significant regression; note that repeat
-  loads are expected to *improve* once the shell is cached.
+- **Method and limit**: repeated the pre-phase responsive workflow against a
+  fresh production build (`npm run build && npm run start`, launched by the
+  Playwright web-server fixture) on 2026-07-24. The pre-phase entry was a
+  qualitative load-feel baseline, not a timed performance benchmark, so the
+  check below is a like-for-like responsiveness regression gate rather than a
+  numeric speed comparison. It does not replace the physical-device checks
+  still pending in T067–T068.
+- **Desktop and mobile load/interaction**: `e2e/refresh-responsive.spec.ts`
+  passed in Chromium and mobile RTL. It completed the Arabic/English phone,
+  tablet, and desktop viewport matrix, including dashboard reachability,
+  expense/income entry, files, AI-review, reports filters, and workspace
+  switching, with no timeout or observed responsiveness regression. The
+  measured test durations (30.9 s desktop and 39.9 s mobile RTL) include
+  account/workspace seeding and are therefore not page-load timings.
+- **Installability and repeat-visit prerequisites**:
+  `e2e/pwa-installability.spec.ts` passed in Chromium, mobile RTL, and mobile
+  LTR. It verified the manifest, icon assets, accessible metadata, standalone
+  suppression, and a persistent Settings install entry after banner dismissal.
+  The service-worker shell is intentionally cacheable, so repeat loads are
+  expected to improve; this headless run does not make a real-device claim.
+- **Storage/cache safety**: `e2e/cache-isolation.spec.ts` passed in all three
+  projects, including its persistent-browser-storage check: no financial data
+  or secrets were found after workspace switching, sign-out/another-user, or
+  offline transitions.
+- **Conclusion**: within the same automated harness used for the qualitative
+  baseline, no significant initial-load or interaction-responsiveness
+  regression was observed (FR-045, SC-014).

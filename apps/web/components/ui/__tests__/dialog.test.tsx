@@ -77,4 +77,23 @@ describe("Dialog", () => {
     expect(backSpy).not.toHaveBeenCalled();
     backSpy.mockRestore();
   });
+
+  it("removes the sentinel before navigating from a dialog link", () => {
+    const backSpy = vi.spyOn(window.history, "back").mockImplementation(() => {});
+    const onNavigate = vi.fn();
+    function NavigationHarness() {
+      const [open, setOpen] = useState(false);
+      return <><button onClick={() => setOpen(true)}>Open</button><Dialog open={open} onOpenChange={setOpen} onNavigate={onNavigate} title="Test dialog"><a href="/next">Next</a></Dialog></>;
+    }
+
+    render(<NavigationHarness />);
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    fireEvent.click(screen.getByRole("link", { name: "Next" }));
+    expect(backSpy).toHaveBeenCalledOnce();
+
+    fireEvent.popState(window);
+    expect(onNavigate).toHaveBeenCalledWith("/next");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    backSpy.mockRestore();
+  });
 });

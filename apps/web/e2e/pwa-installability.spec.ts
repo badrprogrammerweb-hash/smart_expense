@@ -135,6 +135,13 @@ test.describe("PWA installability", () => {
     // entirely on session storage — assert it survives the reload, not just the click.
     await expect(page.getByTestId("install-prompt")).toHaveCount(0);
     await expect(page.getByTestId("settings-install-entry")).toBeVisible();
-    await expect(page.getByText("Open your browser menu and choose Add to Home Screen.")).toBeVisible();
+    // M-8 requires the Settings entry to remain available after banner dismissal.
+    // Its affordance is platform-dependent: iOS/manual browsers show guidance,
+    // while a browser that supplies a new beforeinstallprompt event shows the
+    // usable install action instead.
+    await expect(
+      page.getByText("Open your browser menu and choose Add to Home Screen.")
+        .or(page.getByRole("button", { name: "Install app" })),
+    ).toBeVisible();
   });
 });
