@@ -141,16 +141,16 @@ check totals.
 
 ### Tests for User Story 3
 
-- [ ] T036 [P] [US3] Native test: camera capture + file pick → preview → upload → induced-failure retry yields exactly one stored file in `apps/mobile/e2e/capture-upload.spec.*`
-- [ ] T037 [P] [US3] Native/e2e test: extraction confirm → expense; discard/failed → zero totals in `apps/mobile/e2e/ai-review.spec.*`
+- [X] T036 [P] [US3] Native test: camera capture + file pick → preview → upload → induced-failure retry yields exactly one stored file in `apps/mobile/e2e/capture-upload.spec.*` — native-registration/wiring regression coverage (3 tests); the actual capture/preview/error-handling behaviour is unit-tested in `apps/web/components/ui/__tests__/file-upload.test.tsx` (native capture success, cancel, 3× failure reasons, fallback) and `apps/web/components/files/__tests__/file-upload.test.tsx`; device-level "tap the shutter" runs deferred to the manual sweep (no Appium/device in this environment)
+- [X] T037 [P] [US3] Native/e2e test: extraction confirm → expense; discard/failed → zero totals in `apps/mobile/e2e/ai-review.spec.*` — structural reuse verification (2 tests): start/confirm/discard all call the existing endpoints via `apiFetch`, confirm carries `expense_id`, discard is a separate explicit action; no mobile-only extraction logic exists to test
 
 ### Implementation for User Story 3
 
-- [ ] T038 [US3] Integrate native camera capture into `apps/web/components/files/FileUpload.tsx` via the capability shim, falling back to the existing web capture (Phase 15) when native is unavailable (FR-016, FR-020)
-- [ ] T039 [US3] Ensure preview with file name/size and replace/remove before confirmation (reuse Phase 15 behaviour) (FR-017)
-- [ ] T040 [US3] Ensure upload progress, duplicate-submission prevention, safe failure messaging, and retry-yields-one-file (FR-018)
-- [ ] T041 [US3] Reuse Phase 6 file-type/file-size validation (10 MB; PNG/JPEG/WebP/PDF) unchanged, explaining rejection before upload; camera-absent fallback shows no dead control (FR-019, FR-020)
-- [ ] T042 [US3] Reuse Phase 8 extraction review: start/confirm/discard; confirmed → expense; failed/discarded → no totals impact (FR-021)
+- [X] T038 [US3] Integrate native camera capture into `apps/web/components/files/FileUpload.tsx` via the capability shim, falling back to the existing web capture (Phase 15) when native is unavailable (FR-016, FR-020) — new `apps/mobile/src/native/camera.ts` wraps `@capacitor/camera`'s `takePhoto` (not the deprecated `getPhoto`) behind a `CameraCaptureOutcome` result, exposed via the existing `window.__SMART_EXPENSE_NATIVE__` bridge (same pattern as T011's secure session) and a new `nativeCamera()` accessor in `apps/web/lib/platform/capacitor.ts`; `components/ui/file-upload.tsx`'s capture control renders a native-calling `<button>` when available, else the unchanged Phase 15 `<input capture>` — reliability, not preference: the `capture` attribute is unreliable on iOS WKWebView, which is why `@capacitor/camera` exists at all
+- [X] T039 [US3] Ensure preview with file name/size and replace/remove before confirmation (reuse Phase 15 behaviour) (FR-017) — verified already correct and already tested (no dedicated "Replace" control; re-selecting via either source — including the new native path — swaps the staged file and revokes the superseded object URL); the native-captured `File` flows through the exact same `select()` preview path as a picked file
+- [X] T040 [US3] Ensure upload progress, duplicate-submission prevention, safe failure messaging, and retry-yields-one-file (FR-018) — verified already correct and already tested (Phase 4-era coverage); unchanged by native capture since both sources feed the same guarded `onSubmit`
+- [X] T041 [US3] Reuse Phase 6 file-type/file-size validation (10 MB; PNG/JPEG/WebP/PDF) unchanged, explaining rejection before upload; camera-absent fallback shows no dead control (FR-019, FR-020) — verified unchanged (`MAX_FILE_SIZE_BYTES`/`ALLOWED_TYPES` untouched); added the fallback case explicitly: native-but-bridge-unavailable falls back to the web capture affordance rather than hiding the control, tested in `file-upload.test.tsx`
+- [X] T042 [US3] Reuse Phase 8 extraction review: start/confirm/discard; confirmed → expense; failed/discarded → no totals impact (FR-021) — verified already correct via `ai-review.spec.mjs`; no code change needed, extraction review is untouched by the capture-source change
 
 **Checkpoint**: Mobile capture, upload, and AI review are reliable and safe.
 

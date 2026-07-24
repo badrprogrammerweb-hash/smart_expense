@@ -396,6 +396,7 @@
       "action": "Take a photo",
       "hint": "Use your camera to capture a receipt.",
       "unavailable": "Camera capture is not available on this device.",
+      "permissionDenied": "Camera access is off. Enable it in your device settings to take a photo.",
       "preview": "Selected file preview",
       "replace": "Replace photo",
       "remove": "Remove photo",

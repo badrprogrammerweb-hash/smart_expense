@@ -7,6 +7,13 @@ type SecureStorageAdapter = {
   clear(): Promise<void>;
 };
 
+export type CameraCaptureOutcome =
+  | { status: "captured"; file: File }
+  | { status: "cancelled" }
+  | { status: "permission-denied" }
+  | { status: "unavailable" }
+  | { status: "failed" };
+
 type CapacitorGlobal = {
   isNativePlatform?: () => boolean;
   getPlatform?: () => string;
@@ -16,7 +23,10 @@ declare global {
   interface Window {
     Capacitor?: CapacitorGlobal;
     __SMART_EXPENSE_PENDING_DEEP_LINK__?: string;
-    __SMART_EXPENSE_NATIVE__?: { secureSession: SecureStorageAdapter };
+    __SMART_EXPENSE_NATIVE__?: {
+      secureSession: SecureStorageAdapter;
+      captureFromCamera: () => Promise<CameraCaptureOutcome>;
+    };
   }
 }
 
@@ -37,9 +47,13 @@ export function nativeSecureSession(): SecureStorageAdapter | null {
   return isNative() ? window.__SMART_EXPENSE_NATIVE__?.secureSession ?? null : null;
 }
 
+export function nativeCamera(): (() => Promise<CameraCaptureOutcome>) | null {
+  return isNative() ? window.__SMART_EXPENSE_NATIVE__?.captureFromCamera ?? null : null;
+}
+
 export function nativeCapabilities() {
   return {
-    camera: isNative(),
+    camera: nativeCamera() !== null,
     deepLinks: isNative(),
     secureStorage: nativeSecureSession() !== null,
     safeArea: isNative(),
