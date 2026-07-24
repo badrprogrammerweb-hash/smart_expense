@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { ApiError } from "@/lib/api/client";
+import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { triggerExtraction, type ExtractionRecord } from "@/lib/api/extractions";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { canTriggerExtraction } from "@/lib/permissions";
@@ -39,13 +40,14 @@ export function TriggerExtractionButton({ fileId, role, workspaceId }: TriggerEx
   const [isTriggering, setIsTriggering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ExtractionRecord | null>(null);
+  const { canMutate } = useConnectivity();
 
   if (!canTriggerExtraction(role)) {
     return <PermissionDeniedState action={t("actions.trigger").toLowerCase()} description={t("errors.forbidden")} role="Viewer" title={common("permissionRequired")} />;
   }
 
   async function onTrigger() {
-    if (isTriggering) {
+    if (isTriggering || !canMutate) {
       return;
     }
 
@@ -65,10 +67,11 @@ export function TriggerExtractionButton({ fileId, role, workspaceId }: TriggerEx
 
   return (
     <div className="flex flex-col items-start gap-1">
-      <Button variant="secondary" loading={isTriggering} loadingLabel={t("status.processing")} disabled={isTriggering} type="button" onClick={() => void onTrigger()}>
+      <Button variant="secondary" loading={isTriggering} loadingLabel={t("status.processing")} disabled={isTriggering || !canMutate} type="button" onClick={() => void onTrigger()}>
         <Sparkles className="h-4 w-4" aria-hidden="true" />
         {t("actions.trigger")}
       </Button>
+      <MutationDisabledNotice />
       {error && <Alert variant="error" title={error} />}
       {result && !error && (
         <p className="text-sm text-muted-foreground">

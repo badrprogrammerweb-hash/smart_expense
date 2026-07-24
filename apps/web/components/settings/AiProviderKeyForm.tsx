@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useId, useState } from "react";
 
 import { useConfigureAiSettings } from "@/hooks/use-ai-settings";
+import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import type { AiProvider, AiSettingsStatus } from "@/lib/api/ai-settings";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { canManageAiSettings } from "@/lib/permissions";
@@ -40,6 +41,7 @@ export function AiProviderKeyForm({ role, status, workspaceId }: AiProviderKeyFo
   const [apiKey, setApiKey] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const { canMutate } = useConnectivity();
 
   useEffect(() => {
     if (status?.provider) {
@@ -53,6 +55,7 @@ export function AiProviderKeyForm({ role, status, workspaceId }: AiProviderKeyFo
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canMutate) return;
     setValidationError(null);
     setRequestError(null);
 
@@ -85,6 +88,7 @@ export function AiProviderKeyForm({ role, status, workspaceId }: AiProviderKeyFo
             id={providerId}
             value={provider}
             onChange={(event) => setProvider(event.currentTarget.value as AiProvider)}
+            disabled={!canMutate || configure.isPending}
           >
             {PROVIDERS.map((value) => (
               <option key={value} value={value}>
@@ -107,16 +111,18 @@ export function AiProviderKeyForm({ role, status, workspaceId }: AiProviderKeyFo
               setApiKey(event.currentTarget.value);
               setValidationError(null);
             }}
+            disabled={!canMutate || configure.isPending}
           />
           <p className="mt-1 text-xs text-muted-foreground">{t(`formatHints.${provider}`)}</p>
         </div>
       </div>
       {validationError ? <Alert variant="error" title={validationError} /> : null}
       {requestError ? <Alert variant="error" title={requestError} /> : null}
-      <Button loading={configure.isPending} type="submit">
+      <Button loading={configure.isPending} disabled={!canMutate} type="submit">
         <Save className="h-4 w-4" aria-hidden="true" />
         {status?.configured ? t("replaceAction") : common("save")}
       </Button>
+      <MutationDisabledNotice />
     </form>
   );
 }

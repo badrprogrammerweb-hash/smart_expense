@@ -2,6 +2,7 @@ export * from "./alert";
 export * from "./amount-input";
 export * from "./app-shell";
 export * from "./badge";
+export * from "./bottom-nav";
 export * from "./button";
 export * from "./chart";
 export * from "./confirm-dialog";

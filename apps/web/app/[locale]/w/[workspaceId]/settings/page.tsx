@@ -6,6 +6,7 @@ import { AiSettingsCard } from "@/components/settings/AiSettingsCard";
 import { AutoDeleteToggle } from "@/components/settings/AutoDeleteToggle";
 import { LanguageSwitcher } from "@/components/settings/LanguageSwitcher";
 import { WorkspaceCurrencySelector } from "@/components/settings/WorkspaceCurrencySelector";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { useWorkspaceContext } from "@/lib/workspace-context";
 import { InfoCard, PageHeading } from "@/components/ui";
 
@@ -41,6 +42,7 @@ export default function SettingsPage() {
         <p className="mt-2 text-sm text-muted-foreground">{t("languageDescription")}</p>
         <LanguageSwitcher />
       </InfoCard>
+      <InstallPrompt placement="settings" />
       <AutoDeleteToggle
         autoDeleteAfterExtraction={autoDeleteAfterExtraction}
         role={role}

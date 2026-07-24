@@ -7,13 +7,14 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { CategoryPicker } from "@/components/category/CategoryPicker";
+import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { useCreateExpense, useUpdateExpense } from "@/hooks/use-expenses";
 import type { ExpenseRecord } from "@/lib/api/expenses";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { minorUnitDigits, type SupportedCurrency } from "@/lib/currency";
 import { parseInputToMinor } from "@/lib/money";
 import { canCreateExpense } from "@/lib/permissions";
-import { AmountInput, Button, DateDisplay, FormError, FormField, FormLabel, Input, PermissionDeniedState, Textarea } from "@/components/ui";
+import { AmountInput, Button, DateDisplay, FormError, FormField, FormFooter, FormLabel, Input, PermissionDeniedState, Textarea } from "@/components/ui";
 
 type ExpenseFormProps = {
   workspaceId: string;
@@ -37,6 +38,7 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
   const t = useTranslations("records");
   const common = useTranslations("common");
   const [formError, setFormError] = useState<string | null>(null);
+  const { canMutate } = useConnectivity();
   const createExpense = useCreateExpense(workspaceId);
   const updateExpense = useUpdateExpense(workspaceId);
   const allowed = canSubmit ?? canCreateExpense(role);
@@ -69,6 +71,7 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
   }
 
   async function submit(values: FormValues) {
+    if (!canMutate) return;
     setFormError(null);
     const input = {
       amount_minor: parseInputToMinor(values.amount, currency),
@@ -121,19 +124,21 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
       />
       <FormField><FormLabel htmlFor="expense-description">{t("description")}</FormLabel><Textarea id="expense-description" className="mt-2" {...form.register("description")} /></FormField>
       {formError && <FormError>{formError}</FormError>}
-      <div className="flex flex-wrap gap-2">
+      <FormFooter>
         <Button
           type="submit"
+          disabled={!canMutate}
           loading={form.formState.isSubmitting || createExpense.isPending || updateExpense.isPending}
         >
           {common("save")}
         </Button>
+        <MutationDisabledNotice />
         {onCancel && (
           <Button variant="secondary" type="button" onClick={onCancel}>
             {common("cancel")}
           </Button>
         )}
-      </div>
+      </FormFooter>
     </form>
   );
 }

@@ -92,7 +92,7 @@ export function FileRow({
         <div className="flex flex-wrap gap-2">
           <button
             aria-label={`${t("actions.preview")} ${file.original_filename}`}
-            className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-11 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isOpening}
             title={t("actions.preview")}
             type="button"
@@ -103,7 +103,7 @@ export function FileRow({
           </button>
           <button
             aria-label={`${t("actions.download")} ${file.original_filename}`}
-            className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-11 items-center gap-2 rounded-md border px-3 text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isOpening}
             title={t("actions.download")}
             type="button"

@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { useCategories, useCreateCategory } from "@/hooks/use-categories";
+import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import type { CategoryType } from "@/lib/api/categories";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { getCategoryLabel } from "@/lib/i18n/category-labels";
@@ -24,6 +25,7 @@ export function CategoryForm({ workspaceId, role, categoryType }: CategoryFormPr
   const common = useTranslations("common");
   const catalogT = useTranslations("categories.catalog");
   const [formError, setFormError] = useState<string | null>(null);
+  const { canMutate } = useConnectivity();
   const createCategory = useCreateCategory(workspaceId);
   const mainCategories = useCategories(workspaceId, { categoryType, includeArchived: false });
   const schema = useMemo(
@@ -45,6 +47,7 @@ export function CategoryForm({ workspaceId, role, categoryType }: CategoryFormPr
   }
 
   async function submit(values: FormValues) {
+    if (!canMutate) return;
     setFormError(null);
 
     try {
@@ -79,10 +82,12 @@ export function CategoryForm({ workspaceId, role, categoryType }: CategoryFormPr
       <FormError>{formError}</FormError>
       <Button
         type="submit"
+        disabled={!canMutate}
         loading={form.formState.isSubmitting || createCategory.isPending}
       >
         {common("save")}
       </Button>
+      <MutationDisabledNotice />
     </form>
   );
 }

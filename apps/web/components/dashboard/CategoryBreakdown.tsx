@@ -74,7 +74,7 @@ export function CategoryBreakdown({
             return (
               <li key={item.category_id ?? "uncategorized"}>
                 <button
-                  className="flex w-full items-center justify-between gap-4 text-left disabled:cursor-default"
+                  className="flex min-h-11 w-full items-center justify-between gap-4 text-left disabled:cursor-default"
                   disabled={!canDrillDown || !item.category_id}
                   onClick={() => toggleExpanded(item.category_id)}
                   type="button"

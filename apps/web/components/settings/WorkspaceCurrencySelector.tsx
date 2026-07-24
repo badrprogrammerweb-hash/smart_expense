@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useId, useState } from "react";
 
 import { useUpdateWorkspaceCurrency } from "@/hooks/use-workspaces";
+import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { ApiError } from "@/lib/api/client";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { supportedCurrencies, type SupportedCurrency } from "@/lib/currency";
@@ -30,8 +31,9 @@ export function WorkspaceCurrencySelector({
   const [selectedCurrency, setSelectedCurrency] = useState(currency);
   const [locked, setLocked] = useState(currencyLocked);
   const [error, setError] = useState<string | null>(null);
+  const { canMutate } = useConnectivity();
   const canEdit = canEditWorkspaceCurrency(role);
-  const disabled = !canEdit || locked || updateCurrency.isPending;
+  const disabled = !canEdit || locked || updateCurrency.isPending || !canMutate;
 
   useEffect(() => {
     setSelectedCurrency(currency);
@@ -42,6 +44,7 @@ export function WorkspaceCurrencySelector({
   }, [currencyLocked]);
 
   async function handleChange(nextCurrency: SupportedCurrency) {
+    if (!canMutate) return;
     if (nextCurrency === selectedCurrency) {
       return;
     }
@@ -77,7 +80,7 @@ export function WorkspaceCurrencySelector({
         <select
           aria-describedby={descriptionId}
           aria-busy={updateCurrency.isPending}
-          className="h-10 min-w-36 rounded-md border bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-11 min-w-36 rounded-md border bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           disabled={disabled}
           id={selectId}
           onChange={(event) => void handleChange(event.currentTarget.value as SupportedCurrency)}
@@ -92,6 +95,7 @@ export function WorkspaceCurrencySelector({
       </div>
       {!canEdit ? <p className="mt-3 text-sm text-muted-foreground">{t("currencyOwnerOnly")}</p> : null}
       {locked ? <p className="mt-3 text-sm text-muted-foreground">{t("currencyLocked")}</p> : null}
+      <MutationDisabledNotice />
       {error ? (
         <p className="mt-3 text-sm text-destructive" role="alert">
           {error}

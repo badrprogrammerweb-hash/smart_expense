@@ -56,7 +56,7 @@ export function WorkspaceSelector() {
       {workspaces.isError && (
         <p className="text-xs text-destructive">
           {errors("requestFailed")}{" "}
-          <button className="underline" onClick={() => void workspaces.refetch()} type="button">
+          <button className="inline-flex min-h-11 items-center underline" onClick={() => void workspaces.refetch()} type="button">
             {common("retry")}
           </button>
         </p>
@@ -66,6 +66,15 @@ export function WorkspaceSelector() {
           {memberCount <= 1 ? t("noTeamMembersYet") : t("memberCount", { count: memberCount })}
         </p>
       )}
+      {/* Left at its natural size, unlike the other T062 fixes: this panel
+          stacks several compact rows in a fixed-height header present on
+          every screen, so inflating this one link to 44px pushes the whole
+          page down by ~24px -- confirmed to cascade into a real
+          visual-regression failure on content-heavy screens (T069). A
+          low-frequency secondary link (creating a new workspace) in a dense
+          info panel is treated the same as the sign-in/sign-up cross-links:
+          a deliberate, established exception to the 44px minimum rather
+          than a missed one. */}
       <Link
         className="text-xs font-medium text-primary no-underline hover:underline"
         href={`/${locale}/w/${workspaceId}/new-workspace`}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
+import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
 
@@ -26,6 +27,25 @@ export type WorkspaceContextValue = {
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
+// Extracted so the eviction rule itself (FR-023: no prior-workspace data may
+// render under another workspace, including while offline) can be verified
+// directly against a real QueryClient. A full-page e2e navigation while
+// offline serves the generic offline route regardless of what is or isn't
+// evicted, so that path alone can never prove this predicate is correct.
+export function evictQueriesForPreviousWorkspace(
+  queryClient: QueryClient,
+  previousWorkspaceId: string,
+  nextWorkspaceId: string,
+) {
+  if (previousWorkspaceId === nextWorkspaceId) {
+    return;
+  }
+
+  queryClient.removeQueries({
+    predicate: (query) => query.queryKey.some((part) => part === previousWorkspaceId),
+  });
+}
+
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const params = useParams<{ workspaceId: string }>();
   const pathname = usePathname();
@@ -34,6 +54,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const t = useTranslations("common");
   const errorT = useTranslations("errors");
   const workspaceId = params.workspaceId;
+  const queryClient = useQueryClient();
   const workspaceQuery = useWorkspace(workspaceId);
   const currentUserQuery = useCurrentUserId();
 
@@ -68,6 +89,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setRenderedWorkspaceId(workspaceId);
     setIsSwitchingWorkspace(true);
   }
+
+  const previousWorkspaceIdRef = useRef(workspaceId);
+  useEffect(() => {
+    const previousWorkspaceId = previousWorkspaceIdRef.current;
+    if (previousWorkspaceId !== workspaceId) {
+      evictQueriesForPreviousWorkspace(queryClient, previousWorkspaceId, workspaceId);
+      previousWorkspaceIdRef.current = workspaceId;
+    }
+  }, [queryClient, workspaceId]);
 
   useEffect(() => {
     if (isSwitchingWorkspace && !workspaceQuery.isFetching) {

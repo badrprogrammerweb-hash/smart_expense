@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 
 import { ExpenseFileAttach } from "@/components/expense/ExpenseFileAttach";
 import { ExpenseForm } from "@/components/expense/ExpenseForm";
+import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { useCategories } from "@/hooks/use-categories";
 import { useDeleteExpense, useExpenses } from "@/hooks/use-expenses";
 import type { ExpenseRecord } from "@/lib/api/expenses";
@@ -23,6 +24,7 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
   const errors = useTranslations("errors");
   const catalogT = useTranslations("categories.catalog");
   const { currentUserId } = useWorkspaceContext();
+  const { canMutate } = useConnectivity();
   const expenses = useExpenses(workspaceId);
   const categories = useCategories(workspaceId, { includeArchived: true });
   const deleteExpense = useDeleteExpense(workspaceId);
@@ -49,6 +51,7 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
   );
 
   async function handleDelete(record: ExpenseRecord) {
+    if (!canMutate) return;
     if (confirmingDeleteId !== record.id) {
       setDeleteError(null);
       setConfirmingDeleteId(record.id);
@@ -88,6 +91,7 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
       <div className="border-b p-5">
         <h2 className="text-lg font-semibold">{t("expenseHistory")}</h2>
       </div>
+      <div className="px-5 pt-3"><MutationDisabledNotice /></div>
       <ul className="hidden divide-y md:block">
         {records.map((record) => {
           const isEditing = editingId === record.id;
@@ -136,6 +140,7 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
                       <Button
                         variant="destructive"
                         type="button"
+                        disabled={!canMutate}
                         onClick={() => void handleDelete(record)}
                       >
                         <Trash2 className="h-4 w-4" aria-hidden="true" />
@@ -165,7 +170,7 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
                 { label: t("description"), value: description },
                 { label: t("category"), value: record.category_id ? categoryNames.get(record.category_id) ?? common("none") : common("none") },
               ]}
-              actions={canManageRecord ? <><Button size="compact" variant="secondary" type="button" onClick={() => setEditingId(record.id)}><Pencil className="h-4 w-4" aria-hidden="true" />{common("edit")}</Button><Button size="compact" variant="destructive" type="button" onClick={() => void handleDelete(record)}><Trash2 className="h-4 w-4" aria-hidden="true" />{confirmingDeleteId === record.id ? t("confirmDelete") : common("delete")}</Button></> : undefined}
+              actions={canManageRecord ? <><Button size="compact" variant="secondary" type="button" onClick={() => setEditingId(record.id)}><Pencil className="h-4 w-4" aria-hidden="true" />{common("edit")}</Button><Button size="compact" variant="destructive" type="button" disabled={!canMutate} onClick={() => void handleDelete(record)}><Trash2 className="h-4 w-4" aria-hidden="true" />{confirmingDeleteId === record.id ? t("confirmDelete") : common("delete")}</Button></> : undefined}
             />
           );
         })}

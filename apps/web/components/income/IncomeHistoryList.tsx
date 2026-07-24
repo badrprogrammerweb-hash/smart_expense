@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 import { IncomeForm } from "@/components/income/IncomeForm";
+import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { useDeleteIncome, useIncomes } from "@/hooks/use-incomes";
 import type { IncomeRecord } from "@/lib/api/incomes";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
@@ -17,6 +18,7 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
   const t = useTranslations("records");
   const common = useTranslations("common");
   const errors = useTranslations("errors");
+  const { canMutate } = useConnectivity();
   const incomes = useIncomes(workspaceId);
   const deleteIncome = useDeleteIncome(workspaceId);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -32,6 +34,7 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
   );
 
   async function handleDelete(record: IncomeRecord) {
+    if (!canMutate) return;
     if (confirmingDeleteId !== record.id) {
       setDeleteError(null);
       setConfirmingDeleteId(record.id);
@@ -72,6 +75,7 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
       <div className="border-b p-5">
         <h2 className="text-lg font-semibold">{t("incomeHistory")}</h2>
       </div>
+      <div className="px-5 pt-3"><MutationDisabledNotice /></div>
       <ul className="hidden divide-y md:block">
         {records.map((record) => {
           const isEditing = editingId === record.id;
@@ -112,6 +116,7 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
                       <Button
                         variant="destructive"
                         type="button"
+                        disabled={!canMutate}
                         onClick={() => void handleDelete(record)}
                       >
                         <Trash2 className="h-4 w-4" aria-hidden="true" />
@@ -138,7 +143,7 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
                 { label: t("date"), value: <DateDisplay date={record.occurred_on} /> },
                 { label: t("description"), value: record.description || common("none") },
               ]}
-              actions={canManageIncome(role) ? <><Button size="compact" variant="secondary" type="button" onClick={() => setEditingId(record.id)}><Pencil className="h-4 w-4" aria-hidden="true" />{common("edit")}</Button><Button size="compact" variant="destructive" type="button" onClick={() => void handleDelete(record)}><Trash2 className="h-4 w-4" aria-hidden="true" />{confirmingDeleteId === record.id ? t("confirmDelete") : common("delete")}</Button></> : undefined}
+              actions={canManageIncome(role) ? <><Button size="compact" variant="secondary" type="button" onClick={() => setEditingId(record.id)}><Pencil className="h-4 w-4" aria-hidden="true" />{common("edit")}</Button><Button size="compact" variant="destructive" type="button" disabled={!canMutate} onClick={() => void handleDelete(record)}><Trash2 className="h-4 w-4" aria-hidden="true" />{confirmingDeleteId === record.id ? t("confirmDelete") : common("delete")}</Button></> : undefined}
             />
           );
         })}
