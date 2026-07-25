@@ -219,13 +219,13 @@ confirm completeness, truthfulness, free/no-IAP, and reproducibility.
 
 ### Implementation for User Story 6
 
-- [ ] T056 [P] [US6] Write `docs/mobile/store-listing.en.md` — English title/description/screenshots/category/content rating and free/no-IAP declaration (contracts/store-readiness.md, FR-032)
-- [ ] T057 [P] [US6] Write `docs/mobile/store-listing.ar.md` — Arabic store listing/metadata (FR-032)
-- [ ] T058 [P] [US6] Write `docs/mobile/privacy-data-safety.md` — privacy-policy link + data-safety / privacy-nutrition mapping reflecting secure-session-only storage and existing-backend transmission (FR-032)
-- [ ] T059 [P] [US6] Write `docs/mobile/reviewer-guide.md` — reviewer sign-in path to exercise core functionality (FR-034)
-- [ ] T060 [P] [US6] Write `docs/mobile/release-runbook.md` — developer accounts, signing/key management, version numbering, staged rollout for both platforms (FR-035)
-- [ ] T061 [US6] Assemble Apple Guideline 4.2 / Google Play minimum-functionality evidence (camera capture, secure storage, locally bundled shell) per contracts/store-readiness.md (FR-033)
-- [ ] T062 [US6] Verify current store requirements and data-safety form fields against live store documentation at implementation time and reconcile the docs above (research.md R-008, Assumptions)
+- [X] T056 [P] [US6] Write `docs/mobile/store-listing.en.md` — English title/description/screenshots/category/content rating and free/no-IAP declaration (contracts/store-readiness.md, FR-032)
+- [X] T057 [P] [US6] Write `docs/mobile/store-listing.ar.md` — Arabic store listing/metadata (FR-032)
+- [X] T058 [P] [US6] Write `docs/mobile/privacy-data-safety.md` — privacy-policy link + data-safety / privacy-nutrition mapping reflecting secure-session-only storage and existing-backend transmission (FR-032)
+- [X] T059 [P] [US6] Write `docs/mobile/reviewer-guide.md` — reviewer sign-in path to exercise core functionality (FR-034)
+- [X] T060 [P] [US6] Write `docs/mobile/release-runbook.md` — developer accounts, signing/key management, version numbering, staged rollout for both platforms (FR-035)
+- [X] T061 [US6] Assemble Apple Guideline 4.2 / Google Play minimum-functionality evidence (camera capture, secure storage, locally bundled shell) per contracts/store-readiness.md (FR-033)
+- [X] T062 [US6] Verify current store requirements and data-safety form fields against live store documentation at implementation time and reconcile the docs above (research.md R-008, Assumptions)
 
 **Checkpoint**: Both stores can be submitted from documented, reproducible artifacts.
 
