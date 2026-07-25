@@ -375,13 +375,13 @@ test.describe("mobile navigation", () => {
       // of a 180s hang diagnosed only from a video recording.
       await expect(confirmButton).toBeVisible();
       await expect(confirmButton).toBeEnabled();
-      // This form follows the receipt preview on mobile, so make its submit
-      // control actionable before arming the network assertion. Starting a
-      // short response timer while Playwright is still scrolling/retrying an
-      // off-screen click made CI report a missing response even though the
-      // user action itself had not completed.
-      await confirmButton.scrollIntoViewIfNeeded();
-      await expect(confirmButton).toBeInViewport();
+      // The review form follows the receipt preview, while its footer is
+      // sticky above the fixed mobile navigation. A viewport-ratio assertion
+      // measures that footer's pre-action geometry and is not a reliable
+      // guarantee that a user click can be delivered. Let Playwright run its
+      // real scrolling, hit-target, and interception checks without changing
+      // page state before arming the exact POST assertion below.
+      await confirmButton.click({ trial: true });
       const response = await Promise.all([
         page.waitForResponse((candidate) => {
           const url = new URL(candidate.url());
