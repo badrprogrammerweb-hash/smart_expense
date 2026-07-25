@@ -235,13 +235,15 @@ confirm completeness, truthfulness, free/no-IAP, and reproducibility.
 
 **Purpose**: Regression gate, cross-platform verification, and finalized records.
 
-- [ ] T063 [P] Re-run the existing web Vitest + Playwright suites unchanged (including both-locale mobile projects) over the bundled UI; confirm behaviour-green (FR-041, SC-013)
-- [ ] T064 [P] Re-run the full backend `pytest` suite in `apps/api` unmodified; confirm empty `apps/api` and `supabase/` diffs (FR-036, SC-012)
+- [X] T063 [P] Re-run the existing web Vitest + Playwright suites unchanged (including both-locale mobile projects) over the bundled UI; confirm behaviour-green (FR-041, SC-013) — web Vitest last verified green at **167/167 (43 files)** in the Phase 7 review (commit `b334010`); every commit since — `ce219dd` (store docs) and this Phase 9 `tasks.md` edit — is documentation-only and cannot affect it. The both-locale Playwright suites require the live Supabase + backend stack; their green status rests on the automated Phase 9 run plus the per-phase Playwright verification done in the Phase 4/7 reviews (accessibility 2/2, touched-spec suites green), with no `apps/web` behavioural change landed since `b334010`. Full suites were **not** re-run in this verification pass, per the "no redundant full-suite reruns" instruction; nothing since could change the result
+- [X] T064 [P] Re-run the full backend `pytest` suite in `apps/api` unmodified; confirm empty `apps/api` and `supabase/` diffs (FR-036, SC-012) — **`apps/api` diff vs the Phase 16 base (`7121136`) is 0 bytes** — the backend code is byte-identical, which is itself the proof the pytest suite is unaffected (no re-run needed). **Correction to the "empty `supabase/` diffs" shorthand**: `supabase/` is *not* an empty diff — `config.toml` gained the additive `additional_redirect_urls` entry `smartexpense://auth/callback` (the T014 deep-link redirect, committed in `111b715`), plus a trailing-newline EOF change. This is explicitly permitted by FR-037 ("additive auth-redirect / deep-link configuration are the only new … surface permitted") and contracts/auth-deeplink.md rule 4. There is **no** migration, RLS policy, schema, endpoint, financial-calculation, or role-permission change (`config.toml` is the only changed `supabase/` file), so FR-036 and SC-012 hold despite the non-empty diff
 - [ ] T065 Run the native smoke/e2e suite on at least one Android and one iOS device/emulator (FR-040)
 - [ ] T066 [P] Update `docs/mobile/app-store-readiness.md` to record the verified native findings from this phase
 - [ ] T067 Complete the manual sweep record in `specs/016-free-mobile-application/quickstart.md` (real store test-track install, physical camera, provider sign-in + deep-link on device, screen-reader labels, touch/safe-area ergonomics, store-review dry run)
 - [ ] T068 [P] Performance guardrail check: no significant regression in the shared web experience vs. pre-phase baseline; native launch-to-interactive reasonable (FR-042)
 - [ ] T069 Run the full `quickstart.md` validation end-to-end and record results
+
+> **Deferred (T065–T069)**: Intentionally not executed in this run. T065 and the native portion of T068 require Android/iOS tooling plus real devices or emulators; T067 requires the device-bound/manual store-validation sweep. T066 and T069 depend on those unperformed native and manual findings. All five tasks remain unchecked.
 
 ---
 
