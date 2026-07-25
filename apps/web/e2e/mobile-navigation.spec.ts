@@ -40,7 +40,25 @@ async function uploadFileAndGetId(page: Page, locale: "ar" | "en", workspaceId: 
     mimeType: "application/pdf",
     buffer: Buffer.from("%PDF-1.7\nreceipt\n"),
   });
-  await page.getByRole("button", { name: messages.files.upload.action }).click();
+  const uploadButton = page.getByRole("button", { name: messages.files.upload.action });
+  // Arm the network wait around the click itself (Promise.all), then assert
+  // the real upload response before checking the success UI. The prior form
+  // -- a bare `toBeVisible()` on the success text with Playwright's default
+  // 5s expect timeout -- had no tie to the actual request lifecycle, so any
+  // upload response slower than 5s (routine under CI's shared, contended
+  // runners) left the button showing "Uploading file..." past the timeout
+  // even though the upload was still genuinely in flight and would have
+  // succeeded moments later. Waiting on the response directly removes that
+  // false-failure window; the UI assertion after it only needs to observe a
+  // state change React already made once the awaited response resolved.
+  const uploadResponse = await Promise.all([
+    page.waitForResponse((candidate) => {
+      const url = new URL(candidate.url());
+      return candidate.request().method() === "POST" && url.pathname === `/workspaces/${workspaceId}/files`;
+    }, { timeout: 20_000 }),
+    uploadButton.click(),
+  ]).then(([response]) => response);
+  expect(uploadResponse.status(), "file upload response status").toBe(201);
   await expect(page.getByText(messages.files.upload.success)).toBeVisible();
 
   const filesResponse = await apiFetch(`/workspaces/${workspaceId}/files`, owner.accessToken);
@@ -357,13 +375,21 @@ test.describe("mobile navigation", () => {
       // of a 180s hang diagnosed only from a video recording.
       await expect(confirmButton).toBeVisible();
       await expect(confirmButton).toBeEnabled();
-      // Bounded well under the test's own 180s budget: if the POST is never
-      // even sent (rather than sent-but-slow), this fails in ~20s with a
-      // specific "confirm response" message instead of exhausting the whole
-      // test on a generic waitForResponse timeout.
-      const confirmResponse = page.waitForResponse((response) => response.url().includes(`/extractions/${extractionId}/confirm`), { timeout: 20_000 });
-      await confirmButton.click();
-      const response = await confirmResponse;
+      // This form follows the receipt preview on mobile, so make its submit
+      // control actionable before arming the network assertion. Starting a
+      // short response timer while Playwright is still scrolling/retrying an
+      // off-screen click made CI report a missing response even though the
+      // user action itself had not completed.
+      await confirmButton.scrollIntoViewIfNeeded();
+      await expect(confirmButton).toBeInViewport();
+      const response = await Promise.all([
+        page.waitForResponse((candidate) => {
+          const url = new URL(candidate.url());
+          return candidate.request().method() === "POST"
+            && url.pathname === `/workspaces/${workspaceA.id}/extractions/${extractionId}/confirm`;
+        }, { timeout: 20_000 }),
+        confirmButton.click(),
+      ]).then(([confirmResponse]) => confirmResponse);
       expect(response.status(), "extraction confirm response status").toBe(200);
 
       // 6. Switch workspace.
