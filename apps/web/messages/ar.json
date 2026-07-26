@@ -503,6 +503,48 @@
       "discardFailed": "فشل تجاهل الاستخراج."
     }
   },
+  "supportPurchases": {
+    "eyebrow": "دعم اختياري للمنتج",
+    "title": "ادعم المنتج",
+    "description": "اختر عملية دعم اختيارية لمرة واحدة للمساعدة في استمرار تطوير Smart Expense.",
+    "unchangedProduct": "تبقى جميع الميزات متاحة للجميع. دعم المنتج لا يغيّر الوصول أو الحدود أو الأدوار أو بيانات مساحات العمل أو الإجماليات المالية.",
+    "openAction": "عرض خيارات الدعم",
+    "pageTitle": "ادعم المنتج",
+    "pageDescription": "اختر أحد مستويات الدعم المحددة مسبقًا. هذا الخيار اختياري بالكامل ولا يغيّر تجربة المنتج.",
+    "selectTier": "اختر مستوى الدعم",
+    "selectTierDescription": "كل خيار هو عملية شراء لمرة واحدة.",
+    "tiers": {
+      "support_small": "دعم صغير",
+      "support_medium": "دعم متوسط",
+      "support_large": "دعم كبير"
+    },
+    "hostedCheckoutNote": "تُدخل تفاصيل الدفع فقط في صفحة Checkout الآمنة التي تستضيفها Stripe.",
+    "continueAction": "المتابعة إلى Stripe",
+    "redirecting": "جارٍ فتح صفحة الدفع الآمنة",
+    "checkoutError": "تعذّر فتح صفحة الدفع الآمنة. حاول مرة أخرى.",
+    "tiersUnavailableTitle": "خيارات الدعم غير متاحة",
+    "tiersUnavailableDescription": "تعذّر تحميل خيارات الدعم. حاول مرة أخرى.",
+    "pendingTitle": "بانتظار تأكيد الدفع",
+    "pendingDescription": "لم تؤكد Stripe عملية دعم المنتج بعد. ستتحدّث هذه الصفحة تلقائيًا بعد وصول إشعار موثّق.",
+    "completedTitle": "تم تأكيد دعم المنتج",
+    "completedDescription": "شكرًا لدعمك استمرار تطوير المنتج.",
+    "failedTitle": "لم تكتمل عملية الدفع",
+    "failedDescription": "تعذّر إكمال الدفع. يمكنك اختيار مستوى دعم والمحاولة مرة أخرى.",
+    "refundedTitle": "تم استرداد عملية الدعم",
+    "refundedDescription": "تم استرداد عملية دعم المنتج هذه. وصولك إلى المنتج يبقى دون أي تغيير.",
+    "verifiedStateNote": "تأتي هذه الحالة من سجل الشراء الموثّق من المزوّد في الخادم، وليس من رابط العودة.",
+    "resultUnavailableTitle": "حالة الشراء غير متاحة",
+    "resultUnavailableDescription": "تعذّر العثور على حالة موثّقة لعملية دعم مرتبطة برابط العودة هذا.",
+    "receipt": {
+      "amount": "المبلغ",
+      "date": "التاريخ",
+      "channel": "قناة الشراء",
+      "webChannel": "الويب",
+      "reference": "مرجع المزوّد"
+    },
+    "tryAgainAction": "اختر مستوى دعم",
+    "returnAction": "العودة إلى Smart Expense"
+  },
   "errors": {
     "generic": "حدث خطأ ما.",
     "requestFailed": "فشل الطلب. حاول مرة أخرى.",

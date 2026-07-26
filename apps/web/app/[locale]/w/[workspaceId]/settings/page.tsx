@@ -6,6 +6,7 @@ import { AiSettingsCard } from "@/components/settings/AiSettingsCard";
 import { AutoDeleteToggle } from "@/components/settings/AutoDeleteToggle";
 import { LanguageSwitcher } from "@/components/settings/LanguageSwitcher";
 import { WorkspaceCurrencySelector } from "@/components/settings/WorkspaceCurrencySelector";
+import { SupportPurchaseCard } from "@/components/settings/SupportPurchaseCard";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { useWorkspaceContext } from "@/lib/workspace-context";
 import { InfoCard, PageHeading } from "@/components/ui";
@@ -43,6 +44,7 @@ export default function SettingsPage() {
         <LanguageSwitcher />
       </InfoCard>
       <InstallPrompt placement="settings" />
+      <SupportPurchaseCard />
       <AutoDeleteToggle
         autoDeleteAfterExtraction={autoDeleteAfterExtraction}
         role={role}

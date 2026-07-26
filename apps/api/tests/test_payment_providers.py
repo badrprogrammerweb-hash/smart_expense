@@ -165,6 +165,8 @@ async def test_create_stripe_checkout_session_uses_one_time_payment_mode(monkeyp
             class _Session:
                 id = "cs_test_created"
                 url = "https://checkout.stripe.com/test"
+                amount_total = 500
+                currency = "sar"
 
             return _Session()
 
@@ -189,9 +191,162 @@ async def test_create_stripe_checkout_session_uses_one_time_payment_mode(monkeyp
     )
 
     assert result.id == "cs_test_created"
+    assert result.amount_minor_units == 500
+    assert result.currency == "SAR"
     assert captured["params"]["mode"] == "payment"
     assert captured["options"] == {"idempotency_key": "idem-key-1"}
     assert captured["key"] == "sk_test_abc"
+
+
+@pytest.mark.asyncio
+async def test_resolve_stripe_payment_intent_uses_filtered_checkout_session_lookup(
+    monkeypatch,
+) -> None:
+    captured: dict = {}
+
+    class _FakeSessionsResource:
+        def list(self, params):
+            captured["params"] = params
+            return type(
+                "_SessionList",
+                (),
+                {"data": [type("_Session", (), {"id": "cs_test_correlated"})()]},
+            )()
+
+    class _FakeV1:
+        checkout = type("_Checkout", (), {"sessions": _FakeSessionsResource()})()
+
+    class _FakeStripeClient:
+        def __init__(self, key):
+            captured["key"] = key
+            self.v1 = _FakeV1()
+
+    monkeypatch.setattr(pp.stripe, "StripeClient", _FakeStripeClient)
+
+    checkout_session_id = await pp.resolve_stripe_checkout_session_id(
+        "pi_test_correlated", secret_key="sk_test_abc"
+    )
+
+    assert checkout_session_id == "cs_test_correlated"
+    assert captured["params"] == {
+        "payment_intent": "pi_test_correlated",
+        "limit": 2,
+    }
+    assert captured["key"] == "sk_test_abc"
+
+
+@pytest.mark.asyncio
+async def test_resolve_stripe_payment_intent_never_accepts_a_non_pi_identifier() -> None:
+    with pytest.raises(pp.ProviderVerificationError):
+        await pp.resolve_stripe_checkout_session_id(
+            "cs_test_wrong_space", secret_key="sk_test_abc"
+        )
+
+
+@pytest.mark.asyncio
+async def test_resolve_stripe_payment_intent_returns_none_when_no_session_found(
+    monkeypatch,
+) -> None:
+    class _FakeSessionsResource:
+        def list(self, params):
+            return type("_SessionList", (), {"data": []})()
+
+    class _FakeV1:
+        checkout = type("_Checkout", (), {"sessions": _FakeSessionsResource()})()
+
+    class _FakeStripeClient:
+        def __init__(self, key):
+            self.v1 = _FakeV1()
+
+    monkeypatch.setattr(pp.stripe, "StripeClient", _FakeStripeClient)
+
+    result = await pp.resolve_stripe_checkout_session_id(
+        "pi_test_no_match", secret_key="sk_test_abc"
+    )
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_resolve_stripe_payment_intent_rejects_an_ambiguous_correlation(
+    monkeypatch,
+) -> None:
+    class _FakeSessionsResource:
+        def list(self, params):
+            return type(
+                "_SessionList",
+                (),
+                {
+                    "data": [
+                        type("_Session", (), {"id": "cs_test_one"})(),
+                        type("_Session", (), {"id": "cs_test_two"})(),
+                    ]
+                },
+            )()
+
+    class _FakeV1:
+        checkout = type("_Checkout", (), {"sessions": _FakeSessionsResource()})()
+
+    class _FakeStripeClient:
+        def __init__(self, key):
+            self.v1 = _FakeV1()
+
+    monkeypatch.setattr(pp.stripe, "StripeClient", _FakeStripeClient)
+
+    with pytest.raises(pp.ProviderVerificationError):
+        await pp.resolve_stripe_checkout_session_id(
+            "pi_test_ambiguous", secret_key="sk_test_abc"
+        )
+
+
+@pytest.mark.asyncio
+async def test_resolve_stripe_payment_intent_rejects_a_malformed_returned_id(
+    monkeypatch,
+) -> None:
+    class _FakeSessionsResource:
+        def list(self, params):
+            return type(
+                "_SessionList",
+                (),
+                {"data": [type("_Session", (), {"id": "not-a-session-id"})()]},
+            )()
+
+    class _FakeV1:
+        checkout = type("_Checkout", (), {"sessions": _FakeSessionsResource()})()
+
+    class _FakeStripeClient:
+        def __init__(self, key):
+            self.v1 = _FakeV1()
+
+    monkeypatch.setattr(pp.stripe, "StripeClient", _FakeStripeClient)
+
+    with pytest.raises(pp.ProviderVerificationError):
+        await pp.resolve_stripe_checkout_session_id(
+            "pi_test_malformed", secret_key="sk_test_abc"
+        )
+
+
+@pytest.mark.asyncio
+async def test_resolve_stripe_payment_intent_wraps_a_transient_stripe_error(
+    monkeypatch,
+) -> None:
+    class _FakeSessionsResource:
+        def list(self, params):
+            raise pp.stripe.APIConnectionError("boom")
+
+    class _FakeV1:
+        checkout = type("_Checkout", (), {"sessions": _FakeSessionsResource()})()
+
+    class _FakeStripeClient:
+        def __init__(self, key):
+            self.v1 = _FakeV1()
+
+    monkeypatch.setattr(pp.stripe, "StripeClient", _FakeStripeClient)
+
+    with pytest.raises(pp.PaymentProviderError):
+        await pp.resolve_stripe_checkout_session_id(
+            "pi_test_transient_failure", secret_key="sk_test_abc"
+        )
 
 
 @pytest.mark.asyncio

@@ -58,6 +58,8 @@ class ProviderVerificationError(PaymentProviderError):
 class StripeCheckoutSession:
     id: str
     url: str
+    amount_minor_units: int
+    currency: str
 
 
 @dataclass(frozen=True)
@@ -179,7 +181,11 @@ async def create_stripe_checkout_session(
         "success_url": success_url,
         "cancel_url": cancel_url,
         "submit_type": "pay",
+        "client_reference_id": user_id,
         "metadata": {"user_id": user_id, "tier_id": tier_id},
+        "payment_intent_data": {
+            "metadata": {"user_id": user_id, "tier_id": tier_id}
+        },
     }
 
     try:
@@ -193,9 +199,80 @@ async def create_stripe_checkout_session(
 
     session_id = getattr(session, "id", None)
     checkout_url = getattr(session, "url", None)
-    if not isinstance(session_id, str) or not isinstance(checkout_url, str):
+    amount_total = getattr(session, "amount_total", None)
+    currency = getattr(session, "currency", None)
+    if (
+        not isinstance(session_id, str)
+        or not session_id.startswith("cs_")
+        or not isinstance(checkout_url, str)
+        or not isinstance(amount_total, int)
+        or amount_total <= 0
+        or not isinstance(currency, str)
+    ):
         raise PaymentProviderError("Stripe returned an incomplete Checkout Session.")
-    return StripeCheckoutSession(id=session_id, url=checkout_url)
+    return StripeCheckoutSession(
+        id=session_id,
+        url=checkout_url,
+        amount_minor_units=amount_total,
+        currency=currency.upper(),
+    )
+
+
+async def resolve_stripe_checkout_session_id(
+    payment_intent_id: str,
+    *,
+    secret_key: str | None = None,
+) -> str | None:
+    """Map a ``pi_...`` event reference to the stored ``cs_...`` reference.
+
+    Stripe's Checkout Sessions list API has an explicit PaymentIntent filter.
+    This server-side lookup is the only bridge between the identifier spaces;
+    a PaymentIntent id is never used directly as a support-purchase key.
+    """
+
+    if not payment_intent_id.startswith("pi_"):
+        raise ProviderVerificationError(
+            "The Stripe PaymentIntent identifier is invalid."
+        )
+    key = _required(
+        secret_key if secret_key is not None else get_settings().stripe_secret_key,
+        "STRIPE_SECRET_KEY",
+    )
+    client = stripe.StripeClient(key)
+    try:
+        sessions = await asyncio.to_thread(
+            client.v1.checkout.sessions.list,
+            {"payment_intent": payment_intent_id, "limit": 2},
+        )
+    except stripe.StripeError as exc:
+        raise PaymentProviderError(
+            "Stripe correlation is temporarily unavailable."
+        ) from exc
+
+    data = getattr(sessions, "data", None)
+    if not isinstance(data, list):
+        mapped = _mapping(sessions)
+        data = mapped.get("data")
+    if not isinstance(data, list):
+        raise PaymentProviderError("Stripe returned an invalid correlation response.")
+    if not data:
+        return None
+    if len(data) != 1:
+        raise ProviderVerificationError(
+            "Stripe returned an ambiguous Checkout Session correlation."
+        )
+    checkout_session_id = (
+        data[0].get("id")
+        if isinstance(data[0], Mapping)
+        else getattr(data[0], "id", None)
+    )
+    if not isinstance(checkout_session_id, str) or not checkout_session_id.startswith(
+        "cs_"
+    ):
+        raise ProviderVerificationError(
+            "Stripe returned an invalid Checkout Session identifier."
+        )
+    return checkout_session_id
 
 
 def verify_stripe_webhook(
@@ -261,6 +338,17 @@ def verify_stripe_webhook(
 
     if not isinstance(payment_intent_id, str):
         payment_intent_id = None
+    if (
+        provider_transaction_id is not None
+        and not provider_transaction_id.startswith("cs_")
+    ):
+        raise ProviderVerificationError(
+            "The Stripe Checkout Session identifier is invalid."
+        )
+    if payment_intent_id is not None and not payment_intent_id.startswith("pi_"):
+        raise ProviderVerificationError(
+            "The Stripe PaymentIntent identifier is invalid."
+        )
 
     if (
         not isinstance(event_id, str)
@@ -944,6 +1032,7 @@ __all__ = [
     "VerifiedGooglePurchase",
     "VerifiedStripeEvent",
     "create_stripe_checkout_session",
+    "resolve_stripe_checkout_session_id",
     "verify_apple_jws_notification",
     "verify_apple_purchase",
     "verify_apple_signed_transaction",

@@ -95,23 +95,23 @@ totals are unchanged before and after.
 
 ### Tests for User Story 1
 
-- [ ] T014 [P] [US1] Contract test: `GET /support-purchases/tiers` returns the three configured tiers in `apps/api/tests/test_support_purchases_api.py`
-- [ ] T015 [P] [US1] Contract test: `POST /support-purchases/checkout-sessions` creates a `pending` row and a **one-time (`mode=payment`, not `subscription`)** Stripe Checkout Session URL for a valid preset `tier_id`, rejects an unknown/non-preset `tier_id` with no row created, and rejects unauthenticated requests, in `apps/api/tests/test_support_purchases_api.py` (FR-005, FR-006)
-- [ ] T016 [P] [US1] Contract test: `POST /support-purchases/webhooks/stripe` with a valid signed test event moves the matching purchase to `completed`; an invalid signature is rejected and causes no transition, in `apps/api/tests/test_support_purchases_webhooks.py`
-- [ ] T017 [P] [US1] Integration test: workspace dashboard and report totals are byte-for-byte unchanged before/after a completed web support purchase, in `apps/api/tests/test_support_purchases_isolation.py`
+- [X] T014 [P] [US1] Contract test: `GET /support-purchases/tiers` returns the three configured tiers in `apps/api/tests/test_support_purchases_api.py`
+- [X] T015 [P] [US1] Contract test: `POST /support-purchases/checkout-sessions` creates a `pending` row and a **one-time (`mode=payment`, not `subscription`)** Stripe Checkout Session URL for a valid preset `tier_id`, rejects an unknown/non-preset `tier_id` with no row created, and rejects unauthenticated requests, in `apps/api/tests/test_support_purchases_api.py` (FR-005, FR-006)
+- [X] T016 [P] [US1] Contract test: `POST /support-purchases/webhooks/stripe` with a valid signed test event moves the matching purchase to `completed`; an invalid signature is rejected and causes no transition, in `apps/api/tests/test_support_purchases_webhooks.py`
+- [X] T017 [P] [US1] Integration test: workspace dashboard and report totals are byte-for-byte unchanged before/after a completed web support purchase, in `apps/api/tests/test_support_purchases_isolation.py`
 
 ### Implementation for User Story 1
 
-- [ ] T018 [US1] Implement `GET /support-purchases/tiers` in `apps/api/app/routes/support_purchases.py` per `contracts/support-purchases-api.md`
-- [ ] T019 [US1] Implement `POST /support-purchases/checkout-sessions` in `apps/api/app/routes/support_purchases.py`, calling `payment_providers.create_stripe_checkout_session` and `services/support_purchases.create_pending`
-- [ ] T020 [US1] Implement `POST /support-purchases/webhooks/stripe` in `apps/api/app/routes/support_purchases.py`, verifying the Stripe signature and calling `mark_completed`/`mark_failed`/`mark_refunded` as appropriate
-- [ ] T021 [US1] Add the typed web API client `apps/web/lib/api/support-purchases.ts` (list tiers, start checkout session, get history, get receipt)
-- [ ] T022 [P] [US1] Build `apps/web/components/settings/SupportPurchaseCard.tsx` (non-charitable framing, entry point) and `apps/web/components/settings/SupportTierSelector.tsx` (preset tier picker)
-- [ ] T023 [US1] Build the support entry route `apps/web/app/[locale]/(app)/settings/support/page.tsx` that redirects the browser to the returned Stripe Checkout URL
-- [ ] T024 [US1] Build the post-checkout result route `apps/web/app/[locale]/(app)/settings/support/result/page.tsx` that polls/re-fetches purchase status and renders success/pending/failed states without trusting redirect query params as proof of payment (FR-011, FR-016)
-- [ ] T025 [US1] Add an unauthenticated-visitor redirect-to-sign-in guard on the support entry point (FR-007)
-- [ ] T026 [US1] Add Playwright e2e coverage in `apps/web/e2e/` for: tier selection → Stripe test-mode redirect → success/receipt render, and cancel → returns to a retryable non-success state
-- [ ] T026a [P] [US1] Add a static audit test asserting no payment-card input element (e.g., a card-number/CVC field) is ever rendered by any `apps/web` component in the support-purchase flow, in `apps/web/e2e/` or `apps/web/tests/unit/` (FR-009), mirroring the mobile audit in T033
+- [X] T018 [US1] Implement `GET /support-purchases/tiers` in `apps/api/app/routes/support_purchases.py` per `contracts/support-purchases-api.md`
+- [X] T019 [US1] Implement `POST /support-purchases/checkout-sessions` in `apps/api/app/routes/support_purchases.py`, calling `payment_providers.create_stripe_checkout_session` and `services/support_purchases.create_pending`
+- [X] T020 [US1] Implement `POST /support-purchases/webhooks/stripe` in `apps/api/app/routes/support_purchases.py`, verifying the Stripe signature and calling `mark_completed`/`mark_failed`/`mark_refunded` as appropriate
+- [X] T021 [US1] Add the typed web API client `apps/web/lib/api/support-purchases.ts` (list tiers, start checkout session, get history, get receipt)
+- [X] T022 [P] [US1] Build `apps/web/components/settings/SupportPurchaseCard.tsx` (non-charitable framing, entry point) and `apps/web/components/settings/SupportTierSelector.tsx` (preset tier picker)
+- [X] T023 [US1] Build the support entry route `apps/web/app/[locale]/(app)/settings/support/page.tsx` that redirects the browser to the returned Stripe Checkout URL
+- [X] T024 [US1] Build the post-checkout result route `apps/web/app/[locale]/(app)/settings/support/result/page.tsx` that polls/re-fetches purchase status and renders success/pending/failed states without trusting redirect query params as proof of payment (FR-011, FR-016)
+- [X] T025 [US1] Add an unauthenticated-visitor redirect-to-sign-in guard on the support entry point (FR-007)
+- [X] T026 [US1] Add Playwright e2e coverage in `apps/web/e2e/` for: tier selection → Stripe test-mode redirect → success/receipt render, and cancel → returns to a retryable non-success state
+- [X] T026a [P] [US1] Add a static audit test asserting no payment-card input element (e.g., a card-number/CVC field) is ever rendered by any `apps/web` component in the support-purchase flow, in `apps/web/e2e/` or `apps/web/tests/unit/` (FR-009), mirroring the mobile audit in T033
 
 **Checkpoint**: A user can complete a web support purchase end-to-end with zero effect on workspace totals — MVP reachable.
 

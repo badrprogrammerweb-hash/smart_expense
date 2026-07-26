@@ -503,6 +503,48 @@
       "discardFailed": "Discarding the extraction failed."
     }
   },
+  "supportPurchases": {
+    "eyebrow": "Optional product support",
+    "title": "Support the product",
+    "description": "Choose an optional one-time support purchase to help sustain continued development of Smart Expense.",
+    "unchangedProduct": "Every feature remains available to everyone. Product support does not change access, limits, roles, workspace data, or financial totals.",
+    "openAction": "View support options",
+    "pageTitle": "Support the product",
+    "pageDescription": "Select one preset support tier. This is entirely optional and does not change the product experience.",
+    "selectTier": "Choose a support tier",
+    "selectTierDescription": "Each option is a one-time purchase.",
+    "tiers": {
+      "support_small": "Small support",
+      "support_medium": "Medium support",
+      "support_large": "Large support"
+    },
+    "hostedCheckoutNote": "Payment details are entered only on Stripe's secure hosted Checkout page.",
+    "continueAction": "Continue to Stripe",
+    "redirecting": "Opening secure checkout",
+    "checkoutError": "Secure checkout could not be opened. Try again.",
+    "tiersUnavailableTitle": "Support options are unavailable",
+    "tiersUnavailableDescription": "The support options could not be loaded. Try again.",
+    "pendingTitle": "Waiting for payment confirmation",
+    "pendingDescription": "Stripe has not yet confirmed this support purchase. This page will update automatically after a verified webhook arrives.",
+    "completedTitle": "Product support confirmed",
+    "completedDescription": "Thank you for supporting continued product development.",
+    "failedTitle": "Payment was not completed",
+    "failedDescription": "The payment could not be completed. You can choose a support tier and try again.",
+    "refundedTitle": "Support purchase refunded",
+    "refundedDescription": "This support purchase was refunded. Your access to the product is completely unchanged.",
+    "verifiedStateNote": "This status comes from the backend's provider-verified purchase record, not from the return link.",
+    "resultUnavailableTitle": "Purchase status unavailable",
+    "resultUnavailableDescription": "We could not find a verified support-purchase status for this return link.",
+    "receipt": {
+      "amount": "Amount",
+      "date": "Date",
+      "channel": "Purchase channel",
+      "webChannel": "Web",
+      "reference": "Provider reference"
+    },
+    "tryAgainAction": "Choose a support tier",
+    "returnAction": "Return to Smart Expense"
+  },
   "errors": {
     "generic": "Something went wrong.",
     "requestFailed": "The request failed. Try again.",

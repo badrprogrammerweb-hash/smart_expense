@@ -76,3 +76,22 @@ async def get_rls_session(
 ) -> AsyncIterator[AsyncSession]:
     async with open_rls_session(current_user) as session:
         yield session
+
+
+async def get_trusted_session() -> AsyncIterator[AsyncSession]:
+    """Backend-only session for provider-verified support-purchase writes.
+
+    The support-purchase table intentionally grants authenticated users
+    SELECT only. Routes using this dependency must perform their own explicit
+    user scoping or authenticate a provider webhook before any write.
+    """
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        async with session.begin():
+            try:
+                await session.execute(text("set local lock_timeout = '10s'"))
+                await session.execute(text("set local statement_timeout = '10s'"))
+            except DBAPIError as exc:
+                raise database_unavailable_exception(exc) from exc
+            yield session

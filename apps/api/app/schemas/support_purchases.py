@@ -1,1 +1,41 @@
-"""Support-purchase schema scaffold; models are added in later phases."""
+"""API models for account-scoped support purchases."""
+
+from datetime import datetime
+from typing import Literal
+from uuid import UUID
+
+from pydantic import BaseModel, Field
+
+
+class SupportTierResponse(BaseModel):
+    tier_id: str
+    label: str
+    display_amount: str
+    currency: str
+
+
+class SupportTierListResponse(BaseModel):
+    tiers: list[SupportTierResponse]
+
+
+class CheckoutSessionRequest(BaseModel):
+    tier_id: str = Field(min_length=1, max_length=100)
+    locale: Literal["en", "ar"] = "en"
+
+
+class CheckoutSessionResponse(BaseModel):
+    purchase_id: UUID
+    checkout_url: str
+
+
+class SupportPurchaseResponse(BaseModel):
+    id: UUID
+    tier_id: str
+    channel: Literal["web", "ios", "android"]
+    amount_minor_units: int
+    currency: str
+    status: Literal["pending", "completed", "failed", "refunded"]
+    failure_reason: str | None
+    created_at: datetime
+    updated_at: datetime
+    provider_reference: str
