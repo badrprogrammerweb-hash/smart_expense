@@ -70,13 +70,13 @@ guarantees every user story depends on.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T007 Write the additive migration `supabase/migrations/<timestamp>_support_purchases.sql` creating `public.support_purchases` exactly per data-model.md (columns, checks, no `workspace_id`, no FK to `workspaces`)
-- [ ] T008 In the same migration, add `unique (channel, provider_transaction_id)` and enable RLS with the `SELECT ... using (user_id = auth.uid())` policy per data-model.md; leave INSERT/UPDATE/DELETE denied for `authenticated`
-- [ ] T009 [P] Add a schema-level test asserting `support_purchases` has no `workspace_id` column and no FK to `public.workspaces` in `apps/api/tests/test_support_purchases_isolation.py` per `contracts/isolation-and-scope.md`
-- [ ] T010 [P] Add a static query-surface check (grep/import assertion) confirming `services/dashboard.py`, `services/reports.py`, and `services/history.py` never reference `support_purchases`, in `apps/api/tests/test_support_purchases_isolation.py`
-- [ ] T011 Implement `apps/api/app/services/payment_providers.py`: Stripe Checkout-session creation, Stripe webhook signature verification, Apple JWS notification verification, Google Play notification/purchase verification (research.md R-001–R-003; `contracts/webhooks-and-idempotency.md`)
-- [ ] T012 Implement the core state-machine functions in `apps/api/app/services/support_purchases.py` (`create_pending`, `mark_completed`, `mark_failed`, `mark_refunded`), each scoped by `user_id` and enforcing the `pending → completed|failed`, `completed → refunded` transition rules from data-model.md, using the DB unique constraint for idempotency
-- [ ] T013 Add unit tests for the state machine in `apps/api/tests/test_support_purchases_state.py`: valid transitions, invalid transitions rejected, duplicate `(channel, provider_transaction_id)` is a no-op not a new row
+- [X] T007 Write the additive migration `supabase/migrations/<timestamp>_support_purchases.sql` creating `public.support_purchases` exactly per data-model.md (columns, checks, no `workspace_id`, no FK to `workspaces`)
+- [X] T008 In the same migration, add `unique (channel, provider_transaction_id)` and enable RLS with the `SELECT ... using (user_id = auth.uid())` policy per data-model.md; leave INSERT/UPDATE/DELETE denied for `authenticated`
+- [X] T009 [P] Add a schema-level test asserting `support_purchases` has no `workspace_id` column and no FK to `public.workspaces` in `apps/api/tests/test_support_purchases_isolation.py` per `contracts/isolation-and-scope.md`
+- [X] T010 [P] Add a static query-surface check (grep/import assertion) confirming `services/dashboard.py`, `services/reports.py`, and `services/history.py` never reference `support_purchases`, in `apps/api/tests/test_support_purchases_isolation.py`
+- [X] T011 Implement `apps/api/app/services/payment_providers.py`: Stripe Checkout-session creation, Stripe webhook signature verification, Apple JWS notification verification, Google Play notification/purchase verification (research.md R-001–R-003; `contracts/webhooks-and-idempotency.md`)
+- [X] T012 Implement the core state-machine functions in `apps/api/app/services/support_purchases.py` (`create_pending`, `mark_completed`, `mark_failed`, `mark_refunded`), each scoped by `user_id` and enforcing the `pending → completed|failed`, `completed → refunded` transition rules from data-model.md, using the DB unique constraint for idempotency
+- [X] T013 Add unit tests for the state machine in `apps/api/tests/test_support_purchases_state.py`: valid transitions, invalid transitions rejected, duplicate `(channel, provider_transaction_id)` is a no-op not a new row
 
 **Checkpoint**: Table, isolation guarantee, and verified state machine exist — user stories can begin.
 
