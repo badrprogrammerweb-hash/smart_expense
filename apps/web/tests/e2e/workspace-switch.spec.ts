@@ -29,7 +29,7 @@ test.describe("workspace switch", () => {
     await page.getByRole("link", { name: "Expenses" }).click();
     await page.waitForURL(/\/expenses$/);
     await page.getByLabel("Amount").fill("60.00");
-    await page.getByLabel("Date").fill(new Date().toISOString().slice(0, 10));
+    await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill("Team lunch");
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("Team lunch")).toBeVisible();

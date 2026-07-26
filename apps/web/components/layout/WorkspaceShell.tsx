@@ -9,7 +9,8 @@ import { useState, type ReactNode } from "react";
 
 import { WorkspaceSelector } from "@/components/layout/WorkspaceSelector";
 import { IndeterminateOutcomeNotice, OfflineBanner, StaleDataNotice, useConnectivity } from "@/components/connectivity";
-import { WorkspaceProvider, useWorkspaceContext } from "@/lib/workspace-context";
+import { WorkspaceProvider, clearNativeLastWorkspaceId, useWorkspaceContext } from "@/lib/workspace-context";
+import { isNative, nativeSecureSession } from "@/lib/platform/capacitor";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { canCreateExpense, canManageIncome, canUploadFile } from "@/lib/permissions";
@@ -50,10 +51,24 @@ function WorkspaceFrame({ children }: { children: ReactNode }) {
   async function signOut() {
     const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
+    // Supabase's own signOut() already removes the specific storage keys it
+    // knows about, but that is trusting an external SDK's exact key list.
+    // Sweep everything under our own prefix as an explicit backstop
+    // (contracts/on-device-security.md rule 5) — after signOut() so the
+    // network call above still had a valid access token to invalidate the
+    // session server-side first.
+    await nativeSecureSession()?.clear();
     // Drop every cached query (including ["auth","currentUserId"]) so a
     // different account signing in on the same tab never reads stale data.
     queryClient.clear();
-    if ("serviceWorker" in navigator) {
+    // The native shell's last-workspace hint lives outside react-query
+    // (contracts/on-device-security.md); clear it too so a different user
+    // signing in on the same device never inherits it (FR-024).
+    clearNativeLastWorkspaceId();
+    // The native shell never registers the PWA service worker (see
+    // ServiceWorkerRegistrar), so `navigator.serviceWorker.ready` would sit
+    // pending forever waiting for a controller that will never exist.
+    if (!isNative() && "serviceWorker" in navigator) {
       const clearNonShellCaches = (registration: ServiceWorkerRegistration) => {
         registration.active?.postMessage({ type: "CLEAR_NON_SHELL_CACHES" });
       };

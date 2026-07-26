@@ -124,7 +124,7 @@ test.describe("hierarchical categories", () => {
     // search, since the always-visible "add new" form's (closed) Category
     // <select> also contains every main category name as a hidden <option>.
     await page.getByLabel("Amount").fill("45.00");
-    await page.getByLabel("Date").fill("2026-07-10");
+    await page.getByLabel("Date", { exact: true }).fill("2026-07-10");
     await page.getByLabel("Category", { exact: true }).selectOption({ label: "Transportation" });
     await page.getByLabel("Subcategory").selectOption({ label: "Vehicle Maintenance" });
     await page.getByRole("button", { name: "Save" }).click();
@@ -133,7 +133,7 @@ test.describe("hierarchical categories", () => {
 
     // Expense with only a main category (no subcategory).
     await page.getByLabel("Amount").fill("120.00");
-    await page.getByLabel("Date").fill("2026-07-11");
+    await page.getByLabel("Date", { exact: true }).fill("2026-07-11");
     await page.getByLabel("Category", { exact: true }).selectOption({ label: "Rent" });
     await page.getByRole("button", { name: "Save" }).click();
     const rentRow = page.locator("li").filter({ hasText: "11/07/2026" });
@@ -157,7 +157,7 @@ test.describe("hierarchical categories", () => {
     // Income with main category + subcategory.
     await page.goto(`/en/w/${workspaceId}/incomes`);
     await page.getByLabel("Amount").fill("5000.00");
-    await page.getByLabel("Date").fill("2026-07-01");
+    await page.getByLabel("Date", { exact: true }).fill("2026-07-01");
     await page.getByLabel("Category", { exact: true }).selectOption({ label: "Salary" });
     await page.getByLabel("Subcategory").selectOption({ label: "Bonus & Commission" });
     await page.getByRole("button", { name: "Save" }).click();

@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
+import { setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { LocaleDirectionSync } from "@/components/layout/LocaleDirectionSync";
+import { NativeDeepLinkRouter } from "@/components/platform/NativeDeepLinkRouter";
 import { AppProviders } from "@/components/providers";
 import { isLocale, locales } from "@/i18n/routing";
 
@@ -23,11 +25,17 @@ export default async function LocaleLayout({
     notFound();
   }
 
+  // Makes the locale explicit during Capacitor's static export rather than
+  // falling back to request headers. The normal web middleware path is
+  // unaffected.
+  setRequestLocale(locale);
+
   const messages = (await import(`../../messages/${locale}.json`)).default;
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <LocaleDirectionSync />
+      <NativeDeepLinkRouter />
       <AppProviders>{children}</AppProviders>
     </NextIntlClientProvider>
   );

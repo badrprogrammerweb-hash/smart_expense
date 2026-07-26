@@ -32,6 +32,16 @@ function validationError(file: File, t: ReturnType<typeof useTranslations<"files
   return null;
 }
 
+function captureErrorMessage(reason: "permission-denied" | "unavailable" | "failed", t: ReturnType<typeof useTranslations<"files">>) {
+  if (reason === "permission-denied") {
+    return t("capture.permissionDenied");
+  }
+  if (reason === "unavailable") {
+    return t("capture.unavailable");
+  }
+  return t("errors.uploadFailed");
+}
+
 function uploadErrorMessage(error: unknown, t: ReturnType<typeof useTranslations<"files">>) {
   if (error instanceof ApiError) {
     if (error.code === "unsupported_file_type") {
@@ -69,6 +79,11 @@ export function FileUpload({ workspaceId, role }: FileUploadProps) {
     setSuccess(null);
     setSelectedFile(file ?? null);
     setError(file ? validationError(file, t) : null);
+  }
+
+  function onCaptureError(reason: "permission-denied" | "unavailable" | "failed") {
+    setSuccess(null);
+    setError(captureErrorMessage(reason, t));
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -118,6 +133,7 @@ export function FileUpload({ workspaceId, role }: FileUploadProps) {
           disabled={!canMutate || isUploading}
           resetKey={pickerResetKey}
           onFileSelected={onFileChange}
+          onCaptureError={onCaptureError}
         />
         <Button
           type="submit"

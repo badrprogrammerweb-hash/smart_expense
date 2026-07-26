@@ -7,6 +7,11 @@ import { useMemo, useState } from "react";
 import { ExpenseFileAttach } from "@/components/expense/ExpenseFileAttach";
 import { ExpenseForm } from "@/components/expense/ExpenseForm";
 import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
+import {
+  EMPTY_HISTORY_FILTERS,
+  RecordHistoryFilters,
+  filterHistoryRecords,
+} from "@/components/records/RecordHistoryFilters";
 import { useCategories } from "@/hooks/use-categories";
 import { useDeleteExpense, useExpenses } from "@/hooks/use-expenses";
 import type { ExpenseRecord } from "@/lib/api/expenses";
@@ -31,6 +36,7 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [filters, setFilters] = useState(EMPTY_HISTORY_FILTERS);
   const categoryNames = useMemo(() => {
     const map = new Map<string, string>();
     categories.data?.categories.forEach((category) => {
@@ -41,13 +47,22 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
     });
     return map;
   }, [categories.data?.categories, catalogT]);
-  const records = useMemo(
+  const allRecords = useMemo(
     () =>
       [...(expenses.data?.expenses ?? [])].sort((a, b) => {
         const dateCompare = b.occurred_on.localeCompare(a.occurred_on);
         return dateCompare || b.created_at.localeCompare(a.created_at);
       }),
     [expenses.data?.expenses],
+  );
+  const records = useMemo(
+    () =>
+      filterHistoryRecords(allRecords, filters, (record) => [
+        record.description,
+        record.merchant_name,
+        categoryNames.get(record.category_id ?? ""),
+      ]),
+    [allRecords, categoryNames, filters],
   );
 
   async function handleDelete(record: ExpenseRecord) {
@@ -82,7 +97,7 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
     );
   }
 
-  if (records.length === 0) {
+  if (allRecords.length === 0) {
     return <EmptyState title={t("noExpenses")} description={t("noExpenses")} />;
   }
 
@@ -92,6 +107,12 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
         <h2 className="text-lg font-semibold">{t("expenseHistory")}</h2>
       </div>
       <div className="px-5 pt-3"><MutationDisabledNotice /></div>
+      <div className="px-5 pt-3">
+        <RecordHistoryFilters value={filters} onChange={setFilters} />
+      </div>
+      {records.length === 0 && (
+        <p className="p-5 text-sm text-muted-foreground">{t("filters.noMatching")}</p>
+      )}
       <ul className="hidden divide-y md:block">
         {records.map((record) => {
           const isEditing = editingId === record.id;

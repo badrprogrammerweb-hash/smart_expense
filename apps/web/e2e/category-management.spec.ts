@@ -197,7 +197,7 @@ test.describe("category management", () => {
     // rename cleared `translation_key`).
     await page.goto(`/en/w/${workspaceId}/expenses`);
     await page.getByLabel("Amount").fill("40.00");
-    await page.getByLabel("Date").fill("2026-07-15");
+    await page.getByLabel("Date", { exact: true }).fill("2026-07-15");
     await page.getByLabel("Category", { exact: true }).selectOption({ label: "Fuel" });
     await page.getByRole("button", { name: "Save" }).click();
     const fuelExpenseRow = page.locator("li").filter({ hasText: "15/07/2026" });

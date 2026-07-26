@@ -1,9 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Tajawal } from "next/font/google";
-import { getLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 
-import { directionForLocale, isLocale } from "@/i18n/routing";
 import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar";
 
 import "./globals.css";
@@ -29,11 +27,12 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
-  const requested = await getLocale();
-  const locale = isLocale(requested) ? requested : "en";
-
   return (
-    <html lang={locale} dir={directionForLocale(locale)}>
+    // The root cannot read request locale here: doing so makes fallback renders
+    // for generated workspace routes fail with DYNAMIC_SERVER_USAGE in a
+    // production server. LocaleDirectionSync updates both attributes from the
+    // validated [locale] segment before the shared UI becomes interactive.
+    <html lang="en" dir="ltr">
       <head>
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>

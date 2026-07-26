@@ -36,7 +36,7 @@ test.describe("role visibility", () => {
     await signIn(page, email!, password!);
     await page.goto(`/en/w/${teamWorkspaceId}/expenses`);
     await page.getByLabel("Amount").fill("10.00");
-    await page.getByLabel("Date").fill(new Date().toISOString().slice(0, 10));
+    await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill(ownerExpenseDescription);
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText(ownerExpenseDescription)).toBeVisible();
@@ -55,7 +55,7 @@ test.describe("role visibility", () => {
     await page.getByRole("link", { name: "Expenses" }).click();
     await page.waitForURL(/\/expenses$/);
     await page.getByLabel("Amount").fill("5.00");
-    await page.getByLabel("Date").fill(new Date().toISOString().slice(0, 10));
+    await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill(memberExpenseDescription);
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText(memberExpenseDescription)).toBeVisible();

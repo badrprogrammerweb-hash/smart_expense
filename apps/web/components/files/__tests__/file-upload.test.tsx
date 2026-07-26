@@ -13,6 +13,13 @@ vi.mock("@/lib/api/files", () => ({
   uploadFile: uploadFileMock,
 }));
 
+const isNativeMock = vi.hoisted(() => vi.fn());
+const nativeCameraMock = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/platform/capacitor", () => ({
+  isNative: isNativeMock,
+  nativeCamera: nativeCameraMock,
+}));
+
 function renderWithProviders(ui: ReactNode, queryClient = new QueryClient()) {
   return render(
     <NextIntlClientProvider locale="en" messages={messages}>
@@ -28,6 +35,8 @@ function fileInput() {
 describe("FileUpload", () => {
   beforeEach(() => {
     uploadFileMock.mockReset();
+    isNativeMock.mockReset();
+    nativeCameraMock.mockReset();
   });
 
   afterEach(() => {
@@ -104,5 +113,19 @@ describe("FileUpload", () => {
       created_at: "2026-07-03T00:00:00Z",
     });
     expect(await screen.findByText("File uploaded.")).toBeInTheDocument();
+  });
+
+  // T038: a native capture failure must surface the same guidance a user
+  // would see explaining why capture didn't work, using the shared error
+  // slot — not a silent no-op and not the generic upload-failed message.
+  it("explains a native camera permission denial via the shared error slot", async () => {
+    isNativeMock.mockReturnValue(true);
+    nativeCameraMock.mockReturnValue(vi.fn().mockResolvedValue({ status: "permission-denied" }));
+
+    renderWithProviders(<FileUpload workspaceId="workspace-1" role="member" />);
+    fireEvent.click(screen.getByRole("button", { name: "Take a photo" }));
+
+    expect(await screen.findByText("Camera access is off. Enable it in your device settings to take a photo.")).toBeInTheDocument();
+    expect(uploadFileMock).not.toHaveBeenCalled();
   });
 });

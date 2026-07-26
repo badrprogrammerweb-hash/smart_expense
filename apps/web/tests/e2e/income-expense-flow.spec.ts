@@ -16,7 +16,7 @@ test.describe("income and expense flow", () => {
     await page.getByRole("link", { name: "Add income" }).click();
     await page.waitForURL(/\/incomes$/);
     await page.getByLabel("Amount").fill("5000");
-    await page.getByLabel("Date").fill(new Date().toISOString().slice(0, 10));
+    await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill("Salary");
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("SAR 5,000.00").first()).toBeVisible();
@@ -24,7 +24,7 @@ test.describe("income and expense flow", () => {
     await page.getByRole("link", { name: "Expenses" }).click();
     await page.waitForURL(/\/expenses$/);
     await page.getByLabel("Amount").fill("450.50");
-    await page.getByLabel("Date").fill(new Date().toISOString().slice(0, 10));
+    await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill("Lunch");
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("Lunch")).toBeVisible();
@@ -55,7 +55,7 @@ test.describe("income and expense flow", () => {
 
     const description = `Double submit check ${Date.now()}`;
     await page.getByLabel("Amount").fill("42.00");
-    await page.getByLabel("Date").fill(new Date().toISOString().slice(0, 10));
+    await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill(description);
 
     const createRequests: string[] = [];

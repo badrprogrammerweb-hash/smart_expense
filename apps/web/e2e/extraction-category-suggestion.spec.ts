@@ -208,7 +208,7 @@ test.describe("extraction category suggestion", () => {
     // --- override before confirm persists the reviewer's final choice, not
     // the original suggestion (quickstart.md Section 5, steps 5-6) ---
     await page.getByLabel("Category", { exact: true }).selectOption({ label: "Rent" });
-    await page.getByLabel("Date").fill("2026-07-05");
+    await page.getByLabel("Date", { exact: true }).fill("2026-07-05");
     const confirmResponse = page.waitForResponse((response) =>
       response.url().includes(`/extractions/${suggestedExtractionId}/confirm`),
     );
