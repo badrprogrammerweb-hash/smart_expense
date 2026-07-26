@@ -52,12 +52,12 @@ run in this phase.
 **Purpose**: Scaffold the new domain's files and dependencies without wiring
 behavior yet.
 
-- [ ] T001 Add the `stripe` Python SDK to `apps/api`'s dependency manifest and pin the version per research.md R-001
-- [ ] T002 [P] Add Apple App Store Server API and Google Play Developer API client dependencies (or documented minimal HTTP-call helpers) to `apps/api`'s dependency manifest per research.md R-002/R-003
-- [ ] T003 [P] Add the Capacitor billing plugin pair (Google Play Billing wrapper for Android, StoreKit 2 wrapper for iOS) to `apps/mobile/package.json` per research.md R-002
-- [ ] T004 Create empty module skeletons: `apps/api/app/routes/support_purchases.py`, `apps/api/app/schemas/support_purchases.py`, `apps/api/app/services/support_purchases.py`, `apps/api/app/services/payment_providers.py`
-- [ ] T005 [P] Add backend environment configuration entries (Stripe secret/publishable/webhook-signing keys, Apple App Store Server API credentials, Google Play service-account credentials) to `apps/api/app/core/config.py`'s `Settings`, following the existing `SUPABASE_*` secret-handling pattern
-- [ ] T006 [P] Add the backend static tier configuration (three preset tiers: id, label, per-channel provider/store product-price id) as a small config module referenced by `services/support_purchases.py`, per research.md R-004
+- [X] T001 Add the `stripe` Python SDK to `apps/api`'s dependency manifest and pin the version per research.md R-001
+- [X] T002 [P] Add Apple App Store Server API and Google Play Developer API client dependencies (or documented minimal HTTP-call helpers) to `apps/api`'s dependency manifest per research.md R-002/R-003
+- [X] T003 [P] Add the Capacitor billing plugin pair (Google Play Billing wrapper for Android, StoreKit 2 wrapper for iOS) to `apps/mobile/package.json` per research.md R-002
+- [X] T004 Create empty module skeletons: `apps/api/app/routes/support_purchases.py`, `apps/api/app/schemas/support_purchases.py`, `apps/api/app/services/support_purchases.py`, `apps/api/app/services/payment_providers.py`
+- [X] T005 [P] Add backend environment configuration entries (Stripe secret/publishable/webhook-signing keys, Apple App Store Server API credentials, Google Play service-account credentials) to `apps/api/app/core/config.py`'s `Settings`, following the existing `SUPABASE_*` secret-handling pattern
+- [X] T006 [P] Add the backend static tier configuration (three preset tiers: id, label, per-channel provider/store product-price id) as a small config module referenced by `services/support_purchases.py`, per research.md R-004
 
 **Checkpoint**: New domain files exist; no behavior implemented yet.
 
