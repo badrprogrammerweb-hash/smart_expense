@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
@@ -16,6 +17,8 @@ from app.db import database_unavailable_exception, get_trusted_session
 from app.schemas.support_purchases import (
     CheckoutSessionRequest,
     CheckoutSessionResponse,
+    MobilePurchaseVerifyRequest,
+    SupportPurchaseListResponse,
     SupportPurchaseResponse,
     SupportTierListResponse,
     SupportTierResponse,
@@ -28,6 +31,7 @@ from app.services.support_purchases import (
     create_pending,
     get_by_provider_transaction,
     get_owned_web_purchase_by_session,
+    list_owned_purchases,
     mark_completed,
     mark_failed,
     mark_refunded,
@@ -75,7 +79,68 @@ def _purchase_response(record: SupportPurchaseRecord) -> SupportPurchaseResponse
         failure_reason=record.failure_reason,
         created_at=record.created_at,
         updated_at=record.updated_at,
-        provider_reference=record.provider_transaction_id,
+        # A Google purchase token is a verification credential, not a receipt
+        # reference. Keep it backend-only after the bridge submits it.
+        provider_reference=(
+            None
+            if record.channel == "android"
+            else record.provider_transaction_id
+        ),
+    )
+
+
+def _mobile_mismatch() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail={
+            "code": "mobile_purchase_mismatch",
+            "message": "The store purchase does not match this support tier or account.",
+        },
+    )
+
+
+def _valid_verified_amount_currency(
+    amount_minor_units: object,
+    currency: object,
+) -> bool:
+    return (
+        isinstance(amount_minor_units, int)
+        and not isinstance(amount_minor_units, bool)
+        and amount_minor_units > 0
+        and isinstance(currency, str)
+        and re.fullmatch(r"[A-Z]{3}", currency) is not None
+    )
+
+
+def _verified_mobile_purchase_matches(
+    verified: (
+        payment_providers.VerifiedAppleTransaction
+        | payment_providers.VerifiedGooglePurchase
+    ),
+    *,
+    channel: str,
+    provider_transaction_id: str,
+    expected_product_id: str,
+    user_id: str,
+) -> bool:
+    if (
+        verified.provider_transaction_id != provider_transaction_id
+        or verified.product_id != expected_product_id
+        or verified.app_account_token is None
+        or verified.app_account_token.lower() != user_id.lower()
+        or not _valid_verified_amount_currency(
+            verified.amount_minor_units, verified.currency
+        )
+    ):
+        return False
+    if channel == "apple":
+        return (
+            isinstance(verified, payment_providers.VerifiedAppleTransaction)
+            and verified.bundle_id == payment_providers.MOBILE_APP_BUNDLE_ID
+        )
+    return (
+        isinstance(verified, payment_providers.VerifiedGooglePurchase)
+        and verified.package_name == payment_providers.MOBILE_APP_BUNDLE_ID
     )
 
 
@@ -204,6 +269,23 @@ async def list_support_tiers(
     )
 
 
+@router.get("", response_model=SupportPurchaseListResponse)
+async def list_support_purchase_history(
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_trusted_session),
+) -> SupportPurchaseListResponse:
+    try:
+        purchases = await list_owned_purchases(
+            session,
+            user_id=current_user.user_id,
+        )
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+    return SupportPurchaseListResponse(
+        purchases=[_purchase_response(purchase) for purchase in purchases]
+    )
+
+
 @router.post(
     "/checkout-sessions",
     response_model=CheckoutSessionResponse,
@@ -278,6 +360,209 @@ async def create_checkout_session(
         purchase_id=purchase.id,
         checkout_url=checkout.url,
     )
+
+
+@router.post(
+    "/mobile/verify",
+    response_model=SupportPurchaseResponse,
+)
+async def verify_mobile_purchase(
+    body: MobilePurchaseVerifyRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_trusted_session),
+) -> SupportPurchaseResponse:
+    tier = _TIERS_BY_ID.get(body.tier_id)
+    if tier is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "unknown_support_tier",
+                "message": "Choose one of the available support tiers.",
+            },
+        )
+
+    provider_transaction_id = body.provider_transaction_id.strip()
+    if not provider_transaction_id:
+        raise _mobile_mismatch()
+    database_channel = "ios" if body.channel == "apple" else "android"
+    expected_product_id = (
+        tier.apple_product_id
+        if body.channel == "apple"
+        else tier.google_product_id
+    )
+    user_id = str(current_user.user_id)
+
+    try:
+        existing = await get_by_provider_transaction(
+            session,
+            channel=database_channel,
+            provider_transaction_id=provider_transaction_id,
+        )
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+
+    if existing is not None:
+        if str(existing.user_id) != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "mobile_purchase_claimed",
+                    "message": "This store transaction belongs to another account.",
+                },
+            )
+        if existing.tier_id != tier.id:
+            raise _mobile_mismatch()
+        if existing.status in {"failed", "refunded"}:
+            return _purchase_response(existing)
+
+    try:
+        if body.channel == "apple":
+            settings = get_settings()
+            environment = settings.apple_app_store_environment
+            if environment not in {"Production", "Sandbox"}:
+                raise payment_providers.ProviderConfigurationError(
+                    "APPLE_APP_STORE_ENVIRONMENT must be Production or Sandbox."
+                )
+            verified = await payment_providers.verify_apple_purchase(
+                transaction_id=provider_transaction_id,
+                trusted_root_certificates=(
+                    payment_providers.load_apple_trusted_root_certificates()
+                ),
+                expected_product_id=expected_product_id,
+                bundle_id=payment_providers.MOBILE_APP_BUNDLE_ID,
+                expected_app_account_token=user_id,
+                environment=environment,
+            )
+        else:
+            verified = await payment_providers.verify_google_purchase(
+                package_name=payment_providers.MOBILE_APP_BUNDLE_ID,
+                purchase_token=provider_transaction_id,
+                expected_product_id=expected_product_id,
+                expected_app_account_token=user_id,
+            )
+    except payment_providers.ProviderConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "mobile_verification_not_configured",
+                "message": "Store purchase verification is not available right now.",
+            },
+        ) from exc
+    except payment_providers.ProviderVerificationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "mobile_purchase_not_verified",
+                "message": "The store could not verify this support purchase.",
+            },
+        ) from exc
+    except payment_providers.PaymentProviderError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "mobile_verification_unavailable",
+                "message": "Store purchase verification is temporarily unavailable.",
+            },
+        ) from exc
+
+    if not _verified_mobile_purchase_matches(
+        verified,
+        channel=body.channel,
+        provider_transaction_id=provider_transaction_id,
+        expected_product_id=expected_product_id,
+        user_id=user_id,
+    ):
+        raise _mobile_mismatch()
+
+    try:
+        purchase = await create_pending(
+            session,
+            user_id=current_user.user_id,
+            tier_id=tier.id,
+            channel=database_channel,
+            provider_transaction_id=provider_transaction_id,
+            amount_minor_units=verified.amount_minor_units,
+            currency=verified.currency,
+        )
+        if (
+            purchase.tier_id != tier.id
+            or purchase.amount_minor_units != verified.amount_minor_units
+            or purchase.currency != verified.currency
+        ):
+            raise _mobile_mismatch()
+
+        if verified.state == "completed":
+            purchase = (
+                await mark_completed(
+                    session,
+                    user_id=current_user.user_id,
+                    channel=database_channel,
+                    provider_transaction_id=provider_transaction_id,
+                )
+                or purchase
+            )
+        elif verified.state in {"failed", "cancelled"}:
+            purchase = (
+                await mark_failed(
+                    session,
+                    user_id=current_user.user_id,
+                    channel=database_channel,
+                    provider_transaction_id=provider_transaction_id,
+                    failure_reason=(
+                        "The store reports that this support purchase was cancelled."
+                        if verified.state == "cancelled"
+                        else "The store could not complete this support purchase."
+                    ),
+                )
+                or purchase
+            )
+        elif verified.state in {"refunded", "revoked"}:
+            if purchase.status == "pending":
+                purchase = (
+                    await mark_completed(
+                        session,
+                        user_id=current_user.user_id,
+                        channel=database_channel,
+                        provider_transaction_id=provider_transaction_id,
+                    )
+                    or purchase
+                )
+            if purchase.status == "completed":
+                purchase = (
+                    await mark_refunded(
+                        session,
+                        user_id=current_user.user_id,
+                        channel=database_channel,
+                        provider_transaction_id=provider_transaction_id,
+                    )
+                    or purchase
+                )
+        # A verified provider-side pending state deliberately leaves the row
+        # pending. No device-reported success value is accepted by this API.
+    except SupportPurchaseConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "mobile_purchase_claimed",
+                "message": "This store transaction belongs to another account.",
+            },
+        ) from exc
+    except InvalidSupportPurchaseTransition:
+        # A later verification cannot move a terminal row backwards.
+        try:
+            purchase = await get_by_provider_transaction(
+                session,
+                channel=database_channel,
+                provider_transaction_id=provider_transaction_id,
+            )
+        except DBAPIError as exc:
+            raise database_unavailable_exception(exc) from exc
+        if purchase is None or str(purchase.user_id) != user_id:
+            raise _mobile_mismatch()
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+
+    return _purchase_response(purchase)
 
 
 @router.get(

@@ -131,17 +131,17 @@ for the same account.
 
 ### Tests for User Story 2
 
-- [ ] T027 [P] [US2] Contract test: `POST /support-purchases/mobile/verify` creates a `pending` row keyed by `(channel, provider_transaction_id)` and only transitions to `completed` after successful Apple/Google server-side verification, in `apps/api/tests/test_support_purchases_api.py`
-- [ ] T028 [P] [US2] Native test: Android sandbox purchase flow (tier selection → Play Billing purchase → backend verify call) in `apps/mobile/e2e/support-purchase-android.spec.*`
-- [ ] T029 [P] [US2] Native test: iOS sandbox purchase flow (tier selection → StoreKit purchase → backend verify call) in `apps/mobile/e2e/support-purchase-ios.spec.*`
+- [X] T027 [P] [US2] Contract test: `POST /support-purchases/mobile/verify` creates a `pending` row keyed by `(channel, provider_transaction_id)` and only transitions to `completed` after successful Apple/Google server-side verification, in `apps/api/tests/test_support_purchases_api.py`
+- [X] T028 [P] [US2] Native test: Android sandbox purchase flow (tier selection → Play Billing purchase → backend verify call) in `apps/mobile/e2e/support-purchase-android.spec.*`
+- [X] T029 [P] [US2] Native test: iOS sandbox purchase flow (tier selection → StoreKit purchase → backend verify call) in `apps/mobile/e2e/support-purchase-ios.spec.*`
 
 ### Implementation for User Story 2
 
-- [ ] T030 [US2] Implement `POST /support-purchases/mobile/verify` in `apps/api/app/routes/support_purchases.py`, calling the Apple/Google verification helpers in `services/payment_providers.py`
-- [ ] T031 [US2] Implement `apps/mobile/src/native/billing.ts`: list tiers (reusing the web API client's response shape), initiate a platform purchase for a `tier_id`, and call the verify endpoint with the resulting purchase token/transaction id
-- [ ] T032 [US2] Wire the support entry point UI (reused `SupportPurchaseCard`/`SupportTierSelector` from US1) to route through `apps/mobile/src/native/billing.ts` when running inside Capacitor, else the web checkout path (mirrors the Phase 16 native-capability-shim pattern)
-- [ ] T033 [US2] Ensure no payment-card input field is ever rendered by `apps/mobile` for this flow (verified by a static UI-audit test alongside T028/T029)
-- [ ] T034 [US2] Confirm a purchase made on Android or iOS appears in `GET /support-purchases` history when the same user is signed in on the web (account-scoped, not device-scoped) — integration test in `apps/api/tests/test_support_purchases_api.py`
+- [X] T030 [US2] Implement `POST /support-purchases/mobile/verify` in `apps/api/app/routes/support_purchases.py`, calling the Apple/Google verification helpers in `services/payment_providers.py`
+- [X] T031 [US2] Implement `apps/mobile/src/native/billing.ts`: list tiers (reusing the web API client's response shape), initiate a platform purchase for a `tier_id`, and call the verify endpoint with the resulting purchase token/transaction id
+- [X] T032 [US2] Wire the support entry point UI (reused `SupportPurchaseCard`/`SupportTierSelector` from US1) to route through `apps/mobile/src/native/billing.ts` when running inside Capacitor, else the web checkout path (mirrors the Phase 16 native-capability-shim pattern)
+- [X] T033 [US2] Ensure no payment-card input field is ever rendered by `apps/mobile` for this flow (verified by a static UI-audit test alongside T028/T029)
+- [X] T034 [US2] Confirm a purchase made on Android or iOS appears in `GET /support-purchases` history when the same user is signed in on the web (account-scoped, not device-scoped) — integration test in `apps/api/tests/test_support_purchases_api.py`
 
 **Checkpoint**: Support purchases work identically across web, Android, and iOS, all account-scoped and server-verified.
 

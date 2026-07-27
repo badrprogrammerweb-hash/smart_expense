@@ -468,8 +468,13 @@ def test_verify_apple_signed_transaction_accepts_trusted_chain() -> None:
         {
             "bundleId": pp.MOBILE_APP_BUNDLE_ID,
             "environment": "Sandbox",
+            "transactionId": "1000000000000099",
             "originalTransactionId": "1000000000000001",
             "productId": "ai.smartexpense.support.small",
+            "appAccountToken": "c77bdcda-f90d-4b35-a3b1-55fca872e741",
+            "price": 4990,
+            "currency": "SAR",
+            "inAppOwnershipType": "PURCHASED",
             "signedDate": signed_date_ms,
         },
     )
@@ -478,8 +483,13 @@ def test_verify_apple_signed_transaction_accepts_trusted_chain() -> None:
         token, trusted_root_certificates=trusted_roots, environment="Sandbox"
     )
 
-    assert transaction.provider_transaction_id == "1000000000000001"
+    assert transaction.provider_transaction_id == "1000000000000099"
+    assert transaction.original_transaction_id == "1000000000000001"
     assert transaction.product_id == "ai.smartexpense.support.small"
+    assert transaction.bundle_id == pp.MOBILE_APP_BUNDLE_ID
+    assert transaction.app_account_token == "c77bdcda-f90d-4b35-a3b1-55fca872e741"
+    assert transaction.amount_minor_units == 499
+    assert transaction.currency == "SAR"
     assert transaction.state == "completed"
 
 
@@ -809,10 +819,19 @@ def test_verify_google_notification_rejects_malformed_message_data() -> None:
 
 
 class _FakeGoogleHttpClient:
-    def __init__(self, token_response: dict, purchase_response: dict, purchase_status: int = 200):
+    def __init__(
+        self,
+        token_response: dict,
+        purchase_response: dict,
+        purchase_status: int = 200,
+        product_response: dict | None = None,
+        product_status: int = 200,
+    ):
         self._token_response = token_response
         self._purchase_response = purchase_response
         self._purchase_status = purchase_status
+        self._product_response = product_response
+        self._product_status = product_status
         self.requests: list[str] = []
 
     async def post(self, url, *, data=None, headers=None):
@@ -821,6 +840,11 @@ class _FakeGoogleHttpClient:
 
     async def get(self, url, *, headers=None):
         self.requests.append(url)
+        if "/oneTimeProducts/" in url:
+            return _FakeHttpResponse(
+                self._product_status,
+                self._product_response or {},
+            )
         return _FakeHttpResponse(self._purchase_status, self._purchase_response)
 
 
@@ -862,13 +886,48 @@ async def test_verify_google_purchase_maps_purchased_state() -> None:
         token_response={"access_token": "access-token-abc"},
         purchase_response={
             "purchaseStateContext": {"purchaseState": "PURCHASED"},
-            "productLineItem": [{"productId": "ai.smartexpense.support.small"}],
+            "productLineItem": [
+                {
+                    "productId": "ai.smartexpense.support.small",
+                    "productOfferDetails": {
+                        "purchaseOptionId": "buy",
+                        "quantity": 1,
+                        "refundableQuantity": 1,
+                    },
+                }
+            ],
+            "obfuscatedExternalAccountId": "c77bdcda-f90d-4b35-a3b1-55fca872e741",
+            "regionCode": "SA",
+        },
+        product_response={
+            "packageName": "com.smartexpense.ai",
+            "productId": "ai.smartexpense.support.small",
+            "purchaseOptions": [
+                {
+                    "purchaseOptionId": "buy",
+                    "state": "ACTIVE",
+                    "buyOption": {},
+                    "regionalPricingAndAvailabilityConfigs": [
+                        {
+                            "regionCode": "SA",
+                            "availability": "AVAILABLE",
+                            "price": {
+                                "currencyCode": "SAR",
+                                "units": "5",
+                                "nanos": 990000000,
+                            },
+                        }
+                    ],
+                }
+            ],
         },
     )
 
     result = await pp.verify_google_purchase(
         package_name="com.smartexpense.ai",
         purchase_token="token-abc",
+        expected_product_id="ai.smartexpense.support.small",
+        expected_app_account_token="c77bdcda-f90d-4b35-a3b1-55fca872e741",
         service_account_json=account_json,
         http_client=fake_client,
     )
@@ -876,6 +935,14 @@ async def test_verify_google_purchase_maps_purchased_state() -> None:
     assert result.state == "completed"
     assert result.product_id == "ai.smartexpense.support.small"
     assert result.provider_transaction_id == "token-abc"
+    assert result.package_name == "com.smartexpense.ai"
+    assert result.app_account_token == "c77bdcda-f90d-4b35-a3b1-55fca872e741"
+    assert result.amount_minor_units == 599
+    assert result.currency == "SAR"
+    assert fake_client.requests[-1].endswith(
+        "/applications/com.smartexpense.ai/oneTimeProducts/"
+        "ai.smartexpense.support.small"
+    )
 
 
 @pytest.mark.asyncio
@@ -919,6 +986,76 @@ async def test_verify_google_purchase_rejects_product_mismatch() -> None:
             service_account_json=account_json,
             http_client=fake_client,
         )
+
+
+@pytest.mark.asyncio
+async def test_verify_google_purchase_rejects_account_ownership_mismatch() -> None:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    account_json = _service_account_json(private_key)
+    fake_client = _FakeGoogleHttpClient(
+        token_response={"access_token": "access-token-abc"},
+        purchase_response={
+            "purchaseStateContext": {"purchaseState": "PURCHASED"},
+            "productLineItem": [
+                {
+                    "productId": "ai.smartexpense.support.small",
+                    "productOfferDetails": {
+                        "purchaseOptionId": "buy",
+                        "quantity": 1,
+                        "refundableQuantity": 1,
+                    },
+                }
+            ],
+            "obfuscatedExternalAccountId": "4e7f25bf-d736-41db-8d1d-2c05a8fef8c0",
+            "regionCode": "SA",
+        },
+    )
+
+    with pytest.raises(
+        pp.ProviderVerificationError,
+        match="different account",
+    ):
+        await pp.verify_google_purchase(
+            package_name="com.smartexpense.ai",
+            purchase_token="token-abc",
+            expected_product_id="ai.smartexpense.support.small",
+            expected_app_account_token="c77bdcda-f90d-4b35-a3b1-55fca872e741",
+            service_account_json=account_json,
+            http_client=fake_client,
+        )
+
+
+def test_google_catalog_price_rejects_package_mismatch() -> None:
+    with pytest.raises(
+        pp.ProviderVerificationError,
+        match="different app or product",
+    ):
+        pp._google_catalog_price(
+            {
+                "packageName": "com.example.other",
+                "productId": "ai.smartexpense.support.small",
+                "purchaseOptions": [],
+            },
+            package_name="com.smartexpense.ai",
+            product_id="ai.smartexpense.support.small",
+            purchase_option_id="buy",
+            region_code="SA",
+        )
+
+
+@pytest.mark.parametrize(
+    "money",
+    [
+        {"currencyCode": "NOT-SAR", "units": "5", "nanos": 0},
+        {"currencyCode": "SAR", "units": "5", "nanos": 1},
+        {"currencyCode": "SAR", "units": "0", "nanos": 0},
+    ],
+)
+def test_google_catalog_money_rejects_invalid_currency_or_minor_amount(
+    money,
+) -> None:
+    with pytest.raises(pp.ProviderVerificationError):
+        pp._google_money_minor_units(money)
 
 
 def test_service_account_requires_needed_fields() -> None:

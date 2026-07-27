@@ -319,6 +319,29 @@ async def get_owned_web_purchase_by_session(
     return _record(row) if row is not None else None
 
 
+async def list_owned_purchases(
+    session,
+    *,
+    user_id: str | UUID,
+) -> list[SupportPurchaseRecord]:
+    """Return account history across channels without any workspace join."""
+
+    rows = (
+        await session.execute(
+            text(
+                f"""
+                select {_RETURNING_COLUMNS}
+                from public.support_purchases
+                where user_id = :user_id
+                order by created_at desc, id desc
+                """
+            ),
+            {"user_id": user_id},
+        )
+    ).all()
+    return [_record(row) for row in rows]
+
+
 __all__ = [
     "SUPPORT_TIERS",
     "InvalidSupportPurchaseTransition",
@@ -327,6 +350,7 @@ __all__ = [
     "create_pending",
     "get_by_provider_transaction",
     "get_owned_web_purchase_by_session",
+    "list_owned_purchases",
     "mark_completed",
     "mark_failed",
     "mark_refunded",

@@ -519,9 +519,23 @@
       "support_large": "دعم كبير"
     },
     "hostedCheckoutNote": "تُدخل تفاصيل الدفع فقط في صفحة Checkout الآمنة التي تستضيفها Stripe.",
+    "nativeBillingNote": "تتم معالجة الدفع داخل نافذة الشراء الأصلية من App Store أو Google Play. لا يعرض Smart Expense أي حقول لبيانات بطاقة الدفع.",
     "continueAction": "المتابعة إلى Stripe",
+    "nativeContinueAction": "المتابعة إلى شراء المتجر",
     "redirecting": "جارٍ فتح صفحة الدفع الآمنة",
+    "nativeProcessing": "جارٍ فتح نافذة الشراء في المتجر",
     "checkoutError": "تعذّر فتح صفحة الدفع الآمنة. حاول مرة أخرى.",
+    "nativeProductsError": "تعذّر تحميل خيارات الدعم من المتجر. حاول مرة أخرى.",
+    "nativeCompleted": "تم تأكيد دعم المنتج من المتجر.",
+    "nativePending": "لا تزال عملية الدعم قيد المعالجة لدى المتجر. سيبقى سجلها معلّقًا حتى يتحقق منها الخادم.",
+    "nativeCancelled": "أُلغيت عملية الدعم. يمكنك المحاولة مرة أخرى.",
+    "nativeRefunded": "تم استرداد عملية الدعم. لا يتغير وصولك إلى المنتج.",
+    "nativeFailed": "تعذّر التحقق من عملية الشراء في المتجر. حاول مرة أخرى.",
+    "channels": {
+      "web": "الويب",
+      "ios": "Apple App Store",
+      "android": "Google Play"
+    },
     "tiersUnavailableTitle": "خيارات الدعم غير متاحة",
     "tiersUnavailableDescription": "تعذّر تحميل خيارات الدعم. حاول مرة أخرى.",
     "pendingTitle": "بانتظار تأكيد الدفع",

@@ -10,7 +10,9 @@ from __future__ import annotations
 import asyncio
 import base64
 import binascii
+import hmac
 import json
+import re
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -40,6 +42,45 @@ APPLE_SANDBOX_API_ROOT = "https://api.storekit-sandbox.itunes.apple.com"
 
 _APPLE_LEAF_OID = ObjectIdentifier("1.2.840.113635.100.6.11.1")
 _APPLE_INTERMEDIATE_OID = ObjectIdentifier("1.2.840.113635.100.6.2.1")
+_CURRENCY_CODE = re.compile(r"^[A-Z]{3}$")
+_CURRENCY_MINOR_UNIT_DIGITS = {
+    # ISO 4217 currencies whose minor-unit exponent is not the usual 2.
+    "BIF": 0,
+    "CLF": 4,
+    "CLP": 0,
+    "DJF": 0,
+    "GNF": 0,
+    "ISK": 0,
+    "JPY": 0,
+    "KMF": 0,
+    "KRW": 0,
+    "PYG": 0,
+    "RWF": 0,
+    "UGX": 0,
+    "UYI": 0,
+    "UYW": 4,
+    "VND": 0,
+    "VUV": 0,
+    "XAF": 0,
+    "XOF": 0,
+    "XPF": 0,
+    "BHD": 3,
+    "IQD": 3,
+    "JOD": 3,
+    "KWD": 3,
+    "LYD": 3,
+    "OMR": 3,
+    "TND": 3,
+}
+
+StorePurchaseState = Literal[
+    "pending",
+    "completed",
+    "failed",
+    "cancelled",
+    "refunded",
+    "revoked",
+]
 
 
 class PaymentProviderError(Exception):
@@ -92,8 +133,13 @@ class VerifiedStripeEvent:
 @dataclass(frozen=True)
 class VerifiedAppleTransaction:
     provider_transaction_id: str
+    original_transaction_id: str | None
     product_id: str
-    state: Literal["completed", "refunded"]
+    bundle_id: str
+    app_account_token: str | None
+    amount_minor_units: int | None
+    currency: str | None
+    state: StorePurchaseState
     payload: Mapping[str, Any]
 
 
@@ -125,7 +171,11 @@ class VerifiedGooglePurchase:
 
     provider_transaction_id: str
     product_id: str
-    state: Literal["pending", "completed", "failed", "refunded"]
+    package_name: str
+    app_account_token: str | None
+    amount_minor_units: int
+    currency: str
+    state: StorePurchaseState
     payload: Mapping[str, Any]
 
 
@@ -142,6 +192,112 @@ def _required(value: str, name: str) -> str:
     if not value:
         raise ProviderConfigurationError(f"{name} is not configured.")
     return value
+
+
+def _currency_minor_unit_digits(currency: str) -> int:
+    normalized = currency.upper()
+    if not _CURRENCY_CODE.fullmatch(normalized):
+        raise ProviderVerificationError(
+            "The provider returned an invalid currency."
+        )
+    return _CURRENCY_MINOR_UNIT_DIGITS.get(normalized, 2)
+
+
+def _apple_price_minor_units(
+    price_milliunits: Any, currency: Any
+) -> tuple[int, str]:
+    if not isinstance(price_milliunits, int) or isinstance(
+        price_milliunits, bool
+    ):
+        raise ProviderVerificationError(
+            "The Apple transaction is missing its price."
+        )
+    if not isinstance(currency, str):
+        raise ProviderVerificationError(
+            "The Apple transaction is missing its currency."
+        )
+    normalized = currency.upper()
+    scale = 10 ** _currency_minor_unit_digits(normalized)
+    amount, remainder = divmod(price_milliunits * scale, 1000)
+    if remainder or amount <= 0:
+        raise ProviderVerificationError(
+            "The Apple transaction price is not a valid minor-unit amount."
+        )
+    return amount, normalized
+
+
+def _google_money_minor_units(value: Any) -> tuple[int, str]:
+    if not isinstance(value, Mapping):
+        raise ProviderVerificationError(
+            "Google Play returned no regional price."
+        )
+    currency = value.get("currencyCode")
+    if not isinstance(currency, str):
+        raise ProviderVerificationError(
+            "Google Play returned an invalid regional currency."
+        )
+    normalized = currency.upper()
+    scale = 10 ** _currency_minor_unit_digits(normalized)
+    try:
+        units = int(value.get("units", 0))
+        nanos = int(value.get("nanos", 0))
+    except (TypeError, ValueError) as exc:
+        raise ProviderVerificationError(
+            "Google Play returned an invalid regional price."
+        ) from exc
+    if nanos < 0 or nanos >= 1_000_000_000:
+        raise ProviderVerificationError(
+            "Google Play returned an invalid regional price."
+        )
+    amount, remainder = divmod(
+        (units * 1_000_000_000 + nanos) * scale,
+        1_000_000_000,
+    )
+    if remainder or amount <= 0:
+        raise ProviderVerificationError(
+            "Google Play returned a non-minor-unit regional price."
+        )
+    return amount, normalized
+
+
+def load_apple_trusted_root_certificates(
+    value: str | None = None,
+) -> tuple[bytes, ...]:
+    """Load explicit Apple trust anchors from backend-only JSON config."""
+
+    configured = (
+        value
+        if value is not None
+        else get_settings().apple_app_store_root_certificates
+    )
+    try:
+        entries = json.loads(configured)
+    except (TypeError, json.JSONDecodeError) as exc:
+        raise ProviderConfigurationError(
+            "APPLE_APP_STORE_ROOT_CERTIFICATES must be a JSON array."
+        ) from exc
+    if not isinstance(entries, list) or not entries:
+        raise ProviderConfigurationError(
+            "APPLE_APP_STORE_ROOT_CERTIFICATES is not configured."
+        )
+
+    certificates: list[bytes] = []
+    for entry in entries:
+        if not isinstance(entry, str) or not entry.strip():
+            raise ProviderConfigurationError(
+                "APPLE_APP_STORE_ROOT_CERTIFICATES contains an invalid entry."
+            )
+        encoded = entry.strip()
+        if encoded.startswith("-----BEGIN CERTIFICATE-----"):
+            certificates.append(encoded.encode("ascii"))
+            continue
+        try:
+            certificates.append(base64.b64decode(encoded, validate=True))
+        except (ValueError, binascii.Error) as exc:
+            raise ProviderConfigurationError(
+                "APPLE_APP_STORE_ROOT_CERTIFICATES contains invalid base64."
+            ) from exc
+    return tuple(certificates)
 
 
 def _mapping(value: Any) -> dict[str, Any]:
@@ -604,6 +760,7 @@ def verify_apple_signed_transaction(
     bundle_id: str = MOBILE_APP_BUNDLE_ID,
     environment: str | None = None,
     expected_product_id: str | None = None,
+    expected_app_account_token: str | None = None,
     effective_time: datetime | None = None,
 ) -> VerifiedAppleTransaction:
     payload = _verify_apple_jws(
@@ -614,9 +771,10 @@ def verify_apple_signed_transaction(
     _assert_apple_app(
         payload, bundle_id=bundle_id, environment=environment, app_apple_id=None
     )
-    transaction_id = payload.get("originalTransactionId") or payload.get(
-        "transactionId"
+    transaction_id = payload.get("transactionId") or payload.get(
+        "originalTransactionId"
     )
+    original_transaction_id = payload.get("originalTransactionId")
     product_id = payload.get("productId")
     if not isinstance(transaction_id, str) or not isinstance(product_id, str):
         raise ProviderVerificationError(
@@ -626,9 +784,44 @@ def verify_apple_signed_transaction(
         raise ProviderVerificationError(
             "The Apple transaction is for a different product."
         )
+    app_account_token = payload.get("appAccountToken")
+    if app_account_token is not None and not isinstance(app_account_token, str):
+        raise ProviderVerificationError(
+            "The Apple transaction has an invalid account token."
+        )
+    if expected_app_account_token is not None and (
+        not isinstance(app_account_token, str)
+        or not hmac.compare_digest(
+            app_account_token.lower(), expected_app_account_token.lower()
+        )
+    ):
+        raise ProviderVerificationError(
+            "The Apple transaction belongs to a different account."
+        )
+    if payload.get("inAppOwnershipType") not in (None, "PURCHASED"):
+        raise ProviderVerificationError(
+            "The Apple transaction is not owned by this account."
+        )
+
+    amount_minor_units: int | None = None
+    currency: str | None = None
+    if payload.get("price") is not None or payload.get("currency") is not None:
+        amount_minor_units, currency = _apple_price_minor_units(
+            payload.get("price"), payload.get("currency")
+        )
+
     return VerifiedAppleTransaction(
         provider_transaction_id=transaction_id,
+        original_transaction_id=(
+            original_transaction_id
+            if isinstance(original_transaction_id, str)
+            else None
+        ),
         product_id=product_id,
+        bundle_id=str(payload["bundleId"]),
+        app_account_token=app_account_token,
+        amount_minor_units=amount_minor_units,
+        currency=currency,
         state="refunded" if payload.get("revocationDate") is not None else "completed",
         payload=payload,
     )
@@ -713,6 +906,7 @@ async def verify_apple_purchase(
     transaction_id: str,
     trusted_root_certificates: Sequence[bytes],
     expected_product_id: str | None = None,
+    expected_app_account_token: str | None = None,
     bundle_id: str = MOBILE_APP_BUNDLE_ID,
     environment: Literal["Production", "Sandbox"] = "Production",
     issuer_id: str | None = None,
@@ -774,6 +968,7 @@ async def verify_apple_purchase(
         bundle_id=bundle_id,
         environment=environment,
         expected_product_id=expected_product_id,
+        expected_app_account_token=expected_app_account_token,
     )
     if transaction.provider_transaction_id != transaction_id:
         raise ProviderVerificationError(
@@ -837,14 +1032,22 @@ async def _google_access_token(
     return access_token
 
 
-def _google_product_id(body: Mapping[str, Any]) -> str:
+def _google_line_item(body: Mapping[str, Any]) -> Mapping[str, Any]:
     line_items = body.get("productLineItem")
     if not isinstance(line_items, list) or len(line_items) != 1:
         raise ProviderVerificationError(
             "Google Play returned an invalid one-time product."
         )
     line_item = line_items[0]
-    product_id = line_item.get("productId") if isinstance(line_item, Mapping) else None
+    if not isinstance(line_item, Mapping):
+        raise ProviderVerificationError(
+            "Google Play returned an invalid one-time product."
+        )
+    return line_item
+
+
+def _google_product_id(body: Mapping[str, Any]) -> str:
+    product_id = _google_line_item(body).get("productId")
     if not isinstance(product_id, str):
         raise ProviderVerificationError(
             "Google Play returned no product identifier."
@@ -852,11 +1055,104 @@ def _google_product_id(body: Mapping[str, Any]) -> str:
     return product_id
 
 
+def _google_purchase_option(
+    body: Mapping[str, Any],
+) -> tuple[str, int, int | None]:
+    details = _google_line_item(body).get("productOfferDetails")
+    if not isinstance(details, Mapping):
+        raise ProviderVerificationError(
+            "Google Play returned no purchase-option details."
+        )
+    purchase_option_id = details.get("purchaseOptionId")
+    if not isinstance(purchase_option_id, str) or not purchase_option_id:
+        raise ProviderVerificationError(
+            "Google Play returned no purchase-option identifier."
+        )
+    if details.get("offerId") is not None:
+        raise ProviderVerificationError(
+            "Google Play returned an unsupported product offer."
+        )
+    quantity = details.get("quantity", 1)
+    refundable_quantity = details.get("refundableQuantity")
+    if not isinstance(quantity, int) or isinstance(quantity, bool) or quantity != 1:
+        raise ProviderVerificationError(
+            "Google Play returned an unsupported purchase quantity."
+        )
+    if refundable_quantity is not None and (
+        not isinstance(refundable_quantity, int)
+        or isinstance(refundable_quantity, bool)
+        or refundable_quantity not in (0, 1)
+    ):
+        raise ProviderVerificationError(
+            "Google Play returned an invalid refundable quantity."
+        )
+    return purchase_option_id, quantity, refundable_quantity
+
+
+def _google_catalog_price(
+    body: Mapping[str, Any],
+    *,
+    package_name: str,
+    product_id: str,
+    purchase_option_id: str,
+    region_code: str,
+) -> tuple[int, str]:
+    if (
+        body.get("packageName") != package_name
+        or body.get("productId") != product_id
+    ):
+        raise ProviderVerificationError(
+            "The Google Play catalog returned a different app or product."
+        )
+    options = body.get("purchaseOptions")
+    if not isinstance(options, list):
+        raise ProviderVerificationError(
+            "Google Play returned no purchase options."
+        )
+    matches = [
+        option
+        for option in options
+        if isinstance(option, Mapping)
+        and option.get("purchaseOptionId") == purchase_option_id
+    ]
+    if len(matches) != 1:
+        raise ProviderVerificationError(
+            "Google Play returned a different purchase option."
+        )
+    option = matches[0]
+    if (
+        option.get("state") != "ACTIVE"
+        or not isinstance(option.get("buyOption"), Mapping)
+        or option.get("rentOption") is not None
+    ):
+        raise ProviderVerificationError(
+            "Google Play returned an unsupported purchase option."
+        )
+    regional = option.get("regionalPricingAndAvailabilityConfigs")
+    if not isinstance(regional, list):
+        raise ProviderVerificationError(
+            "Google Play returned no regional pricing."
+        )
+    prices = [
+        config
+        for config in regional
+        if isinstance(config, Mapping)
+        and config.get("regionCode") == region_code
+        and config.get("availability") == "AVAILABLE"
+    ]
+    if len(prices) != 1:
+        raise ProviderVerificationError(
+            "Google Play returned no matching regional price."
+        )
+    return _google_money_minor_units(prices[0].get("price"))
+
+
 async def verify_google_purchase(
     *,
     package_name: str,
     purchase_token: str,
     expected_product_id: str | None = None,
+    expected_app_account_token: str | None = None,
     service_account_json: str | Mapping[str, Any] | None = None,
     http_client: httpx.AsyncClient | None = None,
 ) -> VerifiedGooglePurchase:
@@ -867,8 +1163,18 @@ async def verify_google_purchase(
         if service_account_json is not None
         else get_settings().google_play_service_account_json
     )
+    if http_client is None:
+        async with httpx.AsyncClient(timeout=20) as client:
+            return await verify_google_purchase(
+                package_name=package_name,
+                purchase_token=purchase_token,
+                expected_product_id=expected_product_id,
+                expected_app_account_token=expected_app_account_token,
+                service_account_json=configured_account,
+                http_client=client,
+            )
     account = _service_account(configured_account)
-    client = http_client or httpx.AsyncClient(timeout=20)
+    client = http_client
     try:
         access_token = await _google_access_token(account, client)
         response = await client.get(
@@ -885,10 +1191,6 @@ async def verify_google_purchase(
         raise ProviderVerificationError(
             "Google Play could not verify this purchase."
         ) from exc
-    finally:
-        if http_client is None:
-            await client.aclose()
-
     if not isinstance(body, Mapping):
         raise ProviderVerificationError(
             "Google Play returned an invalid purchase response."
@@ -897,6 +1199,28 @@ async def verify_google_purchase(
     if expected_product_id is not None and product_id != expected_product_id:
         raise ProviderVerificationError(
             "The Google Play purchase is for a different product."
+        )
+    purchase_option_id, _, refundable_quantity = _google_purchase_option(body)
+    app_account_token = body.get("obfuscatedExternalAccountId")
+    if app_account_token is not None and not isinstance(app_account_token, str):
+        raise ProviderVerificationError(
+            "Google Play returned an invalid account identifier."
+        )
+    if expected_app_account_token is not None and (
+        not isinstance(app_account_token, str)
+        or not hmac.compare_digest(
+            app_account_token.lower(), expected_app_account_token.lower()
+        )
+    ):
+        raise ProviderVerificationError(
+            "The Google Play purchase belongs to a different account."
+        )
+    region_code = body.get("regionCode")
+    if not isinstance(region_code, str) or not re.fullmatch(
+        r"[A-Z]{2}", region_code
+    ):
+        raise ProviderVerificationError(
+            "Google Play returned an invalid billing region."
         )
     state_context = body.get("purchaseStateContext")
     purchase_state = (
@@ -907,16 +1231,49 @@ async def verify_google_purchase(
     states = {
         "PURCHASED": "completed",
         "PENDING": "pending",
-        "CANCELLED": "failed",
+        "CANCELLED": "cancelled",
     }
     state = states.get(purchase_state)
     if state is None:
         raise ProviderVerificationError(
             "Google Play returned an unknown purchase state."
         )
+    if state == "completed" and refundable_quantity == 0:
+        state = "refunded"
+
+    try:
+        product_response = await client.get(
+            (
+                f"{GOOGLE_PLAY_API_ROOT}/androidpublisher/v3/applications/"
+                f"{quote(package_name, safe='')}/oneTimeProducts/"
+                f"{quote(product_id, safe='')}"
+            ),
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        product_response.raise_for_status()
+        product_body = product_response.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise ProviderVerificationError(
+            "Google Play could not verify the product price."
+        ) from exc
+    if not isinstance(product_body, Mapping):
+        raise ProviderVerificationError(
+            "Google Play returned an invalid product response."
+        )
+    amount_minor_units, currency = _google_catalog_price(
+        product_body,
+        package_name=package_name,
+        product_id=product_id,
+        purchase_option_id=purchase_option_id,
+        region_code=region_code,
+    )
     return VerifiedGooglePurchase(
         provider_transaction_id=purchase_token,
         product_id=product_id,
+        package_name=package_name,
+        app_account_token=app_account_token,
+        amount_minor_units=amount_minor_units,
+        currency=currency,
         state=state,
         payload=dict(body),
     )
@@ -1022,16 +1379,19 @@ def verify_google_notification(
 
 
 __all__ = [
+    "MOBILE_APP_BUNDLE_ID",
     "PaymentProviderError",
     "ProviderConfigurationError",
     "ProviderVerificationError",
     "StripeCheckoutSession",
+    "StorePurchaseState",
     "VerifiedAppleNotification",
     "VerifiedAppleTransaction",
     "VerifiedGoogleNotification",
     "VerifiedGooglePurchase",
     "VerifiedStripeEvent",
     "create_stripe_checkout_session",
+    "load_apple_trusted_root_certificates",
     "resolve_stripe_checkout_session_id",
     "verify_apple_jws_notification",
     "verify_apple_purchase",

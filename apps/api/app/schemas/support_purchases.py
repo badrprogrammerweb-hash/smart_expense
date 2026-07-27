@@ -28,6 +28,12 @@ class CheckoutSessionResponse(BaseModel):
     checkout_url: str
 
 
+class MobilePurchaseVerifyRequest(BaseModel):
+    tier_id: str = Field(min_length=1, max_length=100)
+    channel: Literal["apple", "google"]
+    provider_transaction_id: str = Field(min_length=1, max_length=4096)
+
+
 class SupportPurchaseResponse(BaseModel):
     id: UUID
     tier_id: str
@@ -38,4 +44,8 @@ class SupportPurchaseResponse(BaseModel):
     failure_reason: str | None
     created_at: datetime
     updated_at: datetime
-    provider_reference: str
+    provider_reference: str | None
+
+
+class SupportPurchaseListResponse(BaseModel):
+    purchases: list[SupportPurchaseResponse]

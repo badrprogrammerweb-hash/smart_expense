@@ -2,24 +2,50 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SupportPurchaseCard } from "@/components/settings/SupportPurchaseCard";
 import { SupportPurchaseResult } from "@/components/settings/SupportPurchaseResult";
 import { SupportTierSelector } from "@/components/settings/SupportTierSelector";
+import type {
+  NativeMobileVerifyRequest,
+  NativeSupportTier,
+  NativeVerifiedSupportPurchase,
+} from "@/lib/platform/capacitor";
 import arMessages from "@/messages/ar.json";
 import enMessages from "@/messages/en.json";
 
 
-const getWebSupportPurchaseMock = vi.hoisted(() => vi.fn());
+const supportApiMocks = vi.hoisted(() => ({
+  getWebSupportPurchase: vi.fn(),
+  startSupportCheckout: vi.fn(),
+  verifyMobileSupportPurchase: vi.fn(),
+}));
+const getMeMock = vi.hoisted(() => vi.fn());
+const nativePlatformMocks = vi.hoisted(() => ({
+  isNative: vi.fn(() => false),
+  nativeSupportBilling: vi.fn(),
+}));
 
 vi.mock("@/lib/api/support-purchases", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api/support-purchases")>();
   return {
     ...actual,
-    getWebSupportPurchase: getWebSupportPurchaseMock,
+    ...supportApiMocks,
+  };
+});
+
+vi.mock("@/lib/api/me", () => ({
+  getMe: getMeMock,
+}));
+
+vi.mock("@/lib/platform/capacitor", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/platform/capacitor")>();
+  return {
+    ...actual,
+    ...nativePlatformMocks,
   };
 });
 
@@ -64,7 +90,13 @@ function renderLocalized(
 }
 
 afterEach(() => {
-  getWebSupportPurchaseMock.mockReset();
+  supportApiMocks.getWebSupportPurchase.mockReset();
+  supportApiMocks.startSupportCheckout.mockReset();
+  supportApiMocks.verifyMobileSupportPurchase.mockReset();
+  getMeMock.mockReset();
+  nativePlatformMocks.isNative.mockReset();
+  nativePlatformMocks.isNative.mockReturnValue(false);
+  nativePlatformMocks.nativeSupportBilling.mockReset();
 });
 
 describe("support-purchase UI", () => {
@@ -102,7 +134,7 @@ describe("support-purchase UI", () => {
   });
 
   it("ignores a completed query parameter and renders polled backend pending state", async () => {
-    getWebSupportPurchaseMock.mockResolvedValue({
+    supportApiMocks.getWebSupportPurchase.mockResolvedValue({
       id: "purchase-1",
       tier_id: "support_small",
       channel: "web",
@@ -130,12 +162,12 @@ describe("support-purchase UI", () => {
       }),
     ).toBeVisible();
     expect(screen.queryByText("Product support confirmed")).not.toBeInTheDocument();
-    expect(getWebSupportPurchaseMock).toHaveBeenCalledWith("cs_test_return");
+    expect(supportApiMocks.getWebSupportPurchase).toHaveBeenCalledWith("cs_test_return");
     queryClient.clear();
   });
 
   it("shows a specific refunded state and receipt, never a generic error", async () => {
-    getWebSupportPurchaseMock.mockResolvedValue({
+    supportApiMocks.getWebSupportPurchase.mockResolvedValue({
       id: "purchase-1",
       tier_id: "support_small",
       channel: "web",
@@ -163,6 +195,80 @@ describe("support-purchase UI", () => {
     expect(screen.queryByText("Purchase status unavailable")).not.toBeInTheDocument();
     expect(screen.getByTestId("support-purchase-receipt")).toBeInTheDocument();
     queryClient.clear();
+  });
+
+  it("uses native store billing inside Capacitor and never starts Stripe checkout", async () => {
+    const verifiedPurchase = {
+      id: "purchase-native",
+      tier_id: "support_small",
+      channel: "android" as const,
+      amount_minor_units: 599,
+      currency: "SAR",
+      status: "completed" as const,
+      failure_reason: null,
+      created_at: "2026-07-26T10:00:00Z",
+      updated_at: "2026-07-26T10:00:01Z",
+      provider_reference: null,
+    };
+    const purchase = vi.fn(
+      async ({
+        verify,
+      }: {
+        verify: (
+          request: NativeMobileVerifyRequest,
+        ) => Promise<NativeVerifiedSupportPurchase>;
+      }) => ({
+        status: "completed" as const,
+        purchase: await verify({
+          tier_id: "support_small",
+          channel: "google",
+          provider_transaction_id: "secret-google-token",
+        }),
+      }),
+    );
+    const listTiers = vi.fn(async (values: NativeSupportTier[]) =>
+      values.map((tier, index) => ({
+        ...tier,
+        display_amount: ["SAR 5.99", "SAR 15.99", "SAR 49.99"][index],
+      })),
+    );
+    nativePlatformMocks.isNative.mockReturnValue(true);
+    nativePlatformMocks.nativeSupportBilling.mockReturnValue({
+      listTiers,
+      purchase,
+    });
+    getMeMock.mockResolvedValue({
+      id: "b57eccea-2f0a-4143-92cd-e0b1524d237f",
+    });
+    supportApiMocks.verifyMobileSupportPurchase.mockResolvedValue(
+      verifiedPurchase,
+    );
+
+    renderLocalized(<SupportTierSelector locale="en" tiers={tiers} />);
+
+    expect(await screen.findByText("SAR 5.99")).toBeVisible();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Continue to store purchase" }),
+    );
+
+    expect(await screen.findByText("Store product support confirmed.")).toBeVisible();
+    expect(screen.getByTestId("native-support-receipt")).toHaveTextContent(
+      "5.99 SAR",
+    );
+    expect(purchase).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tier_id: "support_small",
+        account_id: "b57eccea-2f0a-4143-92cd-e0b1524d237f",
+      }),
+    );
+    expect(supportApiMocks.verifyMobileSupportPurchase).toHaveBeenCalledWith({
+      tier_id: "support_small",
+      channel: "google",
+      provider_transaction_id: "secret-google-token",
+    });
+    await waitFor(() => {
+      expect(supportApiMocks.startSupportCheckout).not.toHaveBeenCalled();
+    });
   });
 });
 

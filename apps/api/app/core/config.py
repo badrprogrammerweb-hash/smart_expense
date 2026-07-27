@@ -19,6 +19,8 @@ class Settings:
     apple_app_store_issuer_id: str
     apple_app_store_key_id: str
     apple_app_store_private_key: str
+    apple_app_store_environment: str
+    apple_app_store_root_certificates: str
     google_play_service_account_json: str
 
     @property
@@ -45,5 +47,11 @@ def get_settings() -> Settings:
         apple_app_store_issuer_id=os.getenv("APPLE_APP_STORE_ISSUER_ID", "").strip(),
         apple_app_store_key_id=os.getenv("APPLE_APP_STORE_KEY_ID", "").strip(),
         apple_app_store_private_key=os.getenv("APPLE_APP_STORE_PRIVATE_KEY", "").strip(),
+        apple_app_store_environment=os.getenv(
+            "APPLE_APP_STORE_ENVIRONMENT", "Production"
+        ).strip(),
+        apple_app_store_root_certificates=os.getenv(
+            "APPLE_APP_STORE_ROOT_CERTIFICATES", ""
+        ).strip(),
         google_play_service_account_json=os.getenv("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON", "").strip(),
     )

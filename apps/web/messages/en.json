@@ -519,9 +519,23 @@
       "support_large": "Large support"
     },
     "hostedCheckoutNote": "Payment details are entered only on Stripe's secure hosted Checkout page.",
+    "nativeBillingNote": "The App Store or Google Play handles payment in its native purchase sheet. Smart Expense never shows payment-card fields.",
     "continueAction": "Continue to Stripe",
+    "nativeContinueAction": "Continue to store purchase",
     "redirecting": "Opening secure checkout",
+    "nativeProcessing": "Opening the store purchase sheet",
     "checkoutError": "Secure checkout could not be opened. Try again.",
+    "nativeProductsError": "Store support options could not be loaded. Try again.",
+    "nativeCompleted": "Store product support confirmed.",
+    "nativePending": "This support purchase is still processing at the store. It remains pending until the backend verifies it.",
+    "nativeCancelled": "The support purchase was cancelled. You can try again.",
+    "nativeRefunded": "This support purchase was refunded. Your product access is unchanged.",
+    "nativeFailed": "The store purchase could not be verified. Try again.",
+    "channels": {
+      "web": "Web",
+      "ios": "Apple App Store",
+      "android": "Google Play"
+    },
     "tiersUnavailableTitle": "Support options are unavailable",
     "tiersUnavailableDescription": "The support options could not be loaded. Try again.",
     "pendingTitle": "Waiting for payment confirmation",

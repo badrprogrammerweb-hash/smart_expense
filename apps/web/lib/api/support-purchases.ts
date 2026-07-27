@@ -23,7 +23,13 @@ export type SupportPurchase = {
   failure_reason: string | null;
   created_at: string;
   updated_at: string;
-  provider_reference: string;
+  provider_reference: string | null;
+};
+
+export type MobileSupportPurchaseVerifyRequest = {
+  tier_id: SupportTier["tier_id"];
+  channel: "apple" | "google";
+  provider_transaction_id: string;
 };
 
 export async function listSupportTiers() {
@@ -45,4 +51,20 @@ export async function getWebSupportPurchase(checkoutSessionId: string) {
   return apiFetch<SupportPurchase>(
     `/support-purchases/session/${encodeURIComponent(checkoutSessionId)}`,
   );
+}
+
+export async function verifyMobileSupportPurchase(
+  request: MobileSupportPurchaseVerifyRequest,
+) {
+  return apiFetch<SupportPurchase>("/support-purchases/mobile/verify", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
+
+export async function listSupportPurchases() {
+  const response = await apiFetch<{ purchases: SupportPurchase[] }>(
+    "/support-purchases",
+  );
+  return response.purchases;
 }
