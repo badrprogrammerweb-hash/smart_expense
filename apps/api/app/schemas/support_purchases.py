@@ -58,3 +58,15 @@ class SupportPurchaseResponse(BaseModel):
 
 class SupportPurchaseListResponse(BaseModel):
     purchases: list[SupportPurchaseResponse]
+
+
+class SupportPurchaseReceiptResponse(BaseModel):
+    id: UUID
+    tier_id: str
+    channel: Literal["web", "ios", "android"]
+    amount_minor_units: int
+    currency: str
+    status: Literal["completed"]
+    created_at: datetime
+    provider_reference: str | None
+    provider_receipt_url: str | None

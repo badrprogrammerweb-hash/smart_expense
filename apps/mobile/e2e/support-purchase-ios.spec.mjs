@@ -112,6 +112,55 @@ test("iOS cancellation returns a typed failed result without calling verificatio
   assert.equal(verified, false);
 });
 
+test("iOS bridge reads the shared receipt contract and opens only an official HTTPS URL", async () => {
+  const opened = [];
+  const bridge = billingModule.createSupportBillingBridge({
+    platform: () => "ios",
+    purchases: iosPurchases(),
+    openExternal: async (url) => {
+      opened.push(url);
+    },
+  });
+  const receipt = await bridge.getReceipt(
+    "purchase-ios",
+    async (purchaseId) => ({
+      id: purchaseId,
+      tier_id: "support_medium",
+      channel: "ios",
+      amount_minor_units: 1500,
+      currency: "SAR",
+      status: "completed",
+      created_at: "2026-07-26T10:00:00Z",
+      provider_reference: "2000001043762129",
+      provider_receipt_url: "https://reportaproblem.apple.com/receipt/test",
+      signed_payload: "private-apple-jws",
+    }),
+  );
+
+  assert.deepEqual(receipt, {
+    id: "purchase-ios",
+    tier_id: "support_medium",
+    channel: "ios",
+    amount_minor_units: 1500,
+    currency: "SAR",
+    status: "completed",
+    created_at: "2026-07-26T10:00:00Z",
+    provider_reference: "2000001043762129",
+    provider_receipt_url: "https://reportaproblem.apple.com/receipt/test",
+  });
+  assert.doesNotMatch(JSON.stringify(receipt), /private-apple-jws|signed_payload/);
+  assert.equal(
+    await bridge.openReceipt(
+      "https://reportaproblem.apple.com/receipt/test",
+    ),
+    true,
+  );
+  assert.equal(await bridge.openReceipt("http://reportaproblem.apple.com"), false);
+  assert.deepEqual(opened, [
+    "https://reportaproblem.apple.com/receipt/test",
+  ]);
+});
+
 test("iOS native project includes the StoreKit Capacitor plugin", async () => {
   const packageFile = await readFile(
     resolve(import.meta.dirname, "..", "ios", "App", "CapApp-SPM", "Package.swift"),

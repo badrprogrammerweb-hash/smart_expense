@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Mapping
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from sqlalchemy.exc import DBAPIError
@@ -20,6 +20,7 @@ from app.schemas.support_purchases import (
     CheckoutSessionResponse,
     MobilePurchaseVerifyRequest,
     SupportPurchaseListResponse,
+    SupportPurchaseReceiptResponse,
     SupportPurchaseResponse,
     SupportTierListResponse,
     SupportTierResponse,
@@ -31,6 +32,7 @@ from app.services.support_purchases import (
     SupportPurchaseRecord,
     create_pending,
     get_by_provider_transaction,
+    get_owned_completed_purchase,
     get_owned_web_purchase_by_session,
     list_owned_purchases,
     mark_completed,
@@ -80,6 +82,13 @@ def _tier_response(tier: SupportTier) -> SupportTierResponse:
     )
 
 
+def _safe_provider_reference(record: SupportPurchaseRecord) -> str | None:
+    # A Google purchase token is a reusable verification credential, not a
+    # receipt reference. Apple transaction ids and Stripe Checkout Session
+    # ids are the safe references permitted by the Phase 17 contract.
+    return None if record.channel == "android" else record.provider_transaction_id
+
+
 def _purchase_response(record: SupportPurchaseRecord) -> SupportPurchaseResponse:
     return SupportPurchaseResponse(
         id=record.id,
@@ -95,13 +104,26 @@ def _purchase_response(record: SupportPurchaseRecord) -> SupportPurchaseResponse
         ),
         created_at=record.created_at,
         updated_at=record.updated_at,
-        # A Google purchase token is a verification credential, not a receipt
-        # reference. Keep it backend-only after the bridge submits it.
-        provider_reference=(
-            None
-            if record.channel == "android"
-            else record.provider_transaction_id
-        ),
+        provider_reference=_safe_provider_reference(record),
+    )
+
+
+def _receipt_response(
+    record: SupportPurchaseRecord,
+) -> SupportPurchaseReceiptResponse:
+    return SupportPurchaseReceiptResponse(
+        id=record.id,
+        tier_id=record.tier_id,
+        channel=record.channel,
+        amount_minor_units=record.amount_minor_units,
+        currency=record.currency,
+        status="completed",
+        created_at=record.created_at,
+        provider_reference=_safe_provider_reference(record),
+        # The current data model stores no provider receipt URL. Returning
+        # null is intentional: a URL must never be fabricated from a Checkout
+        # Session id, Apple transaction id, or Google purchase token.
+        provider_receipt_url=None,
     )
 
 
@@ -386,6 +408,37 @@ async def list_support_purchase_history(
     return SupportPurchaseListResponse(
         purchases=[_purchase_response(purchase) for purchase in purchases]
     )
+
+
+@router.get(
+    "/{purchase_id}/receipt",
+    response_model=SupportPurchaseReceiptResponse,
+)
+async def get_support_purchase_receipt(
+    purchase_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_trusted_session),
+) -> SupportPurchaseReceiptResponse:
+    try:
+        purchase = await get_owned_completed_purchase(
+            session,
+            user_id=current_user.user_id,
+            purchase_id=purchase_id,
+        )
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+    if purchase is None:
+        # Ownership and status are intentionally indistinguishable from an
+        # unknown id. This prevents purchase enumeration across accounts and
+        # keeps receipt eligibility authoritative on the backend.
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "code": "support_purchase_not_found",
+                "message": "Support purchase not found.",
+            },
+        )
+    return _receipt_response(purchase)
 
 
 @router.post(

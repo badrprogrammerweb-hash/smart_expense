@@ -565,6 +565,7 @@
       "channel": "Purchase channel",
       "reference": "Provider reference",
       "referencePrivate": "Kept private",
+      "receiptAction": "View receipt",
       "status": {
         "pending": {
           "label": "Pending",
@@ -588,11 +589,21 @@
     "resultUnavailableTitle": "Purchase status unavailable",
     "resultUnavailableDescription": "We could not find a verified support-purchase status for this return link.",
     "receipt": {
+      "title": "Product support receipt",
+      "description": "This confirmation comes from your provider-verified support-purchase record.",
+      "tier": "Support tier",
       "amount": "Amount",
       "date": "Date",
       "channel": "Purchase channel",
       "webChannel": "Web",
-      "reference": "Provider reference"
+      "status": "Status",
+      "reference": "Provider reference",
+      "providerLink": "Open provider receipt",
+      "providerLinkUnavailable": "No verified provider receipt link is available.",
+      "notAvailableTitle": "Receipt is not available",
+      "notAvailableDescription": "This purchase is not eligible for a receipt or could not be found.",
+      "unavailableTitle": "Receipt could not be loaded",
+      "unavailableDescription": "The receipt is temporarily unavailable. Try again."
     },
     "tryAgainAction": "Choose a support tier",
     "returnAction": "Return to Smart Expense"

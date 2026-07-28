@@ -34,10 +34,28 @@ export type NativeVerifiedSupportPurchase = {
   amount_minor_units: number;
   currency: string;
   status: "pending" | "completed" | "failed" | "refunded";
-  failure_reason: string | null;
+  failure_reason:
+    | "checkout_expired"
+    | "payment_cancelled"
+    | "payment_failed"
+    | "store_cancelled"
+    | "store_failed"
+    | null;
   created_at: string;
   updated_at: string;
   provider_reference: string | null;
+};
+
+export type NativeSupportPurchaseReceipt = {
+  id: string;
+  tier_id: string;
+  channel: "web" | "ios" | "android";
+  amount_minor_units: number;
+  currency: string;
+  status: "completed";
+  created_at: string;
+  provider_reference: string | null;
+  provider_receipt_url: string | null;
 };
 
 export type NativeSupportBillingResult =
@@ -60,6 +78,16 @@ export type NativeSupportBillingResult =
 
 export type NativeSupportBillingAdapter = {
   listTiers(tiers: NativeSupportTier[]): Promise<NativeSupportTier[]>;
+  listHistory(
+    fetchHistory: () => Promise<NativeVerifiedSupportPurchase[]>,
+  ): Promise<NativeVerifiedSupportPurchase[]>;
+  getReceipt(
+    purchaseId: string,
+    fetchReceipt: (
+      purchaseId: string,
+    ) => Promise<NativeSupportPurchaseReceipt>,
+  ): Promise<NativeSupportPurchaseReceipt>;
+  openReceipt(url: string): Promise<boolean>;
   purchase(input: {
     tier_id: NativeSupportTier["tier_id"];
     account_id: string;

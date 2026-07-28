@@ -274,6 +274,119 @@ test("Android reports store-pending when no completed purchase can be recovered 
   assert.equal(verifyCalled, false);
 });
 
+test("Android bridge uses the shared account history and receipt callbacks without retaining tokens", async () => {
+  const opened = [];
+  const bridge = billingModule.createSupportBillingBridge({
+    platform: () => "android",
+    purchases: androidPurchases({
+      transactionId: "GPA.unused",
+      productIdentifier: "ai.smartexpense.support.small",
+      purchaseToken: "unused-token",
+      purchaseState: "1",
+    }),
+    openExternal: async (url) => {
+      opened.push(url);
+    },
+  });
+  const history = await bridge.listHistory(async () => [
+    {
+      id: "purchase-web",
+      tier_id: "support_small",
+      channel: "web",
+      amount_minor_units: 500,
+      currency: "SAR",
+      status: "pending",
+      failure_reason: null,
+      created_at: "2026-07-28T10:00:00Z",
+      updated_at: "2026-07-28T10:00:00Z",
+      provider_reference: "cs_test_pending",
+    },
+    {
+      id: "purchase-ios",
+      tier_id: "support_medium",
+      channel: "ios",
+      amount_minor_units: 1500,
+      currency: "SAR",
+      status: "completed",
+      failure_reason: null,
+      created_at: "2026-07-27T10:00:00Z",
+      updated_at: "2026-07-27T10:00:00Z",
+      provider_reference: "2000001043762129",
+    },
+    {
+      id: "purchase-android",
+      tier_id: "support_large",
+      channel: "android",
+      amount_minor_units: 5000,
+      currency: "SAR",
+      status: "completed",
+      failure_reason: null,
+      created_at: "2026-07-26T10:00:00Z",
+      updated_at: "2026-07-26T10:00:00Z",
+      provider_reference: "secret-google-purchase-token",
+      purchase_token: "secret-google-purchase-token",
+      signed_payload: "private-jws",
+    },
+  ]);
+  const receipt = await bridge.getReceipt(
+    "purchase-android",
+    async (purchaseId) => {
+      assert.equal(purchaseId, "purchase-android");
+      return {
+        id: purchaseId,
+        tier_id: "support_large",
+        channel: "android",
+        amount_minor_units: 5000,
+        currency: "SAR",
+        status: "completed",
+        created_at: "2026-07-26T10:00:00Z",
+        provider_reference: "secret-google-purchase-token",
+        provider_receipt_url: "https://play.google.com/store/account/orderhistory",
+        purchase_token: "secret-google-purchase-token",
+      };
+    },
+  );
+
+  assert.deepEqual(history.map((purchase) => purchase.channel), [
+    "web",
+    "ios",
+    "android",
+  ]);
+  assert.equal(history[2].provider_reference, null);
+  assert.equal(receipt.provider_reference, null);
+  assert.doesNotMatch(
+    JSON.stringify({ history, receipt }),
+    /secret-google-purchase-token|private-jws|purchase_token|signed_payload/,
+  );
+  assert.equal(
+    await bridge.openReceipt(
+      "https://play.google.com/store/account/orderhistory",
+    ),
+    true,
+  );
+  assert.equal(
+    await bridge.openReceipt("https://attacker.example/fake-receipt"),
+    false,
+  );
+  await assert.rejects(
+    bridge.getReceipt("purchase-pending", async (purchaseId) => ({
+      id: purchaseId,
+      tier_id: "support_small",
+      channel: "web",
+      amount_minor_units: 500,
+      currency: "SAR",
+      status: "pending",
+      created_at: "2026-07-28T10:00:00Z",
+      provider_reference: "cs_test_pending",
+      provider_receipt_url: null,
+    })),
+    /receipt-eligible/,
+  );
+  assert.deepEqual(opened, [
+    "https://play.google.com/store/account/orderhistory",
+  ]);
+});
+
 test("Android native project includes the Play Billing Capacitor plugin", async () => {
   const [settings, dependencies] = await Promise.all([
     readFile(resolve(import.meta.dirname, "..", "android", "capacitor.settings.gradle"), "utf8"),

@@ -190,15 +190,15 @@ user sees none of it.
 
 ### Tests for User Story 4
 
-- [ ] T043 [P] [US4] Contract test: `GET /support-purchases` returns only the current user's own purchases across all channels, newest first, in `apps/api/tests/test_support_purchases_api.py`
-- [ ] T044 [P] [US4] Contract test: `GET /support-purchases/{id}/receipt` returns receipt data for the owner's own `completed` purchase and is denied for another user's purchase or a non-`completed` purchase, in `apps/api/tests/test_support_purchases_api.py`
-- [ ] T045 [P] [US4] RLS test: User B cannot read User A's `support_purchases` rows via direct query or the API, in `apps/api/tests/test_support_purchases_isolation.py`
+- [X] T043 [P] [US4] Contract test: `GET /support-purchases` returns only the current user's own purchases across all channels, newest first, in `apps/api/tests/test_support_purchases_api.py`
+- [X] T044 [P] [US4] Contract test: `GET /support-purchases/{id}/receipt` returns receipt data for the owner's own `completed` purchase and is denied for another user's purchase or a non-`completed` purchase, in `apps/api/tests/test_support_purchases_api.py`
+- [X] T045 [P] [US4] RLS test: User B cannot read User A's `support_purchases` rows via direct query or the API, in `apps/api/tests/test_support_purchases_isolation.py`
 
 ### Implementation for User Story 4
 
-- [ ] T046 [US4] Implement `GET /support-purchases` and `GET /support-purchases/{id}/receipt` in `apps/api/app/routes/support_purchases.py` per `contracts/support-purchases-api.md`
-- [ ] T047 [US4] Build `apps/web/components/settings/SupportPurchaseHistory.tsx` (list, empty state) and `apps/web/components/settings/SupportReceiptView.tsx` (receipt + link to the provider's/store's own receipt where available)
-- [ ] T048 [US4] Wire the mobile billing bridge (`apps/mobile/src/native/billing.ts`) and its UI to call the same history/receipt endpoints, confirming cross-channel visibility (no mobile-only history contract)
+- [X] T046 [US4] Implement `GET /support-purchases` and `GET /support-purchases/{id}/receipt` in `apps/api/app/routes/support_purchases.py` per `contracts/support-purchases-api.md`
+- [X] T047 [US4] Build `apps/web/components/settings/SupportPurchaseHistory.tsx` (list, empty state) and `apps/web/components/settings/SupportReceiptView.tsx` (receipt + link to the provider's/store's own receipt where available)
+- [X] T048 [US4] Wire the mobile billing bridge (`apps/mobile/src/native/billing.ts`) and its UI to call the same history/receipt endpoints, confirming cross-channel visibility (no mobile-only history contract)
 
 **Checkpoint**: A user's support-purchase history and receipts are complete, correct, and account-scoped across every channel.
 

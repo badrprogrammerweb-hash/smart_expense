@@ -565,6 +565,7 @@
       "channel": "قناة الشراء",
       "reference": "مرجع المزوّد",
       "referencePrivate": "محفوظ بخصوصية",
+      "receiptAction": "عرض الإيصال",
       "status": {
         "pending": {
           "label": "قيد الانتظار",
@@ -588,11 +589,21 @@
     "resultUnavailableTitle": "حالة الشراء غير متاحة",
     "resultUnavailableDescription": "تعذّر العثور على حالة موثّقة لعملية دعم مرتبطة برابط العودة هذا.",
     "receipt": {
+      "title": "إيصال دعم المنتج",
+      "description": "يأتي هذا التأكيد من سجل دعم المنتج الذي تحقّق منه المزوّد في الخادم.",
+      "tier": "مستوى الدعم",
       "amount": "المبلغ",
       "date": "التاريخ",
       "channel": "قناة الشراء",
       "webChannel": "الويب",
-      "reference": "مرجع المزوّد"
+      "status": "الحالة",
+      "reference": "مرجع المزوّد",
+      "providerLink": "فتح إيصال المزوّد",
+      "providerLinkUnavailable": "لا يتوفر رابط إيصال موثّق من المزوّد.",
+      "notAvailableTitle": "الإيصال غير متاح",
+      "notAvailableDescription": "عملية الشراء هذه غير مؤهلة للإيصال أو تعذّر العثور عليها.",
+      "unavailableTitle": "تعذّر تحميل الإيصال",
+      "unavailableDescription": "الإيصال غير متاح مؤقتًا. حاول مرة أخرى."
     },
     "tryAgainAction": "اختر مستوى دعم",
     "returnAction": "العودة إلى Smart Expense"

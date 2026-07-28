@@ -32,6 +32,45 @@ export type SupportPurchase = {
   provider_reference: string | null;
 };
 
+export type SupportPurchaseReceipt = {
+  id: string;
+  tier_id: string;
+  channel: SupportPurchaseChannel;
+  amount_minor_units: number;
+  currency: string;
+  status: "completed";
+  created_at: string;
+  provider_reference: string | null;
+  provider_receipt_url: string | null;
+};
+
+const SAFE_PROVIDER_RECEIPT_HOSTS = new Set([
+  "pay.stripe.com",
+  "dashboard.stripe.com",
+  "reportaproblem.apple.com",
+  "apps.apple.com",
+  "play.google.com",
+  "payments.google.com",
+]);
+
+export function isSafeProviderReceiptUrl(
+  value: string | null | undefined,
+): value is string {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      url.username === "" &&
+      url.password === "" &&
+      url.port === "" &&
+      SAFE_PROVIDER_RECEIPT_HOSTS.has(url.hostname.toLowerCase())
+    );
+  } catch {
+    return false;
+  }
+}
+
 export type MobileSupportPurchaseVerifyRequest = {
   tier_id: SupportTier["tier_id"];
   channel: "apple" | "google";
@@ -73,4 +112,10 @@ export async function listSupportPurchases() {
     "/support-purchases",
   );
   return response.purchases;
+}
+
+export async function getSupportPurchaseReceipt(purchaseId: string) {
+  return apiFetch<SupportPurchaseReceipt>(
+    `/support-purchases/${encodeURIComponent(purchaseId)}/receipt`,
+  );
 }

@@ -7,6 +7,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SupportPurchaseCard } from "@/components/settings/SupportPurchaseCard";
+import { SupportReceiptView } from "@/components/settings/SupportReceiptView";
 import { SupportPurchaseResult } from "@/components/settings/SupportPurchaseResult";
 import { SupportTierSelector } from "@/components/settings/SupportTierSelector";
 import type {
@@ -17,9 +18,11 @@ import type {
 import arMessages from "@/messages/ar.json";
 import enMessages from "@/messages/en.json";
 import { SupportPurchaseHistory } from "@/components/settings/SupportPurchaseHistory";
+import { ApiError } from "@/lib/api/client";
 
 
 const supportApiMocks = vi.hoisted(() => ({
+  getSupportPurchaseReceipt: vi.fn(),
   getWebSupportPurchase: vi.fn(),
   listSupportPurchases: vi.fn(),
   startSupportCheckout: vi.fn(),
@@ -92,6 +95,7 @@ function renderLocalized(
 }
 
 afterEach(() => {
+  supportApiMocks.getSupportPurchaseReceipt.mockReset();
   supportApiMocks.getWebSupportPurchase.mockReset();
   supportApiMocks.listSupportPurchases.mockReset();
   supportApiMocks.startSupportCheckout.mockReset();
@@ -296,6 +300,300 @@ describe("support-purchase UI", () => {
     }
     expect(container.querySelectorAll('[dir="ltr"]').length).toBeGreaterThanOrEqual(4);
     expect(container.textContent).not.toContain("store_cancelled");
+    expect(
+      screen.getAllByRole("button", { name: "عرض الإيصال" }),
+    ).toHaveLength(1);
+    queryClient.clear();
+  });
+
+  it("renders an explicit empty history state", async () => {
+    supportApiMocks.listSupportPurchases.mockResolvedValue([]);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    renderLocalized(
+      <QueryClientProvider client={queryClient}>
+        <SupportPurchaseHistory />
+      </QueryClientProvider>,
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "No product support purchases yet",
+      }),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        "Nothing is expected or required. The complete product remains available to you.",
+      ),
+    ).toBeVisible();
+    queryClient.clear();
+  });
+
+  it("renders only backend-eligible completed receipt actions and keeps API order", async () => {
+    supportApiMocks.listSupportPurchases.mockResolvedValue([
+      {
+        id: "purchase-newest-refunded",
+        tier_id: "support_large",
+        channel: "android",
+        amount_minor_units: 5000,
+        currency: "SAR",
+        status: "refunded",
+        failure_reason: null,
+        created_at: "2026-07-28T10:00:00Z",
+        updated_at: "2026-07-28T10:00:00Z",
+        provider_reference: null,
+      },
+      {
+        id: "purchase-completed",
+        tier_id: "support_medium",
+        channel: "ios",
+        amount_minor_units: 1500,
+        currency: "SAR",
+        status: "completed",
+        failure_reason: null,
+        created_at: "2026-07-27T10:00:00Z",
+        updated_at: "2026-07-27T10:00:00Z",
+        provider_reference: "2000001043762129",
+      },
+      {
+        id: "purchase-oldest-pending",
+        tier_id: "support_small",
+        channel: "web",
+        amount_minor_units: 500,
+        currency: "SAR",
+        status: "pending",
+        failure_reason: null,
+        created_at: "2026-07-26T10:00:00Z",
+        updated_at: "2026-07-26T10:00:00Z",
+        provider_reference: "cs_test_pending",
+      },
+    ]);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    renderLocalized(
+      <QueryClientProvider client={queryClient}>
+        <SupportPurchaseHistory />
+      </QueryClientProvider>,
+    );
+
+    const rows = await screen.findAllByTestId("support-history-item");
+    expect(rows.map((row) => row.getAttribute("data-status"))).toEqual([
+      "refunded",
+      "completed",
+      "pending",
+    ]);
+    expect(
+      screen.getAllByRole("button", { name: "View receipt" }),
+    ).toHaveLength(1);
+    expect(rows[1]).toContainElement(
+      screen.getByRole("button", { name: "View receipt" }),
+    );
+    queryClient.clear();
+  });
+
+  it("renders a safe completed receipt summary and an allow-listed provider link", async () => {
+    supportApiMocks.getSupportPurchaseReceipt.mockResolvedValue({
+      id: "purchase-receipt",
+      tier_id: "support_medium",
+      channel: "web",
+      amount_minor_units: 1500,
+      currency: "SAR",
+      status: "completed",
+      created_at: "2026-07-26T10:00:00Z",
+      provider_reference: "cs_test_receipt",
+      provider_receipt_url: "https://pay.stripe.com/receipts/test-receipt",
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    const { container } = renderLocalized(
+      <QueryClientProvider client={queryClient}>
+        <SupportReceiptView purchaseId="purchase-receipt" />
+      </QueryClientProvider>,
+      "ar",
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "إيصال دعم المنتج" }),
+    ).toBeVisible();
+    expect(screen.getByText("دعم متوسط")).toBeVisible();
+    expect(screen.getByText(/15\.00/)).toBeVisible();
+    expect(screen.getByText("الويب")).toBeVisible();
+    expect(screen.getByText("cs_test_receipt")).toHaveAttribute("dir", "ltr");
+    const link = screen.getByRole("link", { name: "فتح إيصال المزوّد" });
+    expect(link).toHaveAttribute(
+      "href",
+      "https://pay.stripe.com/receipts/test-receipt",
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
+    expect(link).toHaveAttribute("rel", expect.stringContaining("noreferrer"));
+    expect(container.textContent?.toLowerCase()).not.toMatch(
+      /purchase[_-]?token|signed[_-]?payload|jws|stack trace/,
+    );
+    queryClient.clear();
+  });
+
+  it("does not render an untrusted receipt URL", async () => {
+    supportApiMocks.getSupportPurchaseReceipt.mockResolvedValue({
+      id: "purchase-receipt",
+      tier_id: "support_medium",
+      channel: "web",
+      amount_minor_units: 1500,
+      currency: "SAR",
+      status: "completed",
+      created_at: "2026-07-26T10:00:00Z",
+      provider_reference: "cs_test_receipt",
+      provider_receipt_url: "https://attacker.example/receipt",
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    renderLocalized(
+      <QueryClientProvider client={queryClient}>
+        <SupportReceiptView purchaseId="purchase-receipt" />
+      </QueryClientProvider>,
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Product support receipt" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("link", { name: "Open provider receipt" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText("No verified provider receipt link is available."),
+    ).toBeVisible();
+    queryClient.clear();
+  });
+
+  it("renders receipt denied and unavailable states without provider details", async () => {
+    supportApiMocks.getSupportPurchaseReceipt.mockRejectedValueOnce(
+      new ApiError(404, "support_purchase_not_found", "not found"),
+    );
+    const deniedClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const denied = renderLocalized(
+      <QueryClientProvider client={deniedClient}>
+        <SupportReceiptView purchaseId="purchase-denied" />
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText("Receipt is not available")).toBeVisible();
+    expect(screen.queryByText("support_purchase_not_found")).not.toBeInTheDocument();
+    denied.unmount();
+    deniedClient.clear();
+
+    supportApiMocks.getSupportPurchaseReceipt.mockRejectedValueOnce(
+      new Error("provider stack trace secret"),
+    );
+    const unavailableClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    renderLocalized(
+      <QueryClientProvider client={unavailableClient}>
+        <SupportReceiptView purchaseId="purchase-unavailable" />
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText("Receipt could not be loaded")).toBeVisible();
+    expect(screen.queryByText(/provider stack trace secret/i)).not.toBeInTheDocument();
+    unavailableClient.clear();
+  });
+
+  it("uses the native bridge for the same cross-channel history and receipt APIs", async () => {
+    const history = [
+      {
+        id: "purchase-web",
+        tier_id: "support_small",
+        channel: "web" as const,
+        amount_minor_units: 500,
+        currency: "SAR",
+        status: "pending" as const,
+        failure_reason: null,
+        created_at: "2026-07-28T10:00:00Z",
+        updated_at: "2026-07-28T10:00:00Z",
+        provider_reference: "cs_test_pending",
+      },
+      {
+        id: "purchase-ios",
+        tier_id: "support_medium",
+        channel: "ios" as const,
+        amount_minor_units: 1500,
+        currency: "SAR",
+        status: "completed" as const,
+        failure_reason: null,
+        created_at: "2026-07-27T10:00:00Z",
+        updated_at: "2026-07-27T10:00:00Z",
+        provider_reference: "2000001043762129",
+      },
+      {
+        id: "purchase-android",
+        tier_id: "support_large",
+        channel: "android" as const,
+        amount_minor_units: 5000,
+        currency: "SAR",
+        status: "refunded" as const,
+        failure_reason: null,
+        created_at: "2026-07-26T10:00:00Z",
+        updated_at: "2026-07-26T10:00:00Z",
+        provider_reference: null,
+      },
+    ];
+    supportApiMocks.listSupportPurchases.mockResolvedValue(history);
+    supportApiMocks.getSupportPurchaseReceipt.mockResolvedValue({
+      id: "purchase-ios",
+      tier_id: "support_medium",
+      channel: "ios",
+      amount_minor_units: 1500,
+      currency: "SAR",
+      status: "completed",
+      created_at: "2026-07-27T10:00:00Z",
+      provider_reference: "2000001043762129",
+      provider_receipt_url: null,
+    });
+    const listHistory = vi.fn(async (fetchHistory) => fetchHistory());
+    const getReceipt = vi.fn(async (purchaseId, fetchReceipt) =>
+      fetchReceipt(purchaseId),
+    );
+    nativePlatformMocks.isNative.mockReturnValue(true);
+    nativePlatformMocks.nativeSupportBilling.mockReturnValue({
+      listTiers: vi.fn(),
+      purchase: vi.fn(),
+      listHistory,
+      getReceipt,
+      openReceipt: vi.fn(),
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    renderLocalized(
+      <QueryClientProvider client={queryClient}>
+        <SupportPurchaseHistory />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findAllByTestId("support-history-item")).toHaveLength(3);
+    expect(screen.getByText("Web")).toBeVisible();
+    expect(screen.getByText("Apple App Store")).toBeVisible();
+    expect(screen.getByText("Google Play")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "View receipt" }));
+    expect(
+      await screen.findByRole("heading", { name: "Product support receipt" }),
+    ).toBeVisible();
+    expect(listHistory).toHaveBeenCalledWith(
+      supportApiMocks.listSupportPurchases,
+    );
+    expect(getReceipt).toHaveBeenCalledWith(
+      "purchase-ios",
+      supportApiMocks.getSupportPurchaseReceipt,
+    );
     queryClient.clear();
   });
 
@@ -381,6 +679,7 @@ describe("payment-card field audit", () => {
       "components/settings/SupportTierSelector.tsx",
       "components/settings/SupportPurchaseResult.tsx",
       "components/settings/SupportPurchaseHistory.tsx",
+      "components/settings/SupportReceiptView.tsx",
       "app/[locale]/(app)/settings/support/page.tsx",
       "app/[locale]/(app)/settings/support/result/page.tsx",
     ];
@@ -395,5 +694,17 @@ describe("payment-card field audit", () => {
     expect(source).not.toMatch(
       /label\s*=\s*["'](?:card number|cvc|cvv|security code|expiry date)["']/i,
     );
+    expect(source).not.toMatch(
+      /(?:purchase[_-]?token|signed[_-]?payload|webhook[_-]?payload|raw[_-]?provider[_-]?error)/i,
+    );
+    const receiptSource = readFileSync(
+      resolve(
+        process.cwd(),
+        "components/settings/SupportReceiptView.tsx",
+      ),
+      "utf8",
+    );
+    expect(receiptSource).toContain("isSafeProviderReceiptUrl");
+    expect(receiptSource).toMatch(/rel=["']noopener noreferrer["']/);
   });
 });

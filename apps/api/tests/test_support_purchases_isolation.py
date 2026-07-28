@@ -3,12 +3,14 @@ import hashlib
 import hmac
 import json
 import time
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import text
 
+from app.core.auth import CurrentUser
 from app.core.config import get_settings
+from app.db import get_engine, open_rls_session
 from app.services import payment_providers
 from conftest import (
     create_expense,
@@ -471,3 +473,140 @@ async def test_every_purchase_state_leaves_access_limits_and_finances_invariant(
         assert await snapshot() == baseline
 
     get_settings.cache_clear()
+
+
+@pytest.mark.asyncio
+@requires_supabase
+async def test_support_purchase_rls_and_api_hide_another_accounts_rows(
+    api_client, signup_user, db_connection
+) -> None:
+    owner = await signup_user("support-rls-owner")
+    other = await signup_user("support-rls-other")
+    assert (
+        await api_client.get("/support-purchases", headers=owner.auth_header)
+    ).status_code == 200
+    assert (
+        await api_client.get("/support-purchases", headers=other.auth_header)
+    ).status_code == 200
+
+    purchase_id = uuid4()
+    checkout_session_id = f"cs_test_rls_{uuid4().hex}"
+    async with get_engine().begin() as connection:
+        await connection.execute(
+            text(
+                """
+                insert into public.support_purchases (
+                    id,
+                    user_id,
+                    tier_id,
+                    channel,
+                    provider_transaction_id,
+                    amount_minor_units,
+                    currency,
+                    status
+                )
+                values (
+                    :id,
+                    :user_id,
+                    'support_small',
+                    'web',
+                    :provider_transaction_id,
+                    500,
+                    'SAR',
+                    'completed'
+                )
+                """
+            ),
+            {
+                "id": purchase_id,
+                "user_id": owner.user_id,
+                "provider_transaction_id": checkout_session_id,
+            },
+        )
+
+    # The test connection uses the trusted backend role and must be able to
+    # prove the row exists. This is deliberately separate from the
+    # authenticated-role checks below so service-role visibility cannot be
+    # mistaken for an RLS result.
+    trusted_rows = (
+        await db_connection.execute(
+            text(
+                """
+                select id
+                from public.support_purchases
+                where id = :purchase_id
+                """
+            ),
+            {"purchase_id": purchase_id},
+        )
+    ).scalars().all()
+    assert trusted_rows == [purchase_id]
+
+    def current_user(test_user) -> CurrentUser:
+        return CurrentUser(
+            user_id=UUID(test_user.user_id),
+            email=test_user.email,
+            claims={
+                "sub": test_user.user_id,
+                "email": test_user.email,
+                "role": "authenticated",
+            },
+            token=test_user.token,
+        )
+
+    async with open_rls_session(current_user(owner)) as session:
+        owner_rows = (
+            await session.execute(
+                text(
+                    """
+                    select id
+                    from public.support_purchases
+                    where id = :purchase_id
+                    """
+                ),
+                {"purchase_id": purchase_id},
+            )
+        ).scalars().all()
+    async with open_rls_session(current_user(other)) as session:
+        other_rows = (
+            await session.execute(
+                text(
+                    """
+                    select id
+                    from public.support_purchases
+                    where id = :purchase_id
+                    """
+                ),
+                {"purchase_id": purchase_id},
+            )
+        ).scalars().all()
+
+    assert owner_rows == [purchase_id]
+    assert other_rows == []
+
+    owner_history = await api_client.get(
+        "/support-purchases",
+        headers=owner.auth_header,
+    )
+    other_history = await api_client.get(
+        "/support-purchases",
+        headers=other.auth_header,
+    )
+    owner_receipt = await api_client.get(
+        f"/support-purchases/{purchase_id}/receipt",
+        headers=owner.auth_header,
+    )
+    other_receipt = await api_client.get(
+        f"/support-purchases/{purchase_id}/receipt",
+        headers=other.auth_header,
+    )
+
+    assert owner_history.status_code == 200, owner_history.text
+    assert [row["id"] for row in owner_history.json()["purchases"]] == [
+        str(purchase_id)
+    ]
+    assert other_history.status_code == 200, other_history.text
+    assert other_history.json() == {"purchases": []}
+    assert owner_receipt.status_code == 200, owner_receipt.text
+    assert other_receipt.status_code == 404
+    assert other_receipt.json()["error"]["code"] == "support_purchase_not_found"

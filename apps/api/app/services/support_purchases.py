@@ -368,6 +368,34 @@ async def list_owned_purchases(
     return [_record(row) for row in rows]
 
 
+async def get_owned_completed_purchase(
+    session,
+    *,
+    user_id: str | UUID,
+    purchase_id: str | UUID,
+) -> SupportPurchaseRecord | None:
+    """Return receipt-eligible data only when both owner and status match."""
+
+    row = (
+        await session.execute(
+            text(
+                f"""
+                select {_RETURNING_COLUMNS}
+                from public.support_purchases
+                where id = :purchase_id
+                  and user_id = :user_id
+                  and status = 'completed'
+                """
+            ),
+            {
+                "purchase_id": purchase_id,
+                "user_id": user_id,
+            },
+        )
+    ).first()
+    return _record(row) if row is not None else None
+
+
 __all__ = [
     "SUPPORT_TIERS",
     "SAFE_FAILURE_REASONS",
@@ -377,6 +405,7 @@ __all__ = [
     "SupportPurchaseRecord",
     "create_pending",
     "get_by_provider_transaction",
+    "get_owned_completed_purchase",
     "get_owned_web_purchase_by_session",
     "list_owned_purchases",
     "mark_completed",

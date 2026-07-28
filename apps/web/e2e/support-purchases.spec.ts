@@ -41,6 +41,18 @@ async function mockSupportApi(
     requestNumber: number,
   ) => "pending" | "completed" | "failed" | "refunded",
   history: Array<Record<string, unknown>> = [],
+  receiptResponse: {
+    status: number;
+    json: Record<string, unknown>;
+  } = {
+    status: 404,
+    json: {
+      error: {
+        code: "support_purchase_not_found",
+        message: "Support purchase not found.",
+      },
+    },
+  },
 ) {
   let statusRequests = 0;
 
@@ -56,6 +68,17 @@ async function mockSupportApi(
       json: { purchases: history },
     });
   });
+  await page.route(
+    `${apiUrl}/support-purchases/*/receipt`,
+    async (route) => {
+      expect(route.request().headers().authorization).toMatch(/^Bearer /);
+      await route.fulfill({
+        status: receiptResponse.status,
+        contentType: "application/json",
+        json: receiptResponse.json,
+      });
+    },
+  );
   await page.route(
     `${apiUrl}/support-purchases/checkout-sessions`,
     async (route) => {
@@ -209,18 +232,20 @@ test.describe("web support purchase", () => {
       "Set Supabase web environment variables to run authenticated support-purchase e2e.",
     );
     const user = await createSeededUser();
-    const states = ["pending", "completed", "failed", "refunded"] as const;
+    const states = ["refunded", "failed", "completed", "pending"] as const;
+    const channels = ["android", "ios", "web", "web"] as const;
     const history = states.map((status, index) => ({
       id: `00000000-0000-4000-8000-00000000000${index + 1}`,
       tier_id: "support_small",
-      channel: index === 2 ? "ios" : "web",
+      channel: channels[index],
       amount_minor_units: 500,
       currency: "SAR",
       status,
       failure_reason: status === "failed" ? "checkout_expired" : null,
-      created_at: `2026-07-2${index + 1}T10:00:00Z`,
-      updated_at: `2026-07-2${index + 1}T10:00:00Z`,
-      provider_reference: `provider-reference-${index}`,
+      created_at: `2026-07-2${8 - index}T10:00:00Z`,
+      updated_at: `2026-07-2${8 - index}T10:00:00Z`,
+      provider_reference:
+        channels[index] === "android" ? null : `provider-reference-${index}`,
     }));
     await mockSupportApi(
       page,
@@ -237,7 +262,130 @@ test.describe("web support purchase", () => {
     await expect(page.locator('[data-status="completed"]')).toContainText("Completed");
     await expect(page.locator('[data-status="failed"]')).toContainText("Failed");
     await expect(page.locator('[data-status="refunded"]')).toContainText("Refunded");
+    await expect(
+      page.getByRole("button", { name: "View receipt" }),
+    ).toHaveCount(1);
+    await expect(page.getByTestId("support-history-item").first()).toHaveAttribute(
+      "data-status",
+      "refunded",
+    );
     await expect(page.getByText("Product support confirmed")).toHaveCount(0);
     await expect(page.getByText("checkout_expired")).toHaveCount(0);
+  });
+
+  test("completed history opens the authenticated provider-safe receipt view", async ({
+    page,
+  }) => {
+    test.skip(
+      !hasE2eEnvironment,
+      "Set Supabase web environment variables to run authenticated support-purchase e2e.",
+    );
+    const user = await createSeededUser();
+    const purchaseId = "00000000-0000-4000-8000-000000000099";
+    const history = [
+      {
+        id: purchaseId,
+        tier_id: "support_medium",
+        channel: "ios",
+        amount_minor_units: 1500,
+        currency: "SAR",
+        status: "completed",
+        failure_reason: null,
+        created_at: "2026-07-28T10:00:00Z",
+        updated_at: "2026-07-28T10:00:00Z",
+        provider_reference: "2000001043762129",
+      },
+    ];
+    await mockSupportApi(
+      page,
+      "cs_test_receipt_unused",
+      () => "pending",
+      history,
+      {
+        status: 200,
+        json: {
+          id: purchaseId,
+          tier_id: "support_medium",
+          channel: "ios",
+          amount_minor_units: 1500,
+          currency: "SAR",
+          status: "completed",
+          created_at: "2026-07-28T10:00:00Z",
+          provider_reference: "2000001043762129",
+          provider_receipt_url:
+            "https://reportaproblem.apple.com/receipt/test",
+        },
+      },
+    );
+    await signIn(page, "en", user);
+
+    await page.goto("/en/settings/support");
+    await page.getByRole("button", { name: "View receipt" }).click();
+
+    const receipt = page.getByTestId("support-receipt-view");
+    await expect(
+      receipt.getByRole("heading", { name: "Product support receipt" }),
+    ).toBeVisible();
+    await expect(receipt).toContainText("Medium support");
+    await expect(receipt).toContainText("Apple App Store");
+    await expect(receipt).toContainText("2000001043762129");
+    await expect(
+      receipt.getByRole("link", { name: "Open provider receipt" }),
+    ).toHaveAttribute(
+      "href",
+      "https://reportaproblem.apple.com/receipt/test",
+    );
+  });
+
+  test("empty history and denied receipt render safe non-technical states", async ({
+    page,
+  }) => {
+    test.skip(
+      !hasE2eEnvironment,
+      "Set Supabase web environment variables to run authenticated support-purchase e2e.",
+    );
+    const user = await createSeededUser();
+    await mockSupportApi(
+      page,
+      "cs_test_empty_unused",
+      () => "pending",
+      [],
+    );
+    await signIn(page, "en", user);
+
+    await page.goto("/en/settings/support");
+    await expect(
+      page.getByRole("heading", {
+        name: "No product support purchases yet",
+      }),
+    ).toBeVisible();
+
+    const completed = {
+      id: "00000000-0000-4000-8000-000000000098",
+      tier_id: "support_small",
+      channel: "web",
+      amount_minor_units: 500,
+      currency: "SAR",
+      status: "completed",
+      failure_reason: null,
+      created_at: "2026-07-28T10:00:00Z",
+      updated_at: "2026-07-28T10:00:00Z",
+      provider_reference: "cs_test_denied",
+    };
+    await page.unroute(`${apiUrl}/support-purchases`);
+    await page.route(`${apiUrl}/support-purchases`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        json: { purchases: [completed] },
+      });
+    });
+    await page.reload();
+    await page.getByRole("button", { name: "View receipt" }).click();
+
+    await expect(
+      page.getByText("Receipt is not available"),
+    ).toBeVisible();
+    await expect(page.getByText("support_purchase_not_found")).toHaveCount(0);
   });
 });

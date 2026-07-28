@@ -1,11 +1,13 @@
 import asyncio
 from dataclasses import replace
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import text
 
 from app.core.config import get_settings
+from app.db import get_engine
 from app.services import payment_providers
 from conftest import requires_supabase
 
@@ -18,6 +20,69 @@ def _clear_settings_cache():
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
+
+
+async def _insert_support_purchase(
+    *,
+    user_id: str,
+    tier_id: str = "support_small",
+    channel: str = "web",
+    provider_transaction_id: str,
+    amount_minor_units: int = 500,
+    currency: str = "SAR",
+    status: str = "pending",
+    failure_reason: str | None = None,
+    created_at: datetime | None = None,
+    purchase_id: UUID | None = None,
+) -> str:
+    purchase_id = purchase_id or uuid4()
+    created_at = created_at or datetime.now(timezone.utc)
+    async with get_engine().begin() as connection:
+        await connection.execute(
+            text(
+                """
+                insert into public.support_purchases (
+                    id,
+                    user_id,
+                    tier_id,
+                    channel,
+                    provider_transaction_id,
+                    amount_minor_units,
+                    currency,
+                    status,
+                    failure_reason,
+                    created_at,
+                    updated_at
+                )
+                values (
+                    :id,
+                    :user_id,
+                    :tier_id,
+                    :channel,
+                    :provider_transaction_id,
+                    :amount_minor_units,
+                    :currency,
+                    :status,
+                    :failure_reason,
+                    :created_at,
+                    :created_at
+                )
+                """
+            ),
+            {
+                "id": purchase_id,
+                "user_id": user_id,
+                "tier_id": tier_id,
+                "channel": channel,
+                "provider_transaction_id": provider_transaction_id,
+                "amount_minor_units": amount_minor_units,
+                "currency": currency,
+                "status": status,
+                "failure_reason": failure_reason,
+                "created_at": created_at,
+            },
+        )
+    return str(purchase_id)
 
 
 async def test_list_tiers_returns_three_server_configured_presets(
@@ -785,3 +850,245 @@ async def test_mobile_concurrent_verification_of_the_same_transaction_creates_on
         )
     ).scalar_one()
     assert rows == 1
+
+
+async def test_history_returns_only_current_user_all_channels_newest_first_with_stable_ties(
+    api_client, signup_user
+) -> None:
+    owner = await signup_user("support-history-owner")
+    other = await signup_user("support-history-other")
+    assert (
+        await api_client.get("/support-purchases", headers=owner.auth_header)
+    ).status_code == 200
+    assert (
+        await api_client.get("/support-purchases", headers=other.auth_header)
+    ).status_code == 200
+
+    oldest_id = UUID("00000000-0000-4000-8000-" + uuid4().hex[-12:])
+    tied_ids = sorted(
+        [
+            UUID("10000000-0000-4000-8000-" + uuid4().hex[-12:]),
+            UUID("20000000-0000-4000-8000-" + uuid4().hex[-12:]),
+        ],
+        reverse=True,
+    )
+    newest_id = UUID("f0000000-0000-4000-8000-" + uuid4().hex[-12:])
+    common_time = datetime(2026, 7, 27, 10, 0, tzinfo=timezone.utc)
+
+    await _insert_support_purchase(
+        user_id=owner.user_id,
+        channel="web",
+        provider_transaction_id=f"cs_test_history_{uuid4().hex}",
+        status="completed",
+        created_at=datetime(2026, 7, 26, 10, 0, tzinfo=timezone.utc),
+        purchase_id=oldest_id,
+    )
+    await _insert_support_purchase(
+        user_id=owner.user_id,
+        channel="ios",
+        provider_transaction_id=str(10**15 + int(uuid4().hex[:10], 16)),
+        status="pending",
+        created_at=common_time,
+        purchase_id=tied_ids[1],
+    )
+    google_token = f"google-secret-token-{uuid4().hex}"
+    await _insert_support_purchase(
+        user_id=owner.user_id,
+        channel="android",
+        provider_transaction_id=google_token,
+        status="failed",
+        failure_reason="raw-provider-stack-secret",
+        created_at=common_time,
+        purchase_id=tied_ids[0],
+    )
+    await _insert_support_purchase(
+        user_id=owner.user_id,
+        channel="web",
+        provider_transaction_id=f"cs_test_history_{uuid4().hex}",
+        status="refunded",
+        created_at=datetime(2026, 7, 28, 10, 0, tzinfo=timezone.utc),
+        purchase_id=newest_id,
+    )
+    other_provider_id = f"cs_test_other_{uuid4().hex}"
+    await _insert_support_purchase(
+        user_id=other.user_id,
+        channel="web",
+        provider_transaction_id=other_provider_id,
+        status="completed",
+        created_at=datetime(2026, 7, 29, 10, 0, tzinfo=timezone.utc),
+    )
+
+    response = await api_client.get(
+        "/support-purchases",
+        headers=owner.auth_header,
+    )
+
+    assert response.status_code == 200, response.text
+    purchases = response.json()["purchases"]
+    assert [purchase["id"] for purchase in purchases] == [
+        str(newest_id),
+        str(tied_ids[0]),
+        str(tied_ids[1]),
+        str(oldest_id),
+    ]
+    assert {purchase["channel"] for purchase in purchases} == {
+        "web",
+        "ios",
+        "android",
+    }
+    assert purchases[1]["provider_reference"] is None
+    assert purchases[1]["failure_reason"] == "payment_failed"
+    serialized = response.text
+    assert google_token not in serialized
+    assert other_provider_id not in serialized
+    assert "raw-provider-stack-secret" not in serialized
+    assert "webhook" not in serialized.lower()
+    assert "jws" not in serialized.lower()
+
+
+async def test_history_requires_authentication_and_empty_history_is_an_empty_collection(
+    api_client, signup_user
+) -> None:
+    unauthenticated = await api_client.get("/support-purchases")
+    empty_user = await signup_user("support-history-empty")
+    empty = await api_client.get(
+        "/support-purchases",
+        headers=empty_user.auth_header,
+    )
+
+    assert unauthenticated.status_code == 401
+    assert empty.status_code == 200, empty.text
+    assert empty.json() == {"purchases": []}
+
+
+async def test_receipt_is_completed_owner_only_and_uses_contract_safe_fields(
+    api_client, signup_user
+) -> None:
+    owner = await signup_user("support-receipt-owner")
+    other = await signup_user("support-receipt-other")
+    assert (
+        await api_client.get("/support-purchases", headers=owner.auth_header)
+    ).status_code == 200
+    assert (
+        await api_client.get("/support-purchases", headers=other.auth_header)
+    ).status_code == 200
+
+    checkout_session_id = f"cs_test_receipt_{uuid4().hex}"
+    completed_id = await _insert_support_purchase(
+        user_id=owner.user_id,
+        tier_id="support_medium",
+        channel="web",
+        provider_transaction_id=checkout_session_id,
+        amount_minor_units=1500,
+        status="completed",
+        created_at=datetime(2026, 7, 26, 10, 0, tzinfo=timezone.utc),
+    )
+
+    receipt = await api_client.get(
+        f"/support-purchases/{completed_id}/receipt",
+        headers=owner.auth_header,
+    )
+    hidden = await api_client.get(
+        f"/support-purchases/{completed_id}/receipt",
+        headers=other.auth_header,
+    )
+
+    assert receipt.status_code == 200, receipt.text
+    assert receipt.json() == {
+        "id": completed_id,
+        "tier_id": "support_medium",
+        "channel": "web",
+        "amount_minor_units": 1500,
+        "currency": "SAR",
+        "status": "completed",
+        "created_at": "2026-07-26T10:00:00Z",
+        "provider_reference": checkout_session_id,
+        "provider_receipt_url": None,
+    }
+    assert hidden.status_code == 404
+    assert hidden.json()["error"]["code"] == "support_purchase_not_found"
+
+
+@pytest.mark.parametrize("purchase_status", ["pending", "failed", "refunded"])
+async def test_receipt_denies_every_non_completed_status_per_contract(
+    api_client, signup_user, purchase_status
+) -> None:
+    owner = await signup_user(f"support-receipt-{purchase_status}")
+    assert (
+        await api_client.get("/support-purchases", headers=owner.auth_header)
+    ).status_code == 200
+    purchase_id = await _insert_support_purchase(
+        user_id=owner.user_id,
+        provider_transaction_id=f"cs_test_receipt_{purchase_status}_{uuid4().hex}",
+        status=purchase_status,
+        failure_reason="payment_failed" if purchase_status == "failed" else None,
+    )
+
+    response = await api_client.get(
+        f"/support-purchases/{purchase_id}/receipt",
+        headers=owner.auth_header,
+    )
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "support_purchase_not_found"
+
+
+async def test_receipt_unknown_id_and_unauthenticated_request_are_denied(
+    api_client, signup_user
+) -> None:
+    owner = await signup_user("support-receipt-unknown")
+    unknown_id = uuid4()
+
+    unknown = await api_client.get(
+        f"/support-purchases/{unknown_id}/receipt",
+        headers=owner.auth_header,
+    )
+    unauthenticated = await api_client.get(
+        f"/support-purchases/{unknown_id}/receipt"
+    )
+
+    assert unknown.status_code == 404
+    assert unknown.json()["error"]["code"] == "support_purchase_not_found"
+    assert unauthenticated.status_code == 401
+
+
+async def test_android_receipt_never_exposes_purchase_token_or_private_provider_data(
+    api_client, signup_user
+) -> None:
+    owner = await signup_user("support-receipt-android")
+    assert (
+        await api_client.get("/support-purchases", headers=owner.auth_header)
+    ).status_code == 200
+    purchase_token = f"google-private-token-{uuid4().hex}"
+    purchase_id = await _insert_support_purchase(
+        user_id=owner.user_id,
+        channel="android",
+        provider_transaction_id=purchase_token,
+        status="completed",
+    )
+
+    history = await api_client.get(
+        "/support-purchases",
+        headers=owner.auth_header,
+    )
+    receipt = await api_client.get(
+        f"/support-purchases/{purchase_id}/receipt",
+        headers=owner.auth_header,
+    )
+
+    assert history.status_code == 200, history.text
+    assert receipt.status_code == 200, receipt.text
+    assert history.json()["purchases"][0]["provider_reference"] is None
+    assert receipt.json()["provider_reference"] is None
+    assert receipt.json()["provider_receipt_url"] is None
+    combined = history.text + receipt.text
+    assert purchase_token not in combined
+    for forbidden in (
+        "purchase_token",
+        "signed_payload",
+        "jws",
+        "webhook_payload",
+        "verification_response",
+        "secret",
+    ):
+        assert forbidden not in combined.lower()

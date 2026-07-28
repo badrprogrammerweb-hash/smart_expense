@@ -2,8 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
+import { useState } from "react";
 
-import { Badge, ErrorState, Skeleton } from "@/components/ui";
+import { SupportReceiptView } from "@/components/settings/SupportReceiptView";
+import { Badge, Button, ErrorState, Skeleton } from "@/components/ui";
 import { DateDisplay, Ltr } from "@/components/ui/date-display";
 import {
   listSupportPurchases,
@@ -12,6 +14,7 @@ import {
 } from "@/lib/api/support-purchases";
 import { supportedCurrencies, type SupportedCurrency } from "@/lib/currency";
 import { toDisplayAmount } from "@/lib/money";
+import { nativeSupportBilling } from "@/lib/platform/capacitor";
 
 
 const statusVariants: Record<
@@ -38,9 +41,16 @@ export function SupportPurchaseHistory() {
   const locale = useLocale();
   const t = useTranslations("supportPurchases");
   const common = useTranslations("common");
+  const [selectedReceiptId, setSelectedReceiptId] = useState<string | null>(
+    null,
+  );
+  const nativeBilling = nativeSupportBilling();
   const query = useQuery({
     queryKey: ["supportPurchases", "history"],
-    queryFn: listSupportPurchases,
+    queryFn: () =>
+      nativeBilling
+        ? nativeBilling.listHistory(listSupportPurchases)
+        : listSupportPurchases(),
   });
 
   const statusLabel = (status: SupportPurchaseStatus) => {
@@ -158,6 +168,28 @@ export function SupportPurchaseHistory() {
                   </dd>
                 </div>
               </dl>
+              {purchase.status === "completed" ? (
+                <div className="mt-4 border-t pt-4">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="compact"
+                    aria-expanded={selectedReceiptId === purchase.id}
+                    onClick={() =>
+                      setSelectedReceiptId((current) =>
+                        current === purchase.id ? null : purchase.id,
+                      )
+                    }
+                  >
+                    {t("history.receiptAction")}
+                  </Button>
+                </div>
+              ) : null}
+              {selectedReceiptId === purchase.id ? (
+                <div className="mt-4">
+                  <SupportReceiptView purchaseId={purchase.id} />
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>
