@@ -81,18 +81,18 @@ async def test_valid_state_transitions_and_repeated_terminal_events_are_idempote
         user_id=user.user_id,
         channel="web",
         provider_transaction_id=failed_transaction,
-        failure_reason="Payment could not be completed.",
+        failure_reason="payment_failed",
     )
     assert failed is not None
     assert failed.status == "failed"
-    assert failed.failure_reason == "Payment could not be completed."
+    assert failed.failure_reason == "payment_failed"
 
     repeated_failed = await mark_failed(
         db_connection,
         user_id=user.user_id,
         channel="web",
         provider_transaction_id=failed_transaction,
-        failure_reason="A different message must not overwrite history.",
+        failure_reason="checkout_expired",
     )
     assert repeated_failed == failed
 
@@ -124,7 +124,7 @@ async def test_invalid_state_transitions_are_rejected(signup_user, db_connection
             user_id=user.user_id,
             channel="web",
             provider_transaction_id=completed_transaction,
-            failure_reason="Payment could not be completed.",
+            failure_reason="payment_failed",
         )
 
     failed_transaction = f"cs_test_{uuid4().hex}"
@@ -134,7 +134,7 @@ async def test_invalid_state_transitions_are_rejected(signup_user, db_connection
         user_id=user.user_id,
         channel="web",
         provider_transaction_id=failed_transaction,
-        failure_reason="Payment could not be completed.",
+        failure_reason="payment_failed",
     )
     with pytest.raises(InvalidSupportPurchaseTransition):
         await mark_completed(
@@ -213,3 +213,24 @@ async def test_state_transitions_are_scoped_to_user_id(signup_user, db_connectio
         )
     ).scalar_one()
     assert status == "pending"
+
+
+async def test_failure_reason_is_normalized_before_storage(
+    signup_user, db_connection
+) -> None:
+    user = await signup_user("support-state-safe-failure")
+    transaction_id = f"cs_test_{uuid4().hex}"
+    await _pending(db_connection, user.user_id, transaction_id)
+
+    failed = await mark_failed(
+        db_connection,
+        user_id=user.user_id,
+        channel="web",
+        provider_transaction_id=transaction_id,
+        failure_reason=(
+            "card_declined: sk_test_secret pi_sensitive provider stack trace"
+        ),
+    )
+
+    assert failed is not None
+    assert failed.failure_reason == "payment_failed"

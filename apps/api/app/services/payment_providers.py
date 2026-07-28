@@ -148,9 +148,17 @@ class VerifiedAppleNotification:
     notification_id: str
     notification_type: str
     provider_transaction_id: str
+    original_transaction_id: str | None
     product_id: str
+    app_account_token: str | None
     payload: Mapping[str, Any]
     transaction: Mapping[str, Any]
+
+    @property
+    def transaction_id(self) -> str:
+        """The exact signed transactionId, never the original identifier."""
+
+        return self.provider_transaction_id
 
 
 @dataclass(frozen=True)
@@ -180,11 +188,26 @@ class VerifiedGooglePurchase:
 
 
 @dataclass(frozen=True)
+class VerifiedGooglePurchaseSnapshot:
+    """Verified historical purchase data without a current-catalog lookup."""
+
+    provider_transaction_id: str
+    product_id: str
+    package_name: str
+    app_account_token: str | None
+    state: StorePurchaseState
+    refundable_quantity: int | None
+    payload: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
 class VerifiedGoogleNotification:
     message_id: str
     notification_type: str
     provider_transaction_id: str
     product_id: str | None
+    package_name: str
+    is_full_refund: bool
     payload: Mapping[str, Any]
 
 
@@ -872,7 +895,9 @@ def verify_apple_jws_notification(
         notification_id=notification_id,
         notification_type=notification_type,
         provider_transaction_id=transaction.provider_transaction_id,
+        original_transaction_id=transaction.original_transaction_id,
         product_id=transaction.product_id,
+        app_account_token=transaction.app_account_token,
         payload=payload,
         transaction=transaction.payload,
     )
@@ -1147,6 +1172,139 @@ def _google_catalog_price(
     return _google_money_minor_units(prices[0].get("price"))
 
 
+def _google_purchase_snapshot_from_body(
+    body: Mapping[str, Any],
+    *,
+    package_name: str,
+    purchase_token: str,
+    expected_product_id: str | None,
+    expected_app_account_token: str | None,
+) -> VerifiedGooglePurchaseSnapshot:
+    product_id = _google_product_id(body)
+    if expected_product_id is not None and product_id != expected_product_id:
+        raise ProviderVerificationError(
+            "The Google Play purchase is for a different product."
+        )
+    _, _, refundable_quantity = _google_purchase_option(body)
+    app_account_token = body.get("obfuscatedExternalAccountId")
+    if app_account_token is not None and not isinstance(app_account_token, str):
+        raise ProviderVerificationError(
+            "Google Play returned an invalid account identifier."
+        )
+    if expected_app_account_token is not None and (
+        not isinstance(app_account_token, str)
+        or not hmac.compare_digest(
+            app_account_token.lower(), expected_app_account_token.lower()
+        )
+    ):
+        raise ProviderVerificationError(
+            "The Google Play purchase belongs to a different account."
+        )
+    state_context = body.get("purchaseStateContext")
+    purchase_state = (
+        state_context.get("purchaseState")
+        if isinstance(state_context, Mapping)
+        else None
+    )
+    state = {
+        "PURCHASED": "completed",
+        "PENDING": "pending",
+        "CANCELLED": "cancelled",
+    }.get(purchase_state)
+    if state is None:
+        raise ProviderVerificationError(
+            "Google Play returned an unknown purchase state."
+        )
+    if state == "completed" and refundable_quantity == 0:
+        state = "refunded"
+    return VerifiedGooglePurchaseSnapshot(
+        provider_transaction_id=purchase_token,
+        product_id=product_id,
+        package_name=package_name,
+        app_account_token=app_account_token,
+        state=state,
+        refundable_quantity=refundable_quantity,
+        payload=dict(body),
+    )
+
+
+async def _google_purchase_response(
+    *,
+    package_name: str,
+    purchase_token: str,
+    account: Mapping[str, Any],
+    client: httpx.AsyncClient,
+) -> tuple[str, Mapping[str, Any]]:
+    try:
+        access_token = await _google_access_token(account, client)
+        response = await client.get(
+            (
+                f"{GOOGLE_PLAY_API_ROOT}/androidpublisher/v3/applications/"
+                f"{quote(package_name, safe='')}/purchases/productsv2/tokens/"
+                f"{quote(purchase_token, safe='')}"
+            ),
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        response.raise_for_status()
+        body = response.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise ProviderVerificationError(
+            "Google Play could not verify this purchase."
+        ) from exc
+    if not isinstance(body, Mapping):
+        raise ProviderVerificationError(
+            "Google Play returned an invalid purchase response."
+        )
+    return access_token, body
+
+
+async def verify_google_purchase_snapshot(
+    *,
+    package_name: str,
+    purchase_token: str,
+    expected_product_id: str | None = None,
+    expected_app_account_token: str | None = None,
+    service_account_json: str | Mapping[str, Any] | None = None,
+    http_client: httpx.AsyncClient | None = None,
+) -> VerifiedGooglePurchaseSnapshot:
+    """Verify identity, ownership, product, and state without catalog price.
+
+    Provider notifications use this path because a historical refund must
+    not depend on the product or its old price still existing in today's
+    Google Play catalog.
+    """
+
+    configured_account = (
+        service_account_json
+        if service_account_json is not None
+        else get_settings().google_play_service_account_json
+    )
+    if http_client is None:
+        async with httpx.AsyncClient(timeout=20) as client:
+            return await verify_google_purchase_snapshot(
+                package_name=package_name,
+                purchase_token=purchase_token,
+                expected_product_id=expected_product_id,
+                expected_app_account_token=expected_app_account_token,
+                service_account_json=configured_account,
+                http_client=client,
+            )
+    account = _service_account(configured_account)
+    _, body = await _google_purchase_response(
+        package_name=package_name,
+        purchase_token=purchase_token,
+        account=account,
+        client=http_client,
+    )
+    return _google_purchase_snapshot_from_body(
+        body,
+        package_name=package_name,
+        purchase_token=purchase_token,
+        expected_product_id=expected_product_id,
+        expected_app_account_token=expected_app_account_token,
+    )
+
+
 async def verify_google_purchase(
     *,
     package_name: str,
@@ -1175,46 +1333,21 @@ async def verify_google_purchase(
             )
     account = _service_account(configured_account)
     client = http_client
-    try:
-        access_token = await _google_access_token(account, client)
-        response = await client.get(
-            (
-                f"{GOOGLE_PLAY_API_ROOT}/androidpublisher/v3/applications/"
-                f"{quote(package_name, safe='')}/purchases/productsv2/tokens/"
-                f"{quote(purchase_token, safe='')}"
-            ),
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-        response.raise_for_status()
-        body = response.json()
-    except (httpx.HTTPError, ValueError) as exc:
-        raise ProviderVerificationError(
-            "Google Play could not verify this purchase."
-        ) from exc
-    if not isinstance(body, Mapping):
-        raise ProviderVerificationError(
-            "Google Play returned an invalid purchase response."
-        )
-    product_id = _google_product_id(body)
-    if expected_product_id is not None and product_id != expected_product_id:
-        raise ProviderVerificationError(
-            "The Google Play purchase is for a different product."
-        )
+    access_token, body = await _google_purchase_response(
+        package_name=package_name,
+        purchase_token=purchase_token,
+        account=account,
+        client=client,
+    )
+    snapshot = _google_purchase_snapshot_from_body(
+        body,
+        package_name=package_name,
+        purchase_token=purchase_token,
+        expected_product_id=expected_product_id,
+        expected_app_account_token=expected_app_account_token,
+    )
+    product_id = snapshot.product_id
     purchase_option_id, _, refundable_quantity = _google_purchase_option(body)
-    app_account_token = body.get("obfuscatedExternalAccountId")
-    if app_account_token is not None and not isinstance(app_account_token, str):
-        raise ProviderVerificationError(
-            "Google Play returned an invalid account identifier."
-        )
-    if expected_app_account_token is not None and (
-        not isinstance(app_account_token, str)
-        or not hmac.compare_digest(
-            app_account_token.lower(), expected_app_account_token.lower()
-        )
-    ):
-        raise ProviderVerificationError(
-            "The Google Play purchase belongs to a different account."
-        )
     region_code = body.get("regionCode")
     if not isinstance(region_code, str) or not re.fullmatch(
         r"[A-Z]{2}", region_code
@@ -1222,25 +1355,6 @@ async def verify_google_purchase(
         raise ProviderVerificationError(
             "Google Play returned an invalid billing region."
         )
-    state_context = body.get("purchaseStateContext")
-    purchase_state = (
-        state_context.get("purchaseState")
-        if isinstance(state_context, Mapping)
-        else None
-    )
-    states = {
-        "PURCHASED": "completed",
-        "PENDING": "pending",
-        "CANCELLED": "cancelled",
-    }
-    state = states.get(purchase_state)
-    if state is None:
-        raise ProviderVerificationError(
-            "Google Play returned an unknown purchase state."
-        )
-    if state == "completed" and refundable_quantity == 0:
-        state = "refunded"
-
     try:
         product_response = await client.get(
             (
@@ -1271,10 +1385,10 @@ async def verify_google_purchase(
         provider_transaction_id=purchase_token,
         product_id=product_id,
         package_name=package_name,
-        app_account_token=app_account_token,
+        app_account_token=snapshot.app_account_token,
         amount_minor_units=amount_minor_units,
         currency=currency,
-        state=state,
+        state=snapshot.state,
         payload=dict(body),
     )
 
@@ -1294,6 +1408,7 @@ def verify_google_notification(
     *,
     expected_audience: str,
     expected_service_account_email: str,
+    expected_package_name: str = MOBILE_APP_BUNDLE_ID,
     jwk_client: jwt.PyJWKClient | None = None,
 ) -> VerifiedGoogleNotification:
     """Authenticate a Pub/Sub push and normalize its Play notification.
@@ -1346,17 +1461,43 @@ def verify_google_notification(
         raise ProviderVerificationError(
             "The Google Play notification payload is invalid."
         )
+    package_name = notification.get("packageName")
+    if (
+        not isinstance(package_name, str)
+        or not hmac.compare_digest(package_name, expected_package_name)
+    ):
+        raise ProviderVerificationError(
+            "The Google Play notification belongs to a different app."
+        )
 
     product = notification.get("oneTimeProductNotification")
     voided = notification.get("voidedPurchaseNotification")
     if isinstance(product, Mapping):
         purchase_token = product.get("purchaseToken")
         product_id = product.get("sku")
-        notification_type = f"ONE_TIME_PRODUCT_{product.get('notificationType')}"
+        notification_type = {
+            1: "ONE_TIME_PRODUCT_PURCHASED",
+            2: "ONE_TIME_PRODUCT_CANCELED",
+        }.get(product.get("notificationType"))
+        if notification_type is None:
+            raise ProviderVerificationError(
+                "The Google Play notification has an unsupported event type."
+            )
+        is_full_refund = False
     elif isinstance(voided, Mapping):
         purchase_token = voided.get("purchaseToken")
         product_id = None
+        if voided.get("productType") != 2:
+            raise ProviderVerificationError(
+                "The Google Play notification is not for a one-time product."
+            )
+        refund_type = voided.get("refundType")
+        if refund_type not in (1, 2):
+            raise ProviderVerificationError(
+                "The Google Play refund type is invalid."
+            )
         notification_type = "VOIDED_PURCHASE"
+        is_full_refund = refund_type == 1
     else:
         raise ProviderVerificationError(
             "The Google Play notification is not a supported purchase signal."
@@ -1374,6 +1515,8 @@ def verify_google_notification(
         notification_type=notification_type,
         provider_transaction_id=purchase_token,
         product_id=product_id,
+        package_name=package_name,
+        is_full_refund=is_full_refund,
         payload=dict(notification),
     )
 
@@ -1389,6 +1532,7 @@ __all__ = [
     "VerifiedAppleTransaction",
     "VerifiedGoogleNotification",
     "VerifiedGooglePurchase",
+    "VerifiedGooglePurchaseSnapshot",
     "VerifiedStripeEvent",
     "create_stripe_checkout_session",
     "load_apple_trusted_root_certificates",
@@ -1398,5 +1542,6 @@ __all__ = [
     "verify_apple_signed_transaction",
     "verify_google_notification",
     "verify_google_purchase",
+    "verify_google_purchase_snapshot",
     "verify_stripe_webhook",
 ]

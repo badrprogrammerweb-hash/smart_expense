@@ -161,18 +161,18 @@ success and no crash.
 
 ### Tests for User Story 3
 
-- [ ] T035 [P] [US3] Test: abandoned/expired Stripe Checkout Session never shows as `completed` and remains retryable, in `apps/api/tests/test_support_purchases_webhooks.py`
-- [ ] T036 [P] [US3] Test: a Stripe/Apple/Google failure signal moves a purchase to `failed` with a safe, non-technical `failure_reason`, in `apps/api/tests/test_support_purchases_webhooks.py`
-- [ ] T037 [P] [US3] Test: a verified refund notification (Stripe, Apple `REFUND`, Google void) moves a `completed` purchase to `refunded` with no in-app action, and a `refunded` purchase changes no feature/limit/permission, in `apps/api/tests/test_support_purchases_webhooks.py`
-- [ ] T037a [P] [US3] Test: an Apple notification with an invalid/untrusted JWS signature and a Google notification/verification call that fails authenticity checks are both rejected with no state transition, in `apps/api/tests/test_support_purchases_webhooks.py` (FR-025 — extends T016's Stripe-only signature coverage to all three providers)
-- [ ] T038 [P] [US3] Test: a redelivered/duplicate notification for an already-`completed` or already-`refunded` purchase is a safe no-op (no duplicate row, no repeated transition), in `apps/api/tests/test_support_purchases_webhooks.py`
+- [X] T035 [P] [US3] Test: abandoned/expired Stripe Checkout Session never shows as `completed` and remains retryable, in `apps/api/tests/test_support_purchases_webhooks.py`
+- [X] T036 [P] [US3] Test: a Stripe/Apple/Google failure signal moves a purchase to `failed` with a safe, non-technical `failure_reason`, in `apps/api/tests/test_support_purchases_webhooks.py`
+- [X] T037 [P] [US3] Test: a verified refund notification (Stripe, Apple `REFUND`, Google void) moves a `completed` purchase to `refunded` with no in-app action, and a `refunded` purchase changes no feature/limit/permission, in `apps/api/tests/test_support_purchases_webhooks.py`
+- [X] T037a [P] [US3] Test: an Apple notification with an invalid/untrusted JWS signature and a Google notification/verification call that fails authenticity checks are both rejected with no state transition, in `apps/api/tests/test_support_purchases_webhooks.py` (FR-025 — extends T016's Stripe-only signature coverage to all three providers)
+- [X] T038 [P] [US3] Test: a redelivered/duplicate notification for an already-`completed` or already-`refunded` purchase is a safe no-op (no duplicate row, no repeated transition), in `apps/api/tests/test_support_purchases_webhooks.py`
 
 ### Implementation for User Story 3
 
-- [ ] T039 [US3] Implement Checkout Session expiry/cancellation handling in `payment_providers.py` / `services/support_purchases.py` so an abandoned session resolves to `failed` rather than lingering as `pending` indefinitely
-- [ ] T040 [US3] Implement the Apple `REFUND` and Google void/refund notification paths in `payment_providers.py`, calling `mark_refunded`
-- [ ] T041 [US3] Render the four purchase states distinctly (`pending`, `completed`, `failed` with safe message, `refunded`) in `apps/web/components/settings/SupportPurchaseHistory.tsx` and the result route from T024
-- [ ] T042 [US3] Add an integration test confirming a purchase in **every** state — `pending`, `completed`, `failed`, and `refunded` — leaves the affected user's role, permissions, feature access, and usage limits completely unchanged (not only the refunded case), in `apps/api/tests/test_support_purchases_isolation.py` (FR-001, FR-003, FR-019)
+- [X] T039 [US3] Implement Checkout Session expiry/cancellation handling in `payment_providers.py` / `services/support_purchases.py` so an abandoned session resolves to `failed` rather than lingering as `pending` indefinitely
+- [X] T040 [US3] Implement the Apple `REFUND` and Google void/refund notification paths in `payment_providers.py`, calling `mark_refunded`
+- [X] T041 [US3] Render the four purchase states distinctly (`pending`, `completed`, `failed` with safe message, `refunded`) in `apps/web/components/settings/SupportPurchaseHistory.tsx` and the result route from T024
+- [X] T042 [US3] Add an integration test confirming a purchase in **every** state — `pending`, `completed`, `failed`, and `refunded` — leaves the affected user's role, permissions, feature access, and usage limits completely unchanged (not only the refunded case), in `apps/api/tests/test_support_purchases_isolation.py` (FR-001, FR-003, FR-019)
 
 **Checkpoint**: All four purchase states are correct, provider-verified, and never imply a false success or affect product access.
 

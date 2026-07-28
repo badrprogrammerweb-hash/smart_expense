@@ -16,10 +16,12 @@ import type {
 } from "@/lib/platform/capacitor";
 import arMessages from "@/messages/ar.json";
 import enMessages from "@/messages/en.json";
+import { SupportPurchaseHistory } from "@/components/settings/SupportPurchaseHistory";
 
 
 const supportApiMocks = vi.hoisted(() => ({
   getWebSupportPurchase: vi.fn(),
+  listSupportPurchases: vi.fn(),
   startSupportCheckout: vi.fn(),
   verifyMobileSupportPurchase: vi.fn(),
 }));
@@ -91,6 +93,7 @@ function renderLocalized(
 
 afterEach(() => {
   supportApiMocks.getWebSupportPurchase.mockReset();
+  supportApiMocks.listSupportPurchases.mockReset();
   supportApiMocks.startSupportCheckout.mockReset();
   supportApiMocks.verifyMobileSupportPurchase.mockReset();
   getMeMock.mockReset();
@@ -197,6 +200,105 @@ describe("support-purchase UI", () => {
     queryClient.clear();
   });
 
+  it("renders completed and failed result states without exposing stored internals", async () => {
+    supportApiMocks.getWebSupportPurchase.mockResolvedValueOnce({
+      id: "purchase-completed",
+      tier_id: "support_small",
+      channel: "web",
+      amount_minor_units: 500,
+      currency: "SAR",
+      status: "completed",
+      failure_reason: null,
+      created_at: "2026-07-26T10:00:00Z",
+      updated_at: "2026-07-26T10:00:00Z",
+      provider_reference: "cs_test_return",
+    });
+    const completedClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const completed = renderLocalized(
+      <QueryClientProvider client={completedClient}>
+        <SupportPurchaseResult />
+      </QueryClientProvider>,
+    );
+    expect(
+      await screen.findByRole("heading", { name: "Product support confirmed" }),
+    ).toBeVisible();
+    completed.unmount();
+    completedClient.clear();
+
+    supportApiMocks.getWebSupportPurchase.mockResolvedValueOnce({
+      id: "purchase-failed",
+      tier_id: "support_small",
+      channel: "web",
+      amount_minor_units: 500,
+      currency: "SAR",
+      status: "failed",
+      failure_reason: "checkout_expired",
+      created_at: "2026-07-26T10:00:00Z",
+      updated_at: "2026-07-27T10:00:00Z",
+      provider_reference: "cs_test_return",
+    });
+    const failedClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    renderLocalized(
+      <QueryClientProvider client={failedClient}>
+        <SupportPurchaseResult />
+      </QueryClientProvider>,
+    );
+    expect(
+      await screen.findByRole("heading", { name: "Payment was not completed" }),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        "The secure checkout expired before payment was confirmed. You can try again.",
+      ),
+    ).toBeVisible();
+    expect(screen.queryByText("checkout_expired")).not.toBeInTheDocument();
+    expect(screen.queryByText("Product support confirmed")).not.toBeInTheDocument();
+    failedClient.clear();
+  });
+
+  it("renders account history with all four states and RTL-safe references", async () => {
+    supportApiMocks.listSupportPurchases.mockResolvedValue(
+      (["pending", "completed", "failed", "refunded"] as const).map(
+        (status, index) => ({
+          id: `purchase-${status}`,
+          tier_id: "support_small",
+          channel: index === 2 ? ("ios" as const) : ("web" as const),
+          amount_minor_units: 500,
+          currency: "SAR",
+          status,
+          failure_reason: status === "failed" ? "store_cancelled" : null,
+          created_at: `2026-07-2${index + 1}T10:00:00Z`,
+          updated_at: `2026-07-2${index + 1}T10:00:00Z`,
+          provider_reference: `provider-reference-${index}`,
+        }),
+      ),
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    const { container } = renderLocalized(
+      <QueryClientProvider client={queryClient}>
+        <SupportPurchaseHistory />
+      </QueryClientProvider>,
+      "ar",
+    );
+
+    expect(await screen.findAllByTestId("support-history-item")).toHaveLength(4);
+    for (const status of ["pending", "completed", "failed", "refunded"]) {
+      expect(
+        container.querySelector(`[data-status="${status}"]`),
+      ).toBeInTheDocument();
+    }
+    expect(container.querySelectorAll('[dir="ltr"]').length).toBeGreaterThanOrEqual(4);
+    expect(container.textContent).not.toContain("store_cancelled");
+    queryClient.clear();
+  });
+
   it("uses native store billing inside Capacitor and never starts Stripe checkout", async () => {
     const verifiedPurchase = {
       id: "purchase-native",
@@ -278,6 +380,7 @@ describe("payment-card field audit", () => {
       "components/settings/SupportPurchaseCard.tsx",
       "components/settings/SupportTierSelector.tsx",
       "components/settings/SupportPurchaseResult.tsx",
+      "components/settings/SupportPurchaseHistory.tsx",
       "app/[locale]/(app)/settings/support/page.tsx",
       "app/[locale]/(app)/settings/support/result/page.tsx",
     ];

@@ -60,6 +60,20 @@ export function SupportPurchaseResult() {
   const isPending = purchase.status === "pending";
   const isRefunded = purchase.status === "refunded";
   const showsReceipt = isCompleted || isRefunded;
+  const failedDescription = (() => {
+    switch (purchase.failure_reason) {
+      case "checkout_expired":
+        return t("failureReasons.checkoutExpired");
+      case "payment_cancelled":
+        return t("failureReasons.paymentCancelled");
+      case "store_cancelled":
+        return t("failureReasons.storeCancelled");
+      case "store_failed":
+        return t("failureReasons.storeFailed");
+      default:
+        return t("failureReasons.paymentFailed");
+    }
+  })();
   const displayAmount = supportedCurrencies.includes(
     purchase.currency as SupportedCurrency,
   )
@@ -96,7 +110,7 @@ export function SupportPurchaseResult() {
           : isRefunded
             ? t("refundedDescription")
             : isFailed
-              ? purchase.failure_reason || t("failedDescription")
+              ? failedDescription
               : isPending
                 ? t("pendingDescription")
                 : t("resultUnavailableDescription")}

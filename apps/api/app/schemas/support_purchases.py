@@ -41,7 +41,16 @@ class SupportPurchaseResponse(BaseModel):
     amount_minor_units: int
     currency: str
     status: Literal["pending", "completed", "failed", "refunded"]
-    failure_reason: str | None
+    failure_reason: (
+        Literal[
+            "checkout_expired",
+            "payment_cancelled",
+            "payment_failed",
+            "store_cancelled",
+            "store_failed",
+        ]
+        | None
+    )
     created_at: datetime
     updated_at: datetime
     provider_reference: str | None

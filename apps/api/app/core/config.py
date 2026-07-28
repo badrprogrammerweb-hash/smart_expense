@@ -22,6 +22,8 @@ class Settings:
     apple_app_store_environment: str
     apple_app_store_root_certificates: str
     google_play_service_account_json: str
+    google_play_notification_audience: str
+    google_play_notification_service_account_email: str
 
     @property
     def jwks_url(self) -> str:
@@ -54,4 +56,10 @@ def get_settings() -> Settings:
             "APPLE_APP_STORE_ROOT_CERTIFICATES", ""
         ).strip(),
         google_play_service_account_json=os.getenv("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON", "").strip(),
+        google_play_notification_audience=os.getenv(
+            "GOOGLE_PLAY_NOTIFICATION_AUDIENCE", ""
+        ).strip(),
+        google_play_notification_service_account_email=os.getenv(
+            "GOOGLE_PLAY_NOTIFICATION_SERVICE_ACCOUNT_EMAIL", ""
+        ).strip(),
     )

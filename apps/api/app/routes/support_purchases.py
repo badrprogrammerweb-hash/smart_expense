@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Mapping
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
@@ -35,6 +36,7 @@ from app.services.support_purchases import (
     mark_completed,
     mark_failed,
     mark_refunded,
+    normalize_failure_reason,
 )
 
 
@@ -47,11 +49,21 @@ _COMPLETED_EVENTS = {
     "checkout.session.async_payment_succeeded",
     "payment_intent.succeeded",
 }
+# Only a *terminal* provider signal may fail a purchase. Stripe emits
+# `payment_intent.payment_failed` per declined attempt while the Checkout
+# Session stays open and retryable, so it is deliberately absent here: failing
+# the row on it would make the customer's successful retry on the same session
+# an illegal `failed -> completed` transition and hide a real payment.
+# `contracts/webhooks-and-idempotency.md` rule 4 requires a purchase to stay
+# `pending` until the provider's own terminal signal arrives or the session
+# provably expires — `checkout.session.expired` is that signal.
 _FAILED_EVENTS = {
     "checkout.session.async_payment_failed",
-    "payment_intent.payment_failed",
+    "checkout.session.expired",
+    "payment_intent.canceled",
 }
 _REFUND_EVENTS = {"charge.refunded", "refund.updated"}
+_ACTIONABLE_EVENTS = _COMPLETED_EVENTS | _FAILED_EVENTS | _REFUND_EVENTS
 
 
 def _display_amount(amount_minor_units: int) -> str:
@@ -76,7 +88,11 @@ def _purchase_response(record: SupportPurchaseRecord) -> SupportPurchaseResponse
         amount_minor_units=record.amount_minor_units,
         currency=record.currency,
         status=record.status,
-        failure_reason=record.failure_reason,
+        failure_reason=(
+            normalize_failure_reason(record.failure_reason)
+            if record.status == "failed"
+            else None
+        ),
         created_at=record.created_at,
         updated_at=record.updated_at,
         # A Google purchase token is a verification credential, not a receipt
@@ -162,6 +178,11 @@ def _provider_object(event: payment_providers.VerifiedStripeEvent) -> dict:
 async def _correlated_checkout_session_id(
     event: payment_providers.VerifiedStripeEvent,
 ) -> str | None:
+    # An event this endpoint never acts on must not spend a live Stripe
+    # correlation call, whose transient failure would answer 503 and make
+    # Stripe redeliver an event that can never change any purchase.
+    if event.event_type not in _ACTIONABLE_EVENTS:
+        return None
     if event.provider_transaction_id is not None:
         return event.provider_transaction_id
     if event.payment_intent_id is None:
@@ -209,12 +230,16 @@ async def _apply_verified_stripe_event(
             return
 
         if event.event_type in _FAILED_EVENTS:
+            failure_reason = {
+                "checkout.session.expired": "checkout_expired",
+                "payment_intent.canceled": "payment_cancelled",
+            }.get(event.event_type, "payment_failed")
             await mark_failed(
                 session,
                 user_id=purchase.user_id,
                 channel="web",
                 provider_transaction_id=checkout_session_id,
-                failure_reason="The payment could not be completed. You can try again.",
+                failure_reason=failure_reason,
             )
             return
 
@@ -258,6 +283,83 @@ async def _apply_verified_stripe_event(
             "Ignoring out-of-order Stripe event %s for terminal purchase state.",
             event.event_id,
         )
+
+
+async def _mark_verified_refund(
+    session: AsyncSession,
+    purchase: SupportPurchaseRecord,
+) -> None:
+    """Apply a provider-proven full refund without reversing terminal rows."""
+
+    try:
+        if purchase.status == "pending":
+            purchase = (
+                await mark_completed(
+                    session,
+                    user_id=purchase.user_id,
+                    channel=purchase.channel,
+                    provider_transaction_id=purchase.provider_transaction_id,
+                )
+                or purchase
+            )
+        if purchase.status == "completed":
+            await mark_refunded(
+                session,
+                user_id=purchase.user_id,
+                channel=purchase.channel,
+                provider_transaction_id=purchase.provider_transaction_id,
+            )
+    except InvalidSupportPurchaseTransition:
+        # Failed/refunded rows are terminal for these events. A stale provider
+        # delivery must never resurrect or reverse them.
+        return
+
+
+async def _apple_notification_purchase(
+    session: AsyncSession,
+    event: payment_providers.VerifiedAppleNotification,
+) -> SupportPurchaseRecord | None:
+    """Resolve Apple's exact transaction first, then its explicit original.
+
+    ``transactionId`` and ``originalTransactionId`` remain distinct
+    identifiers. The original is a fallback only when no row exists for the
+    exact transaction carried by this signed notification.
+    """
+
+    exact = await get_by_provider_transaction(
+        session,
+        channel="ios",
+        provider_transaction_id=event.provider_transaction_id,
+    )
+    if exact is not None:
+        return exact
+    original = event.original_transaction_id
+    if original is None or original == event.provider_transaction_id:
+        return None
+    return await get_by_provider_transaction(
+        session,
+        channel="ios",
+        provider_transaction_id=original,
+    )
+
+
+def _store_notification_matches_purchase(
+    purchase: SupportPurchaseRecord,
+    *,
+    product_id: str,
+    app_account_token: str | None,
+    provider: str,
+) -> bool:
+    tier = _TIERS_BY_ID.get(purchase.tier_id)
+    if tier is None or app_account_token is None:
+        return False
+    expected_product_id = (
+        tier.apple_product_id if provider == "apple" else tier.google_product_id
+    )
+    return (
+        product_id == expected_product_id
+        and app_account_token.lower() == str(purchase.user_id).lower()
+    )
 
 
 @router.get("/tiers", response_model=SupportTierListResponse)
@@ -509,34 +611,18 @@ async def verify_mobile_purchase(
                     channel=database_channel,
                     provider_transaction_id=provider_transaction_id,
                     failure_reason=(
-                        "The store reports that this support purchase was cancelled."
+                        "store_cancelled"
                         if verified.state == "cancelled"
-                        else "The store could not complete this support purchase."
+                        else "store_failed"
                     ),
                 )
                 or purchase
             )
         elif verified.state in {"refunded", "revoked"}:
-            if purchase.status == "pending":
-                purchase = (
-                    await mark_completed(
-                        session,
-                        user_id=current_user.user_id,
-                        channel=database_channel,
-                        provider_transaction_id=provider_transaction_id,
-                    )
-                    or purchase
-                )
-            if purchase.status == "completed":
-                purchase = (
-                    await mark_refunded(
-                        session,
-                        user_id=current_user.user_id,
-                        channel=database_channel,
-                        provider_transaction_id=provider_transaction_id,
-                    )
-                    or purchase
-                )
+            # A user/device-initiated verification call is never a refund
+            # signal. Refund state changes are reserved for the verified
+            # Apple/Google server-notification endpoints below.
+            pass
         # A verified provider-side pending state deliberately leaves the row
         # pending. No device-reported success value is accepted by this API.
     except SupportPurchaseConflict as exc:
@@ -651,6 +737,249 @@ async def stripe_webhook(
             detail={
                 "code": "stripe_correlation_unavailable",
                 "message": "Stripe event correlation is temporarily unavailable.",
+            },
+        ) from exc
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/webhooks/apple", status_code=status.HTTP_204_NO_CONTENT)
+async def apple_webhook(
+    request: Request,
+    session: AsyncSession = Depends(get_trusted_session),
+) -> Response:
+    try:
+        body = await request.json()
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "invalid_apple_notification",
+                "message": "The Apple notification is invalid.",
+            },
+        ) from exc
+    signed_payload = (
+        body.get("signedPayload") if isinstance(body, Mapping) else None
+    )
+    if not isinstance(signed_payload, str) or not signed_payload:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "invalid_apple_notification",
+                "message": "The Apple notification is invalid.",
+            },
+        )
+
+    settings = get_settings()
+    environment = settings.apple_app_store_environment
+    if environment not in {"Production", "Sandbox"}:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "apple_notifications_not_configured",
+                "message": "Apple notification verification is unavailable.",
+            },
+        )
+    try:
+        event = payment_providers.verify_apple_jws_notification(
+            signed_payload,
+            trusted_root_certificates=(
+                payment_providers.load_apple_trusted_root_certificates()
+            ),
+            bundle_id=payment_providers.MOBILE_APP_BUNDLE_ID,
+            environment=environment,
+        )
+    except payment_providers.ProviderConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "apple_notifications_not_configured",
+                "message": "Apple notification verification is unavailable.",
+            },
+        ) from exc
+    except payment_providers.ProviderVerificationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "invalid_apple_notification",
+                "message": "The Apple notification is invalid.",
+            },
+        ) from exc
+
+    # Apple does not document a failed-purchase notification for these
+    # one-time products. Only the refund/revocation types are actionable.
+    if event.notification_type not in {"REFUND", "REVOKE"}:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    try:
+        purchase = await _apple_notification_purchase(session, event)
+        if purchase is None:
+            logger.info(
+                "Discarding verified Apple notification %s: no matching transaction.",
+                event.notification_id,
+            )
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
+        if not _store_notification_matches_purchase(
+            purchase,
+            product_id=event.product_id,
+            app_account_token=event.app_account_token,
+            provider="apple",
+        ):
+            logger.info(
+                "Discarding verified Apple notification %s: purchase mismatch.",
+                event.notification_id,
+            )
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
+        await _mark_verified_refund(session, purchase)
+    except DBAPIError as exc:
+        raise database_unavailable_exception(exc) from exc
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/webhooks/google", status_code=status.HTTP_204_NO_CONTENT)
+async def google_webhook(
+    request: Request,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    session: AsyncSession = Depends(get_trusted_session),
+) -> Response:
+    try:
+        body = await request.json()
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "invalid_google_notification",
+                "message": "The Google Play notification is invalid.",
+            },
+        ) from exc
+    if not isinstance(body, Mapping) or not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "invalid_google_notification",
+                "message": "The Google Play notification is invalid.",
+            },
+        )
+
+    settings = get_settings()
+    if (
+        not settings.google_play_notification_audience
+        or not settings.google_play_notification_service_account_email
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "google_notifications_not_configured",
+                "message": "Google Play notification verification is unavailable.",
+            },
+        )
+    try:
+        event = payment_providers.verify_google_notification(
+            body,
+            authorization,
+            expected_audience=settings.google_play_notification_audience,
+            expected_service_account_email=(
+                settings.google_play_notification_service_account_email
+            ),
+            expected_package_name=payment_providers.MOBILE_APP_BUNDLE_ID,
+        )
+    except payment_providers.ProviderVerificationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "invalid_google_notification",
+                "message": "The Google Play notification is invalid.",
+            },
+        ) from exc
+
+    try:
+        purchase = await get_by_provider_transaction(
+            session,
+            channel="android",
+            provider_transaction_id=event.provider_transaction_id,
+        )
+        if purchase is None:
+            logger.info(
+                "Discarding verified Google Play notification %s: no matching transaction.",
+                event.message_id,
+            )
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
+        tier = _TIERS_BY_ID.get(purchase.tier_id)
+        if tier is None or (
+            event.product_id is not None
+            and event.product_id != tier.google_product_id
+        ):
+            logger.info(
+                "Discarding verified Google Play notification %s: product mismatch.",
+                event.message_id,
+            )
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
+        snapshot = await payment_providers.verify_google_purchase_snapshot(
+            package_name=payment_providers.MOBILE_APP_BUNDLE_ID,
+            purchase_token=event.provider_transaction_id,
+            expected_product_id=tier.google_product_id,
+            expected_app_account_token=str(purchase.user_id),
+        )
+        if not _store_notification_matches_purchase(
+            purchase,
+            product_id=snapshot.product_id,
+            app_account_token=snapshot.app_account_token,
+            provider="google",
+        ):
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+        try:
+            if (
+                event.notification_type == "ONE_TIME_PRODUCT_PURCHASED"
+                and snapshot.state == "completed"
+            ):
+                await mark_completed(
+                    session,
+                    user_id=purchase.user_id,
+                    channel="android",
+                    provider_transaction_id=purchase.provider_transaction_id,
+                )
+            elif (
+                event.notification_type == "ONE_TIME_PRODUCT_CANCELED"
+                and snapshot.state == "cancelled"
+            ):
+                await mark_failed(
+                    session,
+                    user_id=purchase.user_id,
+                    channel="android",
+                    provider_transaction_id=purchase.provider_transaction_id,
+                    failure_reason="store_cancelled",
+                )
+            elif (
+                event.notification_type == "VOIDED_PURCHASE"
+                and event.is_full_refund
+                and (
+                    snapshot.state in {"cancelled", "refunded"}
+                    or snapshot.refundable_quantity == 0
+                )
+            ):
+                await _mark_verified_refund(session, purchase)
+        except InvalidSupportPurchaseTransition:
+            # A late purchase/cancellation signal cannot reverse a terminal
+            # state. Refund delivery uses its own forward-only helper.
+            pass
+    except payment_providers.ProviderConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "google_notifications_not_configured",
+                "message": "Google Play notification verification is unavailable.",
+            },
+        ) from exc
+    except payment_providers.ProviderVerificationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "google_purchase_not_verified",
+                "message": "The Google Play purchase could not be verified.",
             },
         ) from exc
     except DBAPIError as exc:

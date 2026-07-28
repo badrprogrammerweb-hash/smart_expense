@@ -12,6 +12,12 @@ export type SupportTier = {
 
 export type SupportPurchaseStatus = "pending" | "completed" | "failed" | "refunded";
 export type SupportPurchaseChannel = "web" | "ios" | "android";
+export type SupportPurchaseFailureReason =
+  | "checkout_expired"
+  | "payment_cancelled"
+  | "payment_failed"
+  | "store_cancelled"
+  | "store_failed";
 
 export type SupportPurchase = {
   id: string;
@@ -20,7 +26,7 @@ export type SupportPurchase = {
   amount_minor_units: number;
   currency: string;
   status: SupportPurchaseStatus;
-  failure_reason: string | null;
+  failure_reason: SupportPurchaseFailureReason | null;
   created_at: string;
   updated_at: string;
   provider_reference: string | null;

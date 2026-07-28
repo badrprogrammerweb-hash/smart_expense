@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 
 import { SupportTierSelector } from "@/components/settings/SupportTierSelector";
+import { SupportPurchaseHistory } from "@/components/settings/SupportPurchaseHistory";
 import { ErrorState, PageHeading, Skeleton } from "@/components/ui";
 import { isLocale } from "@/i18n/routing";
 import { listSupportTiers } from "@/lib/api/support-purchases";
@@ -35,6 +36,7 @@ export default function SupportPurchasePage() {
         />
       ) : null}
       {query.data ? <SupportTierSelector locale={locale} tiers={query.data} /> : null}
+      <SupportPurchaseHistory />
     </main>
   );
 }

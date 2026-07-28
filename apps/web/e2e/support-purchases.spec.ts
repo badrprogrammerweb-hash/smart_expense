@@ -37,13 +37,24 @@ const tiers = {
 async function mockSupportApi(
   page: Page,
   checkoutSessionId: string,
-  statusForRequest: (requestNumber: number) => "pending" | "completed",
+  statusForRequest: (
+    requestNumber: number,
+  ) => "pending" | "completed" | "failed" | "refunded",
+  history: Array<Record<string, unknown>> = [],
 ) {
   let statusRequests = 0;
 
   await page.route(`${apiUrl}/support-purchases/tiers`, async (route) => {
     expect(route.request().headers().authorization).toMatch(/^Bearer /);
     await route.fulfill({ status: 200, contentType: "application/json", json: tiers });
+  });
+  await page.route(`${apiUrl}/support-purchases`, async (route) => {
+    expect(route.request().headers().authorization).toMatch(/^Bearer /);
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      json: { purchases: history },
+    });
   });
   await page.route(
     `${apiUrl}/support-purchases/checkout-sessions`,
@@ -188,5 +199,45 @@ test.describe("web support purchase", () => {
     await expect(
       page.getByRole("link", { name: "Choose a support tier" }),
     ).toHaveAttribute("href", "/en/settings/support");
+  });
+
+  test("history renders pending, completed, failed, and refunded distinctly", async ({
+    page,
+  }) => {
+    test.skip(
+      !hasE2eEnvironment,
+      "Set Supabase web environment variables to run authenticated support-purchase e2e.",
+    );
+    const user = await createSeededUser();
+    const states = ["pending", "completed", "failed", "refunded"] as const;
+    const history = states.map((status, index) => ({
+      id: `00000000-0000-4000-8000-00000000000${index + 1}`,
+      tier_id: "support_small",
+      channel: index === 2 ? "ios" : "web",
+      amount_minor_units: 500,
+      currency: "SAR",
+      status,
+      failure_reason: status === "failed" ? "checkout_expired" : null,
+      created_at: `2026-07-2${index + 1}T10:00:00Z`,
+      updated_at: `2026-07-2${index + 1}T10:00:00Z`,
+      provider_reference: `provider-reference-${index}`,
+    }));
+    await mockSupportApi(
+      page,
+      "cs_test_history_unused",
+      () => "pending",
+      history,
+    );
+    await signIn(page, "en", user);
+
+    await page.goto("/en/settings/support");
+
+    await expect(page.getByTestId("support-history-item")).toHaveCount(4);
+    await expect(page.locator('[data-status="pending"]')).toContainText("Pending");
+    await expect(page.locator('[data-status="completed"]')).toContainText("Completed");
+    await expect(page.locator('[data-status="failed"]')).toContainText("Failed");
+    await expect(page.locator('[data-status="refunded"]')).toContainText("Refunded");
+    await expect(page.getByText("Product support confirmed")).toHaveCount(0);
+    await expect(page.getByText("checkout_expired")).toHaveCount(0);
   });
 });

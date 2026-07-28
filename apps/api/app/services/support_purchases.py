@@ -14,6 +14,23 @@ from app.core.support_tiers import SUPPORT_TIERS
 
 PurchaseChannel = Literal["web", "ios", "android"]
 PurchaseStatus = Literal["pending", "completed", "failed", "refunded"]
+FailureReason = Literal[
+    "checkout_expired",
+    "payment_cancelled",
+    "payment_failed",
+    "store_cancelled",
+    "store_failed",
+]
+
+SAFE_FAILURE_REASONS: frozenset[str] = frozenset(
+    {
+        "checkout_expired",
+        "payment_cancelled",
+        "payment_failed",
+        "store_cancelled",
+        "store_failed",
+    }
+)
 
 _RETURNING_COLUMNS = """
     id,
@@ -235,7 +252,7 @@ async def mark_failed(
     provider_transaction_id: str,
     failure_reason: str,
 ) -> SupportPurchaseRecord | None:
-    safe_reason = failure_reason.strip() or "The purchase could not be completed."
+    safe_reason = normalize_failure_reason(failure_reason)
     return await _transition(
         session,
         user_id=user_id,
@@ -245,6 +262,15 @@ async def mark_failed(
         target_status="failed",
         failure_reason=safe_reason,
     )
+
+
+def normalize_failure_reason(value: str | None) -> FailureReason:
+    """Collapse every provider detail to a small, user-safe reason code."""
+
+    normalized = value.strip() if isinstance(value, str) else ""
+    if normalized in SAFE_FAILURE_REASONS:
+        return normalized  # type: ignore[return-value]
+    return "payment_failed"
 
 
 async def mark_refunded(
@@ -344,6 +370,8 @@ async def list_owned_purchases(
 
 __all__ = [
     "SUPPORT_TIERS",
+    "SAFE_FAILURE_REASONS",
+    "FailureReason",
     "InvalidSupportPurchaseTransition",
     "SupportPurchaseConflict",
     "SupportPurchaseRecord",
@@ -354,4 +382,5 @@ __all__ = [
     "mark_completed",
     "mark_failed",
     "mark_refunded",
+    "normalize_failure_reason",
 ]

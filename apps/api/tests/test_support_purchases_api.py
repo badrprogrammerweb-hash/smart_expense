@@ -438,8 +438,8 @@ async def test_mobile_google_pending_is_reverified_and_duplicate_completion_is_i
     [
         ("failed", "failed"),
         ("cancelled", "failed"),
-        ("refunded", "refunded"),
-        ("revoked", "refunded"),
+        ("refunded", "pending"),
+        ("revoked", "pending"),
     ],
 )
 async def test_mobile_verification_maps_provider_terminal_outcomes_forward_only(
@@ -479,9 +479,9 @@ async def test_mobile_verification_maps_provider_terminal_outcomes_forward_only(
     assert response.json()["status"] == expected_status
     if expected_status == "failed":
         assert response.json()["failure_reason"] == (
-            "The store reports that this support purchase was cancelled."
+            "store_cancelled"
             if provider_state == "cancelled"
-            else "The store could not complete this support purchase."
+            else "store_failed"
         )
 
 

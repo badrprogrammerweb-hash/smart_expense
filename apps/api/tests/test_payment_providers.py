@@ -621,6 +621,93 @@ def test_verify_apple_signed_transaction_requires_a_trusted_root_configured() ->
         pp.verify_apple_signed_transaction(token, trusted_root_certificates=[])
 
 
+def test_verify_apple_refund_notification_keeps_transaction_identifiers_separate() -> None:
+    chain = _build_apple_chain()
+    trusted_roots = [chain["root_cert"].public_bytes(Encoding.DER)]
+    signed_date_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    transaction_id = "1000000000000199"
+    original_transaction_id = "1000000000000100"
+    account_id = "c77bdcda-f90d-4b35-a3b1-55fca872e741"
+    signed_transaction = _sign_apple_jws(
+        chain,
+        {
+            "bundleId": pp.MOBILE_APP_BUNDLE_ID,
+            "environment": "Sandbox",
+            "transactionId": transaction_id,
+            "originalTransactionId": original_transaction_id,
+            "productId": "ai.smartexpense.support.small",
+            "appAccountToken": account_id,
+            "inAppOwnershipType": "PURCHASED",
+            "revocationDate": signed_date_ms,
+            "signedDate": signed_date_ms,
+        },
+    )
+    signed_notification = _sign_apple_jws(
+        chain,
+        {
+            "notificationUUID": "notification-refund-1",
+            "notificationType": "REFUND",
+            "signedDate": signed_date_ms,
+            "data": {
+                "bundleId": pp.MOBILE_APP_BUNDLE_ID,
+                "environment": "Sandbox",
+                "signedTransactionInfo": signed_transaction,
+            },
+        },
+    )
+
+    notification = pp.verify_apple_jws_notification(
+        signed_notification,
+        trusted_root_certificates=trusted_roots,
+        environment="Sandbox",
+    )
+
+    assert notification.notification_type == "REFUND"
+    assert notification.transaction_id == transaction_id
+    assert notification.original_transaction_id == original_transaction_id
+    assert notification.transaction_id != notification.original_transaction_id
+    assert notification.app_account_token == account_id
+    assert notification.product_id == "ai.smartexpense.support.small"
+
+
+def test_verify_apple_notification_rejects_an_untrusted_inner_transaction() -> None:
+    outer_chain = _build_apple_chain()
+    inner_chain = _build_apple_chain()
+    trusted_roots = [outer_chain["root_cert"].public_bytes(Encoding.DER)]
+    signed_date_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    signed_transaction = _sign_apple_jws(
+        inner_chain,
+        {
+            "bundleId": pp.MOBILE_APP_BUNDLE_ID,
+            "environment": "Sandbox",
+            "transactionId": "1000000000000200",
+            "originalTransactionId": "1000000000000200",
+            "productId": "ai.smartexpense.support.small",
+            "signedDate": signed_date_ms,
+        },
+    )
+    signed_notification = _sign_apple_jws(
+        outer_chain,
+        {
+            "notificationUUID": "notification-untrusted-inner",
+            "notificationType": "REFUND",
+            "signedDate": signed_date_ms,
+            "data": {
+                "bundleId": pp.MOBILE_APP_BUNDLE_ID,
+                "environment": "Sandbox",
+                "signedTransactionInfo": signed_transaction,
+            },
+        },
+    )
+
+    with pytest.raises(pp.ProviderVerificationError, match="untrusted"):
+        pp.verify_apple_jws_notification(
+            signed_notification,
+            trusted_root_certificates=trusted_roots,
+            environment="Sandbox",
+        )
+
+
 # ---------------------------------------------------------------------------
 # Google: Pub/Sub OIDC push authentication + notification normalization
 # ---------------------------------------------------------------------------
@@ -663,6 +750,7 @@ def _google_oidc_token(
 
 
 def _pubsub_envelope(notification: dict) -> dict:
+    notification.setdefault("packageName", pp.MOBILE_APP_BUNDLE_ID)
     encoded = base64.b64encode(json.dumps(notification).encode("utf-8")).decode("ascii")
     return {"message": {"messageId": "msg-1", "data": encoded}}
 
@@ -689,12 +777,13 @@ def test_verify_google_notification_accepts_valid_one_time_product_push() -> Non
         f"Bearer {token}",
         expected_audience="https://api.smartexpense.ai/support-purchases/webhooks/google",
         expected_service_account_email="play-notifications@example.iam.gserviceaccount.com",
+        expected_package_name=pp.MOBILE_APP_BUNDLE_ID,
         jwk_client=_FakeJwkClient(private_key.public_key()),
     )
 
     assert notification.provider_transaction_id == "token-abc"
     assert notification.product_id == "ai.smartexpense.support.small"
-    assert notification.notification_type == "ONE_TIME_PRODUCT_2"
+    assert notification.notification_type == "ONE_TIME_PRODUCT_CANCELED"
 
 
 def test_verify_google_notification_accepts_voided_purchase_push() -> None:
@@ -705,7 +794,13 @@ def test_verify_google_notification_accepts_voided_purchase_push() -> None:
         email="play-notifications@example.iam.gserviceaccount.com",
     )
     envelope = _pubsub_envelope(
-        {"voidedPurchaseNotification": {"purchaseToken": "token-voided"}}
+        {
+            "voidedPurchaseNotification": {
+                "purchaseToken": "token-voided",
+                "productType": 2,
+                "refundType": 1,
+            }
+        }
     )
 
     notification = pp.verify_google_notification(
@@ -713,11 +808,44 @@ def test_verify_google_notification_accepts_voided_purchase_push() -> None:
         f"Bearer {token}",
         expected_audience="https://api.smartexpense.ai/support-purchases/webhooks/google",
         expected_service_account_email="play-notifications@example.iam.gserviceaccount.com",
+        expected_package_name=pp.MOBILE_APP_BUNDLE_ID,
         jwk_client=_FakeJwkClient(private_key.public_key()),
     )
 
     assert notification.notification_type == "VOIDED_PURCHASE"
     assert notification.provider_transaction_id == "token-voided"
+    assert notification.package_name == pp.MOBILE_APP_BUNDLE_ID
+    assert notification.is_full_refund is True
+
+
+def test_verify_google_notification_reports_partial_void_without_authorizing_full_refund() -> None:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    token = _google_oidc_token(
+        private_key,
+        audience="https://api.smartexpense.ai/support-purchases/webhooks/google",
+        email="play-notifications@example.iam.gserviceaccount.com",
+    )
+    envelope = _pubsub_envelope(
+        {
+            "voidedPurchaseNotification": {
+                "purchaseToken": "token-partial",
+                "productType": 2,
+                "refundType": 2,
+            }
+        }
+    )
+
+    notification = pp.verify_google_notification(
+        envelope,
+        f"Bearer {token}",
+        expected_audience="https://api.smartexpense.ai/support-purchases/webhooks/google",
+        expected_service_account_email="play-notifications@example.iam.gserviceaccount.com",
+        expected_package_name=pp.MOBILE_APP_BUNDLE_ID,
+        jwk_client=_FakeJwkClient(private_key.public_key()),
+    )
+
+    assert notification.notification_type == "VOIDED_PURCHASE"
+    assert notification.is_full_refund is False
 
 
 def test_verify_google_notification_rejects_wrong_audience() -> None:
@@ -737,6 +865,7 @@ def test_verify_google_notification_rejects_wrong_audience() -> None:
             f"Bearer {token}",
             expected_audience="https://api.smartexpense.ai/support-purchases/webhooks/google",
             expected_service_account_email="play-notifications@example.iam.gserviceaccount.com",
+            expected_package_name=pp.MOBILE_APP_BUNDLE_ID,
             jwk_client=_FakeJwkClient(private_key.public_key()),
         )
 
@@ -758,6 +887,7 @@ def test_verify_google_notification_rejects_unexpected_sender_email() -> None:
             f"Bearer {token}",
             expected_audience="https://api.smartexpense.ai/support-purchases/webhooks/google",
             expected_service_account_email="play-notifications@example.iam.gserviceaccount.com",
+            expected_package_name=pp.MOBILE_APP_BUNDLE_ID,
             jwk_client=_FakeJwkClient(private_key.public_key()),
         )
 
@@ -780,6 +910,7 @@ def test_verify_google_notification_rejects_unverified_email() -> None:
             f"Bearer {token}",
             expected_audience="https://api.smartexpense.ai/support-purchases/webhooks/google",
             expected_service_account_email="play-notifications@example.iam.gserviceaccount.com",
+            expected_package_name=pp.MOBILE_APP_BUNDLE_ID,
             jwk_client=_FakeJwkClient(private_key.public_key()),
         )
 
@@ -791,6 +922,7 @@ def test_verify_google_notification_rejects_malformed_authorization_header() -> 
             "NotBearer sometoken",
             expected_audience="aud",
             expected_service_account_email="svc@example.com",
+            expected_package_name=pp.MOBILE_APP_BUNDLE_ID,
         )
 
 
@@ -809,6 +941,7 @@ def test_verify_google_notification_rejects_malformed_message_data() -> None:
             f"Bearer {token}",
             expected_audience="https://api.smartexpense.ai/support-purchases/webhooks/google",
             expected_service_account_email="play-notifications@example.iam.gserviceaccount.com",
+            expected_package_name=pp.MOBILE_APP_BUNDLE_ID,
             jwk_client=_FakeJwkClient(private_key.public_key()),
         )
 
@@ -943,6 +1076,48 @@ async def test_verify_google_purchase_maps_purchased_state() -> None:
         "/applications/com.smartexpense.ai/oneTimeProducts/"
         "ai.smartexpense.support.small"
     )
+
+
+@pytest.mark.asyncio
+async def test_verify_google_purchase_snapshot_does_not_consult_current_catalog_price() -> None:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    account_json = _service_account_json(private_key)
+    account_id = "c77bdcda-f90d-4b35-a3b1-55fca872e741"
+    fake_client = _FakeGoogleHttpClient(
+        token_response={"access_token": "access-token-abc"},
+        purchase_response={
+            "purchaseStateContext": {"purchaseState": "CANCELLED"},
+            "productLineItem": [
+                {
+                    "productId": "ai.smartexpense.support.small",
+                    "productOfferDetails": {
+                        "purchaseOptionId": "retired-option",
+                        "quantity": 1,
+                        "refundableQuantity": 0,
+                    },
+                }
+            ],
+            "obfuscatedExternalAccountId": account_id,
+        },
+        # A historical purchase must remain verifiable even if the product
+        # is no longer present in the current catalog.
+        product_status=404,
+    )
+
+    snapshot = await pp.verify_google_purchase_snapshot(
+        package_name=pp.MOBILE_APP_BUNDLE_ID,
+        purchase_token="token-historical-refund",
+        expected_product_id="ai.smartexpense.support.small",
+        expected_app_account_token=account_id,
+        service_account_json=account_json,
+        http_client=fake_client,
+    )
+
+    assert snapshot.state == "cancelled"
+    assert snapshot.product_id == "ai.smartexpense.support.small"
+    assert snapshot.app_account_token == account_id
+    assert snapshot.refundable_quantity == 0
+    assert all("/oneTimeProducts/" not in request for request in fake_client.requests)
 
 
 @pytest.mark.asyncio
