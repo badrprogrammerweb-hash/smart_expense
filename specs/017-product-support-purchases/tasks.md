@@ -209,9 +209,9 @@ user sees none of it.
 **Purpose**: Wording compliance, release documentation, and the full
 regression gate.
 
-- [ ] T049 [P] Add a copy-lint/grep check scanning all new translation-key files and UI strings for "donate"/"donation"/charitable-fundraising language, failing the build on any match (FR-002, SC-007)
-- [ ] T050 [P] Write `docs/support-purchases-compliance-notes.md`: a living, dated checklist for Stripe/Apple/Google commission percentages, tax handling, regional billing rules, and refund windows, verified against current terms (explicitly not hard-coded per the constitution)
-- [ ] T051 Run the full existing backend `pytest`, web Vitest/Playwright, and mobile native suites unmodified; confirm zero regression in financial-accuracy, role-permission, or tenant-isolation assertions (SC-010)
+- [X] T049 [P] Add a copy-lint/grep check scanning all new translation-key files and UI strings for "donate"/"donation"/charitable-fundraising language, failing the build on any match (FR-002, SC-007)
+- [X] T050 [P] Write `docs/support-purchases-compliance-notes.md`: a living, dated checklist for Stripe/Apple/Google commission percentages, tax handling, regional billing rules, and refund windows, verified against current terms (explicitly not hard-coded per the constitution)
+- [X] T051 Run the full existing backend `pytest`, web Vitest/Playwright, and mobile native suites unmodified; confirm zero regression in financial-accuracy, role-permission, or tenant-isolation assertions (SC-010)
 - [ ] T052 Execute the manual sweep from quickstart.md: live Stripe test-mode checkout end-to-end, live Apple sandbox purchase, live Google Play internal-testing sandbox purchase
 
 ---
