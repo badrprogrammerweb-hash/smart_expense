@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "lint:support-copy": "node scripts/check-support-purchase-copy.mjs",
     "test": "vitest run",
     "test:unit": "vitest run",
     "test:e2e": "playwright test"

@@ -16,6 +16,15 @@ function isWorkspacePath(pathname: string) {
   return isLocale(segments[0]) && segments[1] === "w";
 }
 
+function isSupportPurchasePath(pathname: string) {
+  const segments = pathname.split("/").filter(Boolean);
+  return (
+    isLocale(segments[0]) &&
+    segments[1] === "settings" &&
+    segments[2] === "support"
+  );
+}
+
 // intlMiddleware's response can carry a Set-Cookie (NEXT_LOCALE sync) that a
 // bare NextResponse.redirect() would otherwise silently drop.
 function redirectPreservingCookies(url: URL, from: NextResponse) {
@@ -29,7 +38,10 @@ function redirectPreservingCookies(url: URL, from: NextResponse) {
 export async function middleware(request: NextRequest) {
   const response = intlMiddleware(request);
 
-  if (!isWorkspacePath(request.nextUrl.pathname)) {
+  if (
+    !isWorkspacePath(request.nextUrl.pathname) &&
+    !isSupportPurchasePath(request.nextUrl.pathname)
+  ) {
     return response;
   }
 

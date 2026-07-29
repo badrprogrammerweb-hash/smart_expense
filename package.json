@@ -8,6 +8,7 @@
     "packages/shared"
   ],
   "scripts": {
+    "lint:support-copy": "npm --prefix apps/web run lint:support-copy",
     "mobile:bundle": "npm --prefix apps/mobile run build:web",
     "mobile:sync": "npm --prefix apps/mobile run sync",
     "mobile:android": "npm --prefix apps/mobile run open:android",

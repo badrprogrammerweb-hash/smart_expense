@@ -35,6 +35,9 @@ jobs:
           python -m pip install -r apps/api/requirements.txt
           npm ci
 
+      - name: Check support-purchase copy
+        run: npm run lint:support-copy
+
       - name: Start local Supabase and apply migrations
         run: |
           supabase start

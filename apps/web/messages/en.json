@@ -503,6 +503,111 @@
       "discardFailed": "Discarding the extraction failed."
     }
   },
+  "supportPurchases": {
+    "eyebrow": "Optional product support",
+    "title": "Support the product",
+    "description": "Choose an optional one-time support purchase to help sustain continued development of Smart Expense.",
+    "unchangedProduct": "Every feature remains available to everyone. Product support does not change access, limits, roles, workspace data, or financial totals.",
+    "openAction": "View support options",
+    "pageTitle": "Support the product",
+    "pageDescription": "Select one preset support tier. This is entirely optional and does not change the product experience.",
+    "selectTier": "Choose a support tier",
+    "selectTierDescription": "Each option is a one-time purchase.",
+    "tiers": {
+      "support_small": "Small support",
+      "support_medium": "Medium support",
+      "support_large": "Large support"
+    },
+    "hostedCheckoutNote": "Payment details are entered only on Stripe's secure hosted Checkout page.",
+    "nativeBillingNote": "The App Store or Google Play handles payment in its native purchase sheet. Smart Expense never shows payment-card fields.",
+    "continueAction": "Continue to Stripe",
+    "nativeContinueAction": "Continue to store purchase",
+    "redirecting": "Opening secure checkout",
+    "nativeProcessing": "Opening the store purchase sheet",
+    "checkoutError": "Secure checkout could not be opened. Try again.",
+    "nativeProductsError": "Store support options could not be loaded. Try again.",
+    "nativeCompleted": "Store product support confirmed.",
+    "nativePending": "This support purchase is still processing at the store. It remains pending until the backend verifies it.",
+    "nativeCancelled": "The support purchase was cancelled. You can try again.",
+    "nativeRefunded": "This support purchase was refunded. Your product access is unchanged.",
+    "nativeFailed": "The store purchase could not be verified. Try again.",
+    "channels": {
+      "web": "Web",
+      "ios": "Apple App Store",
+      "android": "Google Play"
+    },
+    "tiersUnavailableTitle": "Support options are unavailable",
+    "tiersUnavailableDescription": "The support options could not be loaded. Try again.",
+    "pendingTitle": "Waiting for payment confirmation",
+    "pendingDescription": "Stripe has not yet confirmed this support purchase. This page will update automatically after a verified webhook arrives.",
+    "completedTitle": "Product support confirmed",
+    "completedDescription": "Thank you for supporting continued product development.",
+    "failedTitle": "Payment was not completed",
+    "failedDescription": "The payment could not be completed. You can choose a support tier and try again.",
+    "refundedTitle": "Support purchase refunded",
+    "refundedDescription": "This support purchase was refunded. Your access to the product is completely unchanged.",
+    "failureReasons": {
+      "checkoutExpired": "The secure checkout expired before payment was confirmed. You can try again.",
+      "paymentCancelled": "The payment was cancelled before it was confirmed. You can try again.",
+      "paymentFailed": "The payment could not be completed. You can try again.",
+      "storeCancelled": "The store confirmed that the purchase was cancelled. You can try again.",
+      "storeFailed": "The store could not complete this purchase. You can try again."
+    },
+    "history": {
+      "title": "Your product support history",
+      "description": "These optional purchases are tied to your account and never change product access or workspace finances.",
+      "unavailableTitle": "Support history is unavailable",
+      "unavailableDescription": "Your product support history could not be loaded. Try again.",
+      "emptyTitle": "No product support purchases yet",
+      "emptyDescription": "Nothing is expected or required. The complete product remains available to you.",
+      "amount": "Amount",
+      "date": "Date",
+      "channel": "Purchase channel",
+      "reference": "Provider reference",
+      "referencePrivate": "Kept private",
+      "receiptAction": "View receipt",
+      "status": {
+        "pending": {
+          "label": "Pending",
+          "description": "The provider is still processing or has not confirmed this purchase."
+        },
+        "completed": {
+          "label": "Completed",
+          "description": "The provider confirmed this product support purchase."
+        },
+        "failed": {
+          "label": "Failed",
+          "description": "The provider did not complete this purchase."
+        },
+        "refunded": {
+          "label": "Refunded",
+          "description": "The provider refunded this purchase. Product access remains unchanged."
+        }
+      }
+    },
+    "verifiedStateNote": "This status comes from the backend's provider-verified purchase record, not from the return link.",
+    "resultUnavailableTitle": "Purchase status unavailable",
+    "resultUnavailableDescription": "We could not find a verified support-purchase status for this return link.",
+    "receipt": {
+      "title": "Product support receipt",
+      "description": "This confirmation comes from your provider-verified support-purchase record.",
+      "tier": "Support tier",
+      "amount": "Amount",
+      "date": "Date",
+      "channel": "Purchase channel",
+      "webChannel": "Web",
+      "status": "Status",
+      "reference": "Provider reference",
+      "providerLink": "Open provider receipt",
+      "providerLinkUnavailable": "No verified provider receipt link is available.",
+      "notAvailableTitle": "Receipt is not available",
+      "notAvailableDescription": "This purchase is not eligible for a receipt or could not be found.",
+      "unavailableTitle": "Receipt could not be loaded",
+      "unavailableDescription": "The receipt is temporarily unavailable. Try again."
+    },
+    "tryAgainAction": "Choose a support tier",
+    "returnAction": "Return to Smart Expense"
+  },
   "errors": {
     "generic": "Something went wrong.",
     "requestFailed": "The request failed. Try again.",

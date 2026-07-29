@@ -48,20 +48,27 @@ test("provides a complete, non-empty icon and splash asset inventory", async () 
   await access(resolve(mobileRoot, "android", "app", "src", "main", "res", "drawable", "splash.png"));
 });
 
-// FR-003, contracts/store-readiness.md rule 5: the app must declare no
-// in-app-purchase entitlement and carry no billing surface at all — the
-// complete product is free, with all support-purchase work deferred to
-// Phase 17.
-test("declares no in-app-purchase or billing surface at install", async () => {
+// FR-003, contracts/store-readiness.md rule 5 (Phase 16), updated for Phase
+// 17: the app remains completely free with no mandatory paywall or
+// subscription — Constitution Principle XIII. Phase 17 intentionally adds
+// exactly one reviewed billing dependency for OPTIONAL, one-time product
+// support purchases; this test now guards against anything beyond that
+// specific, reviewed dependency (an unexpected billing/IAP library, or any
+// subscription capability) rather than forbidding billing outright.
+test("declares only the reviewed optional support-purchase dependency and no subscription capability", async () => {
   const pkg = JSON.parse(await readFile(resolve(mobileRoot, "package.json"), "utf8"));
   const allDependencyNames = [
     ...Object.keys(pkg.dependencies ?? {}),
     ...Object.keys(pkg.devDependencies ?? {}),
   ];
   const iapPattern = /purchase|iap|billing|subscription/i;
+  const reviewedSupportPurchaseDependencies = ["@capgo/native-purchases"];
 
-  assert.deepEqual(allDependencyNames.filter((name) => iapPattern.test(name)), []);
+  assert.deepEqual(
+    allDependencyNames.filter((name) => iapPattern.test(name)),
+    reviewedSupportPurchaseDependencies,
+  );
 
   const config = await readFile(resolve(mobileRoot, "capacitor.config.ts"), "utf8");
-  assert.doesNotMatch(config, iapPattern);
+  assert.doesNotMatch(config, /subscription/i);
 });

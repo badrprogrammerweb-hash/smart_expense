@@ -14,6 +14,89 @@ export type CameraCaptureOutcome =
   | { status: "unavailable" }
   | { status: "failed" };
 
+export type NativeSupportTier = {
+  tier_id: "support_small" | "support_medium" | "support_large";
+  label: string;
+  display_amount: string;
+  currency: string;
+};
+
+export type NativeMobileVerifyRequest = {
+  tier_id: NativeSupportTier["tier_id"];
+  channel: "apple" | "google";
+  provider_transaction_id: string;
+};
+
+export type NativeVerifiedSupportPurchase = {
+  id: string;
+  tier_id: string;
+  channel: "web" | "ios" | "android";
+  amount_minor_units: number;
+  currency: string;
+  status: "pending" | "completed" | "failed" | "refunded";
+  failure_reason:
+    | "checkout_expired"
+    | "payment_cancelled"
+    | "payment_failed"
+    | "store_cancelled"
+    | "store_failed"
+    | null;
+  created_at: string;
+  updated_at: string;
+  provider_reference: string | null;
+};
+
+export type NativeSupportPurchaseReceipt = {
+  id: string;
+  tier_id: string;
+  channel: "web" | "ios" | "android";
+  amount_minor_units: number;
+  currency: string;
+  status: "completed";
+  created_at: string;
+  provider_reference: string | null;
+  provider_receipt_url: string | null;
+};
+
+export type NativeSupportBillingResult =
+  | {
+      status: "pending";
+      purchase?: NativeVerifiedSupportPurchase;
+      reason?: "store-pending";
+    }
+  | { status: "completed"; purchase: NativeVerifiedSupportPurchase }
+  | {
+      status: "failed";
+      purchase?: NativeVerifiedSupportPurchase;
+      reason:
+        | "cancelled"
+        | "refunded"
+        | "unavailable"
+        | "invalid-transaction"
+        | "verification-failed";
+    };
+
+export type NativeSupportBillingAdapter = {
+  listTiers(tiers: NativeSupportTier[]): Promise<NativeSupportTier[]>;
+  listHistory(
+    fetchHistory: () => Promise<NativeVerifiedSupportPurchase[]>,
+  ): Promise<NativeVerifiedSupportPurchase[]>;
+  getReceipt(
+    purchaseId: string,
+    fetchReceipt: (
+      purchaseId: string,
+    ) => Promise<NativeSupportPurchaseReceipt>,
+  ): Promise<NativeSupportPurchaseReceipt>;
+  openReceipt(url: string): Promise<boolean>;
+  purchase(input: {
+    tier_id: NativeSupportTier["tier_id"];
+    account_id: string;
+    verify: (
+      request: NativeMobileVerifyRequest,
+    ) => Promise<NativeVerifiedSupportPurchase>;
+  }): Promise<NativeSupportBillingResult>;
+};
+
 type CapacitorGlobal = {
   isNativePlatform?: () => boolean;
   getPlatform?: () => string;
@@ -24,8 +107,9 @@ declare global {
     Capacitor?: CapacitorGlobal;
     __SMART_EXPENSE_PENDING_DEEP_LINK__?: string;
     __SMART_EXPENSE_NATIVE__?: {
-      secureSession: SecureStorageAdapter;
-      captureFromCamera: () => Promise<CameraCaptureOutcome>;
+      secureSession?: SecureStorageAdapter;
+      captureFromCamera?: () => Promise<CameraCaptureOutcome>;
+      supportBilling?: NativeSupportBillingAdapter;
     };
   }
 }
@@ -51,8 +135,15 @@ export function nativeCamera(): (() => Promise<CameraCaptureOutcome>) | null {
   return isNative() ? window.__SMART_EXPENSE_NATIVE__?.captureFromCamera ?? null : null;
 }
 
+export function nativeSupportBilling(): NativeSupportBillingAdapter | null {
+  return isNative()
+    ? window.__SMART_EXPENSE_NATIVE__?.supportBilling ?? null
+    : null;
+}
+
 export function nativeCapabilities() {
   return {
+    billing: nativeSupportBilling() !== null,
     camera: nativeCamera() !== null,
     deepLinks: isNative(),
     secureStorage: nativeSecureSession() !== null,
