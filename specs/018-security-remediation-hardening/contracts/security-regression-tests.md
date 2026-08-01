@@ -133,6 +133,44 @@ likely candidate. Removing that payload must not silently break a passing test �
 either the test is updated as part of this phase with the change recorded, or `/health` keeps a
 statically-computed `dependencies` shape.
 
+### Group PS pre-work (T008 — 2026-08-01)
+
+**Original Codex T008 search scope** was limited to `apps/api/tests/` and `apps/web/tests/`:
+
+```powershell
+rg -n -i -e 'openapi' -e 'docs' -e 'redoc' -e 'dependencies' -e 'health' apps/api/tests
+rg -n -i -e 'openapi' -e 'docs' -e 'redoc' -e 'dependencies' -e 'health' apps/web/tests
+```
+
+| Current test location | Current assertion / relevance | Affected by docs-surface change? | Affected by `/health` payload change? | Expected Phase 8 action |
+|---|---|---|---|---|
+| `apps/api/tests/test_categories_migration_backfill.py:43,78-80,141` | Uses `health` only as a category slug/name; it does not call the health endpoint or assert its response. | No | No | No change |
+| `apps/api/tests/test_categories_manage.py:25` | Uses `Health` only as a category name; it does not call the health endpoint or assert its response. | No | No | No change |
+| `apps/web/tests/` | No matches for any requested term. | No existing assertion | No existing assertion | Replace missing coverage with the planned PS-1–PS-8 production-surface tests |
+
+The original scope did not include `apps/web/e2e/` or colocated web `__tests__/` directories.
+
+**Readiness-smoke correction**: `apps/api/tests/acceptance/test_acc_readiness_smoke.py` exists and
+is collected by pytest: `apps/api/pytest.ini` includes both `tests` and `tests/acceptance`, and the
+file follows the `test_*.py` naming convention. Its test exercises dashboard/report reconciliation;
+it contains no assertions about `/health`, `/docs`, `/redoc`, `/openapi.json`, `dependencies`, or a
+health response shape. Phase 8 therefore needs to add new Group PS coverage rather than modify this
+test.
+
+**Review follow-up verification (broader than the original Codex scope)** searched:
+
+```powershell
+rg -n -i -e '/health' -e '/docs' -e '/redoc' -e '/openapi\.json' -e '\bdependencies\b' -e 'health.*response|response.*health' apps/web/e2e
+rg -n -i -g '!**/node_modules/**' -g '!**/.next/**' -g '**/__tests__/**' -e '/health' -e '/docs' -e '/redoc' -e '/openapi\.json' -e '\bdependencies\b' -e 'health.*response|response.*health' apps/web/components apps/web/lib
+rg -n -i -g '!**/node_modules/**' -g '!**/.next/**' -g '**/*.{test,spec}.{ts,tsx,js,jsx}' -e '/health' -e '/docs' -e '/redoc' -e '/openapi\.json' -e '\bdependencies\b' -e 'health.*response|response.*health' apps/web
+```
+
+This follow-up covers `apps/web/e2e/`, `apps/web/components/**/__tests__/`,
+`apps/web/lib/**/__tests__/`, and other relevant named web test/spec files (including
+`apps/web/tests/unit/` and `apps/web/tests/e2e/`). No relevant references were found for `/health`,
+`/docs`, `/redoc`, `/openapi.json`, `dependencies`, or a health response shape. No current test
+requires modification; Phase 8 must add the planned Group PS coverage.
+
 ---
 
 ## Group RG — Unchanged-behaviour regression

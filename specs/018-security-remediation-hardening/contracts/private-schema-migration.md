@@ -198,6 +198,14 @@ change and must be re-planned rather than improvised — it would also invalidat
 `workspace_role_for` / `is_workspace_member`, since their ~55 policy references would then need the
 same treatment.
 
+## Phase 2 configuration verification
+
+### T009 — Supabase API schemas verification
+
+`supabase/config.toml:11` remains `schemas = ["public"]`; `private` is not listed and the file was
+not modified. Adding `private` to this client-facing API schema list would expose the security-sensitive
+schema and defeat the Phase 3 relocation control.
+
 ---
 
 ## Migration structure

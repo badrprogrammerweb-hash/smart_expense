@@ -63,11 +63,11 @@ baseline that every later "no behaviour change" claim is measured against.
 **⚠️ CRITICAL**: Phases 3+ depend on T007's baseline existing. Without it, "no assertion modified"
 (spec FR-039) and "identical access decisions" (SC-006) cannot be demonstrated.
 
-- [ ] T006 [P] Re-verify the relocation inventory in `specs/018-security-remediation-hardening/data-model.md` §1 still matches the code: grep `supabase/migrations/` and `apps/api/` for each of the four target functions; confirm exactly 1 body reference (`handle_new_user`, `supabase/migrations/20260624000000_auth_workspace_foundation.sql:283`), exactly 1 policy reference (`:162`), and exactly 4 backend call sites; update the inventory if anything drifted (FR-004)
-- [ ] T007 Capture the green regression baseline: run `cd apps/api && python -m pytest tests/ -q` and save the full output to `specs/018-security-remediation-hardening/baseline-pytest.txt`; this is the before-image for spec FR-039 and SC-006
-- [ ] T008 [P] Pre-check for tests that would break when the docs surface and `/health` payload change: grep `apps/api/tests/` and `apps/web/tests/` for `openapi.json`, `/docs`, `/redoc`, and `dependencies` (likely `apps/api/tests/acceptance/test_acc_readiness_smoke.py`); record findings in `specs/018-security-remediation-hardening/contracts/security-regression-tests.md` under Group PS pre-work
-- [ ] T009 [P] Confirm `supabase/config.toml:11` still reads `schemas = ["public"]` and record that this file must NOT be modified by this phase (adding `private` here would defeat the entire fix)
-- [ ] T010 [P] Confirm `apps/mobile/` contains no `rest/v1/rpc` call sites, so no mobile change is required; record the result in `specs/018-security-remediation-hardening/plan.md` if it has drifted
+- [X] T006 [P] Re-verify the relocation inventory in `specs/018-security-remediation-hardening/data-model.md` §1 still matches the code: grep `supabase/migrations/` and `apps/api/` for each of the four target functions; confirm exactly 1 body reference (`handle_new_user`, `supabase/migrations/20260624000000_auth_workspace_foundation.sql:283`), exactly 1 policy reference (`:162`), and exactly 4 backend call sites; update the inventory if anything drifted (FR-004)
+- [X] T007 Capture the green regression baseline: run `cd apps/api && python -m pytest tests/ -q` and save the full output to `specs/018-security-remediation-hardening/baseline-pytest.txt`; this is the before-image for spec FR-039 and SC-006
+- [X] T008 [P] Pre-check for tests that would break when the docs surface and `/health` payload change: grep `apps/api/tests/` and `apps/web/tests/` for `openapi.json`, `/docs`, `/redoc`, and `dependencies` (likely `apps/api/tests/acceptance/test_acc_readiness_smoke.py`); record findings in `specs/018-security-remediation-hardening/contracts/security-regression-tests.md` under Group PS pre-work
+- [X] T009 [P] Confirm `supabase/config.toml:11` still reads `schemas = ["public"]` and record that this file must NOT be modified by this phase (adding `private` here would defeat the entire fix)
+- [X] T010 [P] Confirm `apps/mobile/` contains no `rest/v1/rpc` call sites, so no mobile change is required; record the result in `specs/018-security-remediation-hardening/plan.md` if it has drifted
 
 **Checkpoint**: Inventory confirmed accurate, baseline captured, no-touch files identified.
 
