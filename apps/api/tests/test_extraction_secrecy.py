@@ -223,7 +223,7 @@ async def test_only_key_read_rpc_function_ever_queries_vault_decrypted_secrets(
             select p.proname
             from pg_proc p
             join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'public'
+            where n.nspname = 'private'
               and p.prokind = 'f'
               and pg_get_functiondef(p.oid) ilike '%vault.decrypted_secrets%'
             """

@@ -182,7 +182,7 @@ async def remove_member(
 
 async def ensure_personal_workspace(connection, user: TestUser) -> None:
     await connection.execute(
-        text("select public.ensure_personal_workspace(:user_id, :email)"),
+        text("select private.ensure_personal_workspace(:user_id, :email)"),
         {"user_id": user.user_id, "email": user.email},
     )
 

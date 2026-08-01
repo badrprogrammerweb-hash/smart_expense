@@ -139,7 +139,7 @@ async def add_member(
         raise forbidden()
 
     lookup = await session.execute(
-        text("select id, email from public.find_user_profile_by_email(:email)"),
+        text("select id, email from private.find_user_profile_by_email(:email)"),
         {"email": request.email.strip().lower()},
     )
     profile = lookup.first()

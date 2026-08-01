@@ -216,6 +216,98 @@ runtime failure in production.
 
 ---
 
+## Phase 3 local regression evidence
+
+- **Timestamp**: 2026-08-02 02:20:23 +03:00
+- **Branch / HEAD**: `018-security-remediation-hardening` /
+  `e0c608f23b051d6c9547ab84b14df56f2dce1403`
+- **Interpreter**: project virtual environment, `.venv\Scripts\python.exe`
+- **Environment**: local Supabase only; no hosted service or external provider was contacted.
+
+### Required pre-implementation red run
+
+Exact command (from `apps/api`):
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_private_schema_exposure.py tests/test_migration_safety.py -q
+```
+
+Raw relevant output and exit status:
+
+```text
+F.FFFFF.                                                                 [100%]
+ensure_personal_workspace remains published through local PostgREST (status=204)
+get_workspace_ai_key_for_extraction remains published through local PostgREST (status=200)
+assert schema_usage is True
+Missing Phase 3 migration: D:\claude\smart_expense\supabase\migrations\20260731000000_private_schema_privileged_functions.sql
+Missing Phase 3 migration: D:\claude\smart_expense\supabase\migrations\20260731000000_private_schema_privileged_functions.sql
+Left contains 4 more items, first extra item: 'apps\\api\\app\\core\\auth.py: public.ensure_personal_workspace'
+6 failed, 2 passed in 21.13s
+Exit code: 1
+```
+
+These failures were expected security-red evidence: the target RPCs were still published, the
+private schema/grants and migration did not yet exist, and all four production call sites still used
+their old public qualification. EX-5's public RPC control and MG-6's trigger-survival check passed,
+showing that neither the local PostgREST harness nor the database connection was broken.
+
+### Focused post-migration run
+
+The same exact command ended with:
+
+```text
+........                                                                 [100%]
+8 passed in 32.22s
+Exit code: 0
+```
+
+Two preceding post-migration attempts reported `1 failed, 7 passed` because the newly written EX-6
+catalog query initially retained PostgreSQL parameter names and then encoded its regex backreference
+as a Python control character. The query representation was corrected without changing or weakening
+the schema, signature, privilege, or exposure assertions. The final run above is authoritative.
+
+### Required Group RG runs
+
+All commands below ran from `apps/api` using the project virtual environment. Counts include no
+skips; every command exited `0` after the two noted harness qualifications were corrected.
+
+| Group | Exact pytest arguments | Result | Duration | Exit |
+|---|---|---:|---:|---:|
+| RG-1 | `tests/acceptance/test_acc_tenant_isolation.py -q` | 4 passed | 132.11s | 0 |
+| RG-2 | `tests/acceptance/test_acc_role_permissions.py -q` | 2 passed | 64.02s | 0 |
+| RG-6 | `tests/test_ai_settings_secrecy.py tests/test_extraction_secrecy.py -q` | 4 passed | 7.53s | 0 |
+| RG-7 | `tests/test_signup_bootstrap.py -q` | 1 passed | 1.53s | 0 |
+| RG-8 | `tests/test_workspace_members_role.py tests/test_workspace_members_remove.py tests/test_workspace_members_list.py tests/test_workspace_members_leave.py tests/test_workspace_members_add.py -q` | 5 passed | 26.57s | 0 |
+| RG-9 | `tests/test_ai_settings_secrecy.py tests/test_ai_settings_replace.py tests/test_ai_settings_remove.py tests/test_ai_settings_manual_first.py tests/test_ai_settings_configure.py tests/test_ai_settings_authorization.py -q` | 7 passed | 16.52s | 0 |
+| RG-10 | `tests/test_extraction_confirm_workspace_currency.py tests/test_extraction_confirm.py -q` | 6 passed | 15.39s | 0 |
+
+The first RG-6 run was `1 failed, 3 passed in 7.77s`: its catalog query still filtered on
+`n.nspname = 'public'`. Only that filter was requalified to `private`; the existing assertion that
+exactly `get_workspace_ai_key_for_extraction` reads `vault.decrypted_secrets` was unchanged. The first
+RG-7 run failed in 1.57s because the test fixture still called
+`public.ensure_personal_workspace`; only that fixture call was requalified to `private`. Its signup
+assertions were unchanged.
+
+Supplemental T024 coverage ran:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_ai_summary.py tests/test_ai_summary_error_handling.py -q
+```
+
+Result: `2 passed in 6.01s`, exit `0`. Providers were mocked/local as defined by the tests.
+
+### Baseline comparison and access decisions
+
+T007's full-suite baseline remains `282 passed in 1180.36s (0:19:40)`, exit `0`. Phase 3 did not
+rerun the entire 282-test suite; it ran the task-mandated focused tests and exact mapped RG suites, so
+their aggregate counts are not directly comparable to the full-suite count. Every required mapped
+suite and the supplemental AI-summary suite passed. No existing assertion was modified. RG-1 and
+RG-2 preserve the prior non-member and Owner/Admin/Member/Viewer decisions; RG-6 preserves key
+secrecy; RG-7 preserves signup/bootstrap; RG-8 preserves invite/member behavior; and RG-9/RG-10
+preserve BYOK and extraction behavior. No access-decision drift was observed.
+
+---
+
 ## Not tested here, by design
 
 | Item | Why | Where it is covered |

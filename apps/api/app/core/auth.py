@@ -141,7 +141,7 @@ async def _repair_personal_workspace(user: CurrentUser) -> None:
                 {"claims": json.dumps(user.claims)},
             )
             await connection.execute(
-                text("select public.ensure_personal_workspace(:user_id, :email)"),
+                text("select private.ensure_personal_workspace(:user_id, :email)"),
                 {"user_id": str(user.user_id), "email": user.email},
             )
     except DBAPIError as exc:

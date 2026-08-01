@@ -390,3 +390,110 @@ would undo the fix on every environment rebuild (spec FR-013).
 The two changes are independently reversible (spec FR-014): reverting the relocation does not require
 reverting the identity guard, and vice versa. `rollback.sql` is split into two clearly labelled
 sections accordingly.
+
+## Phase 3 local migration verification
+
+- **Timestamp**: 2026-08-02 02:20:23 +03:00
+- **Environment**: Local-only Supabase development stack for project `smart-expense-ai`; database
+  container `supabase_db_smart-expense-ai`, image
+  `public.ecr.aws/supabase/postgres:15.8.1.085`. No hosted environment was contacted.
+- **Pre-apply state commands**:
+
+  ```powershell
+  npx --no-install supabase migration list --local
+  docker exec supabase_db_smart-expense-ai psql -U postgres -d postgres -X -At -c "select count(*) from supabase_migrations.schema_migrations where version='20260731000000';"
+  ```
+
+  The migration list showed local version `20260731000000` with an empty remote/applied value, and
+  the history query returned `0`.
+- **Apply command and raw output**:
+
+  ```text
+  > npx --no-install supabase migration up --local
+  Connecting to local database...
+  Applying migration 20260731000000_private_schema_privileged_functions.sql...
+  {"applied":["D:\\claude\\smart_expense\\supabase\\migrations\\20260731000000_private_schema_privileged_functions.sql"],"message":"Migrations applied"}
+  Exit code: 0
+  ```
+
+The five contract queries were sent to the local container with:
+
+```powershell
+$sql = @'
+-- The exact five-query SQL block from "Post-migration verification queries" above.
+'@
+$sql | docker exec -i supabase_db_smart-expense-ai psql -U postgres -d postgres -X -P pager=off
+```
+
+The executed SQL was exactly:
+
+```sql
+select n.nspname, p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where p.proname in ('ensure_personal_workspace','get_workspace_ai_key_for_extraction',
+                     'find_user_profile_by_email','shares_workspace_with');
+select pg_get_expr(polqual, polrelid) from pg_policy
+ where polname = 'Members can read co-members profiles';
+select n.nspname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where p.proname in ('workspace_role_for','is_workspace_member');
+select has_schema_privilege('authenticated','private','USAGE');
+select has_function_privilege('authenticated',
+  'private.ensure_personal_workspace(uuid,text)','EXECUTE');
+select tgname from pg_trigger where tgname = 'on_auth_user_created';
+```
+
+Raw relevant PostgreSQL output:
+
+```text
+ nspname |               proname
+---------+-------------------------------------
+ private | ensure_personal_workspace
+ private | find_user_profile_by_email
+ private | get_workspace_ai_key_for_extraction
+ private | shares_workspace_with
+(4 rows)
+
+                  pg_get_expr
+-----------------------------------------------
+ private.shares_workspace_with(id, auth.uid())
+(1 row)
+
+ nspname
+---------
+ public
+ public
+(2 rows)
+
+ has_schema_privilege
+----------------------
+ t
+(1 row)
+
+ has_function_privilege
+------------------------
+ t
+(1 row)
+
+        tgname
+----------------------
+ on_auth_user_created
+(1 row)
+```
+
+| Verification | Expected | Actual | Result |
+|---|---|---|---|
+| 1 — relocation | Exactly four target rows, all in `private`; no public version | Exactly four rows, all `private` | **PASS** |
+| 2 — policy OID binding | Policy renders `private.shares_workspace_with(...)` | `private.shares_workspace_with(id, auth.uid())` | **PASS** |
+| 3 — deferred helpers | Both remain in `public` | Two `public` rows | **PASS** |
+| 4 — grants | Private schema `USAGE` and relocated function `EXECUTE` are true for `authenticated` | Both returned `t` | **PASS** |
+| 5 — trigger | One `on_auth_user_created` row remains | One row returned | **PASS** |
+
+Supplemental privilege/signature inspection returned the four intended named signatures in
+`private`; each had `authenticated_execute = t`, `anon_execute = f`, and
+`public_execute = f`. `workspace_role_for(uuid,uuid)` and
+`is_workspace_member(uuid,uuid)` remained in `public` with `authenticated_execute = t`. Trigger
+inspection resolved `on_auth_user_created` to `public.handle_new_user`, whose `prosrc` calls
+`private.ensure_personal_workspace` and whose setting is `search_path=public, private`.
+
+The focused MG-1 test executed the migration SQL twice in the same transaction and compared the
+complete intended state after each application; it passed. No reset was used, and the local database
+was left in the post-migration Phase 3 state for Phase 4.
