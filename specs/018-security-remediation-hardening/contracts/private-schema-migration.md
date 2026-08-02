@@ -497,3 +497,76 @@ inspection resolved `on_auth_user_created` to `public.handle_new_user`, whose `p
 The focused MG-1 test executed the migration SQL twice in the same transaction and compared the
 complete intended state after each application; it passed. No reset was used, and the local database
 was left in the post-migration Phase 3 state for Phase 4.
+
+## Phase 4 local identity-guard application
+
+- **Timestamp**: 2026-08-02 03:02:38 +03:00
+- **Environment**: Local-only Supabase development stack, database container
+  `supabase_db_smart-expense-ai` (`public.ecr.aws/supabase/postgres:15.8.1.085`). No hosted
+  environment was contacted.
+- **Pre-application state**: migration history contained exactly one `20260731000000` row; all four
+  targets existed only in `private`; `position('identity_mismatch' in prosrc)` returned `0` for
+  `private.ensure_personal_workspace`.
+- **Direct application command** (no password or connection secret used):
+
+  ```powershell
+  Get-Content -Raw -Encoding utf8 supabase/migrations/20260731000000_private_schema_privileged_functions.sql |
+    docker exec -i supabase_db_smart-expense-ai psql -U postgres -d postgres -X --set ON_ERROR_STOP=1 --pset pager=off
+  ```
+
+- **Raw output**:
+
+  ```text
+  CREATE SCHEMA
+  GRANT
+  DO
+  DO
+  DO
+  DO
+  REVOKE
+  GRANT
+  REVOKE
+  GRANT
+  REVOKE
+  GRANT
+  REVOKE
+  GRANT
+  CREATE FUNCTION
+  CREATE FUNCTION
+  NOTICE: schema "private" already exists, skipping
+  Exit code: 0
+  ```
+
+Post-application catalog verification returned:
+
+```text
+migration_history_rows: 1
+
+private.ensure_personal_workspace(uuid,text):
+  security_definer=t, search_path=public,
+  authenticated_execute=t, anon_execute=f, public_execute=f
+private.find_user_profile_by_email(text): authenticated_execute=t, anon_execute=f, public_execute=f
+private.get_workspace_ai_key_for_extraction(uuid): authenticated_execute=t, anon_execute=f, public_execute=f
+private.shares_workspace_with(uuid,uuid): authenticated_execute=t, anon_execute=f, public_execute=f
+
+guard_position=578
+null_check_position=471
+mismatch_check_position=505
+sqlstate_position=626
+
+on_auth_user_created -> public.handle_new_user
+handle_new_user private-call position=20
+handle_new_user search_path=public, private
+authenticated private-schema usage=t
+```
+
+**Outcome**: **PASS**. The complete idempotent migration replayed directly without altering or
+duplicating migration history. The four targets remain private with their Phase 3 grants, the trigger
+and dependent function remain intact, and the live function body contains the exact NULL-tolerant
+`identity_mismatch` / `42501` guard.
+
+Static body comparison normalized only line endings and the intended `public` → `private` function
+header. Rollback Section B is otherwise identical to the Phase 3 pre-guard definition, and removing
+the new comment/guard block from the forward definition leaves a body identical to
+`20260624000000_auth_workspace_foundation.sql`. Section B therefore removes only the guard while
+preserving relocation, `SECURITY DEFINER`, `search_path = public`, and Phase 3 grants.

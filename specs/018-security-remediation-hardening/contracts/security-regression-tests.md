@@ -308,6 +308,89 @@ preserve BYOK and extraction behavior. No access-decision drift was observed.
 
 ---
 
+## Phase 4 local identity-guard evidence
+
+- **Timestamp**: 2026-08-02 03:02:38 +03:00
+- **Branch / HEAD**: `018-security-remediation-hardening` /
+  `a903d76c1676b09284da54c4e85e975d6d6ef7e4`
+- **Interpreter**: project virtual environment, `.venv\Scripts\python.exe`
+- **Environment**: local Supabase only; generated users and emails were unique synthetic test data.
+
+### Required pre-implementation red run
+
+Exact command from `apps/api`:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_identity_guard.py -q
+```
+
+Authoritative result:
+
+```text
+F....                                                                    [100%]
+FAILED test_mismatched_identity_is_refused_without_mutating_target
+AssertionError: Cross-identity bootstrap call was accepted
+1 failed, 4 passed in 6.84s
+Exit code: 1
+```
+
+ID-1 used an explicit savepoint that was rolled back before querying B again. B's row existed and
+its email exactly matched the captured pre-call value; the sole failure was that the pre-guard
+function accepted the cross-identity call. ID-2 through ID-5 already passed, preserving the positive
+behavior baseline.
+
+An earlier diagnostic run produced the same intended ID-1 failure plus teardown errors because the
+local Auth admin-delete route returned `500`: the project's last-owner protection prevents that
+account-deletion cascade. The unsafe cleanup attempt was removed and the authoritative red run above
+was repeated cleanly. Unique local synthetic test accounts remain because no safe supported cleanup
+path exists; no baseline or non-Phase-4 account was modified.
+
+### Post-implementation ID-1 through ID-5
+
+The same exact command returned:
+
+```text
+.....                                                                    [100%]
+5 passed in 6.02s
+Exit code: 0
+```
+
+- **ID-1 PASS**: mismatched A → B call raised `identity_mismatch`, SQLSTATE `42501`, and B remained
+  unchanged after savepoint recovery.
+- **ID-2 PASS**: matching A → A call succeeded, repaired A's drifted email, and retained exactly one
+  personal workspace and Owner membership.
+- **ID-3 PASS**: direct invocation with `auth.uid() IS NULL` succeeded and performed self-repair.
+- **ID-4 PASS**: local Auth signup exercised the real `on_auth_user_created` trigger and produced
+  one profile, one personal workspace, and one Owner membership.
+- **ID-5 PASS**: a normal authenticated `/workspaces` request repaired only the caller's drifted
+  email; the comparison account remained unchanged.
+
+### Phase 3 focused regression after Step 6
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_private_schema_exposure.py tests/test_migration_safety.py tests/test_extraction_secrecy.py -q
+```
+
+Result: `11 passed in 35.81s`, exit `0`. The direct PostgREST 404 checks, non-404 control, private
+privileges, idempotent full migration replay, trigger binding, old-call-site scan, and BYOK secrecy
+all remain green.
+
+### T035 signup regression and browser Step 4a
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_signup_bootstrap.py -q
+```
+
+Result: `1 passed in 1.37s`, exit `0`.
+
+The required true browser signup could not be executed: the browser-control runtime reported
+`No browser is available`, and browser discovery returned an empty list (`[]`) even though the local
+web application and API processes were running. Per T035, no API-only or database-only action was
+substituted for the UI flow. The browser portion is therefore **BLOCKED / NOT COMPLETE**, and T035
+remains unchecked.
+
+---
+
 ## Not tested here, by design
 
 | Item | Why | Where it is covered |

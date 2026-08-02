@@ -178,6 +178,62 @@ begin
 end;
 $$;
 
+create or replace function private.ensure_personal_workspace(target_user_id uuid, target_email text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    existing_personal_id uuid;
+begin
+    -- Defence in depth: relocation is the primary control, but it depends on the
+    -- hosted project's exposed-schema setting, which lives outside version control.
+    -- NULL-tolerant on purpose: handle_new_user() invokes this from an AFTER INSERT
+    -- trigger on auth.users, where there is no request context and auth.uid() is NULL.
+    -- `is distinct from` (not <>) so a NULL target_user_id compares safely.
+    if auth.uid() is not null
+       and auth.uid() is distinct from target_user_id then
+        raise exception 'identity_mismatch'
+            using errcode = '42501';
+    end if;
+
+    insert into public.user_profiles(id, email)
+    values (target_user_id, lower(btrim(target_email)))
+    on conflict (id) do update
+        set email = excluded.email
+        where public.user_profiles.email is distinct from excluded.email;
+
+    select id
+    into existing_personal_id
+    from public.workspaces
+    where created_by = target_user_id
+      and type = 'personal'
+    order by created_at asc
+    limit 1;
+
+    if existing_personal_id is null then
+        insert into public.workspaces(type, name, created_by)
+        values ('personal', 'Personal Workspace', target_user_id);
+    else
+        update public.workspace_memberships
+        set role = 'owner'
+        where workspace_id = existing_personal_id
+          and user_id = target_user_id
+          and role is distinct from 'owner';
+
+        insert into public.workspace_memberships(workspace_id, user_id, role)
+        select existing_personal_id, target_user_id, 'owner'
+        where not exists (
+            select 1
+            from public.workspace_memberships
+            where workspace_id = existing_personal_id
+              and user_id = target_user_id
+        );
+    end if;
+end;
+$$;
+
 -- DO NOT revoke EXECUTE on public.workspace_role_for / public.is_workspace_member
 -- from `authenticated`. Every RLS policy in this database calls them AS THE
 -- REQUESTING USER (~55 references; see specs/018-.../data-model.md). Revoking

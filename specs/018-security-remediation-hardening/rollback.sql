@@ -86,6 +86,8 @@ commit;
 -- ============================================================================
 -- Intended order: run this section alone while the routine remains in private.
 -- It removes only the Phase 4 identity check and does not reverse Phase 3 relocation.
+-- The definition below is the exact pre-guard Phase 3 behavior; it deliberately
+-- preserves the private schema, SECURITY DEFINER, search_path, and Phase 3 grants.
 
 begin;
 
