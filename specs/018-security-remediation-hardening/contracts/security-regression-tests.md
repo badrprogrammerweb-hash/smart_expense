@@ -514,6 +514,67 @@ was available. The complete backend suite was not run; it remains reserved for T
 
 ---
 
+## Phase 7 local JWT algorithm-pinning evidence
+
+- **Timestamp**: 2026-08-02 (+03:00)
+- **Branch / HEAD**: `018-security-remediation-hardening` /
+  `5be07357343add01fb74e8abe5e9096b75ec5ef8`
+- **Environment**: project virtual environment and local Supabase Auth/JWKS only. Tests used local
+  credentials and synthetic malformed tokens; no token, key, secret, or decoded identity was
+  printed or recorded.
+
+### Required pre-implementation red run
+
+From `apps/api`:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_jwt_algorithm_pinning.py -q
+```
+
+Authoritative result: `2 failed, 9 passed in 9.36s`, exit `1` (wall `11.36s`). A synthetic HS256
+token carrying the local JWKS key id caused HTTP `500` when the server was configured with only the
+real local EC/ES256 JWKS. Direct diagnosis of the same production path produced the uncaught
+`TypeError: Expected a string value` from PyJWT attempting HMAC key preparation with the asymmetric
+public-key object. A controlled non-string `alg` declaration also produced HTTP `500`. In both
+cases the protected route dependency was never entered, proving the failure was authentication
+exception handling rather than a route or database fixture problem.
+
+The `none`, unknown, and absent-algorithm cases already returned `401`; a legitimately issued local
+user token was accepted; and the locally configured anon and service-role credentials were rejected
+as user tokens. These controls established that local Auth, JWKS, the protected `/me` route, and the
+test client were working.
+
+### Focused Phase 7 green run
+
+The final command returned `11 passed in 9.41s`, exit `0` (wall `12.03s`), with no skips. It proves:
+
+- `none`, unknown, absent, non-string, structurally malformed, and key-mismatched algorithm paths
+  all return the normal nondiagnostic `401/unauthenticated` response and never a `5xx`;
+- an HS256 token with a matching EC JWKS key id is verified only under the trusted ES256 policy and
+  is rejected cleanly;
+- a legitimate local ES256 user token with a key id is resolved through the trusted JWKS and the
+  `/me` response retains the correct user id and email;
+- the actual local anon credential and service-role credential both verify under the configured
+  legacy HS256 secret, are confirmed to lack `sub` and `email`, and remain rejected as application
+  users with `401`;
+- no malformed request reaches the protected operation dependency, and no response exposes PyJWT,
+  `TypeError`, traceback, or key-handling detail.
+
+### Existing authentication regressions
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_users_locale.py tests/test_signup_bootstrap.py tests/test_rate_limits.py::test_unauthenticated_request_is_401_not_429 tests/test_log_redaction.py -q
+```
+
+Result: `12 passed in 4.38s`, exit `0` (wall `6.30s`), with no skips. This preserves authenticated
+`/me` access, unauthenticated `401` behavior and rate-limit ordering, workspace bootstrap/repair,
+and auth-error redaction. Python compilation of `app/core/auth.py` and
+`tests/test_jwt_algorithm_pinning.py` passed with exit `0`. Ruff is not installed in the virtual
+environment, so no Ruff run was available. No existing assertion was modified or weakened. The
+complete backend suite was not run; it remains reserved for T085.
+
+---
+
 ## Not tested here, by design
 
 | Item | Why | Where it is covered |

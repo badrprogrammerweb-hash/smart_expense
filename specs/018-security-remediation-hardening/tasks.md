@@ -213,15 +213,15 @@ caller-supplied token header, and stop returning unhandled 500s to unauthenticat
 
 ### Tests for User Story 5 (write first, confirm they FAIL)
 
-- [ ] T060 [P] [US5] Write **JW-1**, **JW-2**, **JW-4** in `apps/api/tests/test_jwt_algorithm_pinning.py`: tokens with `alg: none`, an unknown `alg`, and a malformed/absent `alg` each return `401` (FR-028, FR-029, SC-013)
-- [ ] T061 [P] [US5] Write **JW-3** and **JW-8** in `apps/api/tests/test_jwt_algorithm_pinning.py`: a token with `alg: HS256` when only JWKS material is configured returns `401` and **not** `500` — this is the current defect, an unhandled `TypeError` from PyJWT's `force_bytes` on a public-key object; and no malformed-token path returns any `5xx` (FR-029, SC-013)
-- [ ] T062 [P] [US5] Write **JW-5**, **JW-6**, **JW-7** in `apps/api/tests/test_jwt_algorithm_pinning.py`: a legitimately issued token is still accepted, and Supabase `anon` and `service_role` keys presented as bearer tokens are still rejected `401` (they carry no `sub`/`email`) — these guard an existing positive property that must not regress while verification code is edited (FR-028)
+- [x] T060 [P] [US5] Write **JW-1**, **JW-2**, **JW-4** in `apps/api/tests/test_jwt_algorithm_pinning.py`: tokens with `alg: none`, an unknown `alg`, and a malformed/absent `alg` each return `401` (FR-028, FR-029, SC-013)
+- [x] T061 [P] [US5] Write **JW-3** and **JW-8** in `apps/api/tests/test_jwt_algorithm_pinning.py`: a token with `alg: HS256` when only JWKS material is configured returns `401` and **not** `500` — this is the current defect, an unhandled `TypeError` from PyJWT's `force_bytes` on a public-key object; and no malformed-token path returns any `5xx` (FR-029, SC-013)
+- [x] T062 [P] [US5] Write **JW-5**, **JW-6**, **JW-7** in `apps/api/tests/test_jwt_algorithm_pinning.py`: a legitimately issued token is still accepted, and Supabase `anon` and `service_role` keys presented as bearer tokens are still rejected `401` (they carry no `sub`/`email`) — these guard an existing positive property that must not regress while verification code is edited (FR-028)
 
 ### Implementation for User Story 5
 
-- [ ] T063 [US5] Rewrite the algorithm selection in `apps/api/app/core/auth.py:105-121`: gate the HS256 branch on `settings.supabase_jwt_secret` being present and pass a fixed `algorithms=["HS256"]`; for the JWKS branch derive the algorithm from the **resolved JWK's** own `alg`/`kty`, falling back to a fixed `["ES256", "RS256"]` allow-list — never from `header["alg"]` (FR-028)
-- [ ] T064 [US5] Add `TypeError` to the caught exception tuple at `apps/api/app/core/auth.py:122` so a key/algorithm mismatch surfaces as `401` rather than an unhandled 500 (FR-029)
-- [ ] T065 [US5] Confirm the `sub`/`email` presence checks at `apps/api/app/core/auth.py:125-126` and `:197-199` are unchanged, preserving rejection of anon and service-role keys (FR-028)
+- [x] T063 [US5] Rewrite the algorithm selection in `apps/api/app/core/auth.py:105-121`: gate the HS256 branch on `settings.supabase_jwt_secret` being present and pass a fixed `algorithms=["HS256"]`; for the JWKS branch derive the algorithm from the **resolved JWK's** own `alg`/`kty`, falling back to a fixed `["ES256", "RS256"]` allow-list — never from `header["alg"]` (FR-028)
+- [x] T064 [US5] Add `TypeError` to the caught exception tuple at `apps/api/app/core/auth.py:122` so a key/algorithm mismatch surfaces as `401` rather than an unhandled 500 (FR-029)
+- [x] T065 [US5] Confirm the `sub`/`email` presence checks at `apps/api/app/core/auth.py:125-126` and `:197-199` are unchanged, preserving rejection of anon and service-role keys (FR-028)
 
 **Checkpoint**: Algorithm selection is server-controlled; no unauthenticated 500 path remains.
 
