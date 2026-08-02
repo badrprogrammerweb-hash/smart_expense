@@ -189,15 +189,15 @@ output.
 
 ### Tests for User Story 4 (write first, confirm they FAIL)
 
-- [ ] T054 [P] [US4] Write **LG-1**, **LG-2**, **LG-4** in `apps/api/tests/test_log_redaction.py`: a bearer credential and an email logged via `logging.getLogger("app.services.storage")` appear redacted/masked in captured **handler** output, and top-level logger output is still redacted. Assert on handler output, not on the `LogRecord` object — asserting on the record can pass while real output is unredacted (FR-026, SC-012)
-- [ ] T055 [P] [US4] Write **LG-3** in `apps/api/tests/test_log_redaction.py`: sensitive content passed as a formatting argument (`logger.warning("x: %s", secret)`) is redacted (FR-027, SC-012)
-- [ ] T056 [P] [US4] Write **LG-5** in `apps/api/tests/test_log_redaction.py`: an already-self-redacted message is not doubly mangled (FR-026)
+- [x] T054 [P] [US4] Write **LG-1**, **LG-2**, **LG-4** in `apps/api/tests/test_log_redaction.py`: a bearer credential and an email logged via `logging.getLogger("app.services.storage")` appear redacted/masked in captured **handler** output, and top-level logger output is still redacted. Assert on handler output, not on the `LogRecord` object — asserting on the record can pass while real output is unredacted (FR-026, SC-012)
+- [x] T055 [P] [US4] Write **LG-3** in `apps/api/tests/test_log_redaction.py`: sensitive content passed as a formatting argument (`logger.warning("x: %s", secret)`) is redacted (FR-027, SC-012)
+- [x] T056 [P] [US4] Write **LG-5** in `apps/api/tests/test_log_redaction.py`: an already-self-redacted message is not doubly mangled (FR-026)
 
 ### Implementation for User Story 4
 
-- [ ] T057 [US4] Rewrite `configure_logging()` in `apps/api/app/core/logging.py:28-33` to attach `SensitiveDataFilter` to logging **handlers** rather than to loggers — Python applies a logger's filters only in `Logger.handle()` on the originating logger, while `callHandlers()` applies handler filters to every propagated record (FR-026)
-- [ ] T058 [US4] Ensure at least one handler exists before attaching, so a process started without `basicConfig` still gets redaction; keep `SensitiveDataFilter`'s existing regex behaviour unchanged (FR-026, FR-027)
-- [ ] T059 [US4] Confirm the existing self-redacting log sites still behave identically: `_sanitized_db_error` (`apps/api/app/core/auth.py:40-47`), `_redact_secret` / `_sanitized_response_body` (`apps/api/app/services/storage.py:59-71`), and the webhook logs at `apps/api/app/routes/support_purchases.py:228,304,872,958`
+- [x] T057 [US4] Rewrite `configure_logging()` in `apps/api/app/core/logging.py:28-33` to attach `SensitiveDataFilter` to logging **handlers** rather than to loggers — Python applies a logger's filters only in `Logger.handle()` on the originating logger, while `callHandlers()` applies handler filters to every propagated record (FR-026)
+- [x] T058 [US4] Ensure at least one handler exists before attaching, so a process started without `basicConfig` still gets redaction; keep `SensitiveDataFilter`'s existing regex behaviour unchanged (FR-026, FR-027)
+- [x] T059 [US4] Confirm the existing self-redacting log sites still behave identically: `_sanitized_db_error` (`apps/api/app/core/auth.py:40-47`), `_redact_secret` / `_sanitized_response_body` (`apps/api/app/services/storage.py:59-71`), and the webhook logs at `apps/api/app/routes/support_purchases.py:228,304,872,958`
 
 **Checkpoint**: Redaction is effective for every application logger.
 

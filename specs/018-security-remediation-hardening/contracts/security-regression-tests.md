@@ -457,6 +457,63 @@ it remains reserved for T085.
 
 ---
 
+## Phase 6 local log-redaction evidence
+
+- **Timestamp**: 2026-08-02 (+03:00)
+- **Branch / HEAD**: `018-security-remediation-hardening` /
+  `d217c68f81c63b92ec883d109734c80c0de7bbb1`
+- **Environment**: project virtual environment; synthetic test values only.
+
+### Required pre-implementation red run
+
+From `apps/api`:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_log_redaction.py -q
+```
+
+Authoritative result: `3 failed, 2 passed in 0.17s`, exit `1` (wall `1.96s`). The child logger's
+message and formatting argument reached the root handler without redaction, and configuration with
+no handler created none. The root-logger and already-redacted controls passed, establishing that the
+capture harness and existing replacement semantics were working.
+
+### Focused Phase 6 green run
+
+The final command returned `6 passed in 0.12s`, exit `0` (wall `4.82s`). Each assertion captured the
+actual formatted text written by a `logging.StreamHandler` backed by `StringIO`, not a `LogRecord` or
+`caplog` record. It proves:
+
+- `app.services.storage` child-log output redacts credential-shaped message text and masks email
+  addresses after propagation;
+- a credential supplied through `%s` formatting arguments is redacted without a formatting error,
+  while its non-sensitive context remains readable;
+- root-logger output remains redacted;
+- already-redacted placeholders and masked addresses remain unchanged and readable;
+- two `configure_logging()` calls create at most one fallback handler and attach exactly one
+  `SensitiveDataFilter` to it;
+- the existing auth database-error sanitizer still redacts connection URLs, password parameters,
+  bearer credentials, and JWT-shaped values.
+
+### Existing-site inspection and regressions
+
+Inspection confirmed that `_sanitized_db_error` is still called before auth/database diagnostics are
+logged; storage response bodies and transport exceptions still pass through `_redact_secret`; and
+the Stripe, Apple, and Google webhook log statements contain only fixed context plus verified event
+or notification identifiers. No request signature, authorization header, request body, provider
+payload, storage response body, email, API key, or bearer credential was added to those log sites.
+Webhook signature verification and business behavior were not changed.
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_storage_error_sanitization.py tests/test_support_purchases_webhooks.py -q
+```
+
+Result: `19 passed in 27.82s`, exit `0` (wall `30.65s`), with no skips. Python compilation of
+`app/core/logging.py` and `tests/test_log_redaction.py` passed with exit `0`. No existing assertion
+was modified or weakened. Ruff is not installed in the project virtual environment, so no Ruff run
+was available. The complete backend suite was not run; it remains reserved for T085.
+
+---
+
 ## Not tested here, by design
 
 | Item | Why | Where it is covered |

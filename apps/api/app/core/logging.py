@@ -24,9 +24,34 @@ class SensitiveDataFilter(logging.Filter):
         return True
 
 
+_HANDLER_LOGGERS = ("", "uvicorn", "uvicorn.access", "uvicorn.error", "fastapi")
+_DEFAULT_FORMAT = "%(levelname)s:%(name)s:%(message)s"
+
+
+def _attach_sensitive_filter(handler: logging.Handler) -> None:
+    if not any(isinstance(item, SensitiveDataFilter) for item in handler.filters):
+        handler.addFilter(SensitiveDataFilter())
+
+
 def configure_logging() -> None:
-    sensitive_filter = SensitiveDataFilter()
-    for logger_name in ("", "uvicorn", "uvicorn.access", "uvicorn.error", "fastapi"):
-        logger = logging.getLogger(logger_name)
-        if not any(isinstance(item, SensitiveDataFilter) for item in logger.filters):
-            logger.addFilter(sensitive_filter)
+    root_logger = logging.getLogger()
+    if not root_logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter(_DEFAULT_FORMAT))
+        root_logger.addHandler(handler)
+
+    loggers = [logging.getLogger(name) for name in _HANDLER_LOGGERS]
+    loggers.extend(
+        logger
+        for name, logger in logging.Logger.manager.loggerDict.items()
+        if isinstance(logger, logging.Logger)
+        and (name == "app" or name.startswith("app."))
+        and logger not in loggers
+    )
+
+    for logger in loggers:
+        logger.filters[:] = [
+            item for item in logger.filters if not isinstance(item, SensitiveDataFilter)
+        ]
+        for handler in logger.handlers:
+            _attach_sensitive_filter(handler)
