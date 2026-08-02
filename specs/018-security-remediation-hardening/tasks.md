@@ -294,9 +294,9 @@ published vulnerabilities.
 **Independent Test**: Every third-party action in the pipeline references a commit SHA; a dependency
 audit step runs and reports findings.
 
-- [ ] T082 [P] [US8] Pin every third-party action in `.github/workflows/ci.yml` to a full commit SHA with a version comment: `actions/checkout@v4` (lines 16, 110), `actions/setup-python@v5` (18, 112), `actions/setup-node@v4` (24, 118), `supabase/setup-cli@v1` (30, 124), `actions/upload-artifact@v4` (96, 198) (FR-036)
-- [ ] T083 [P] [US8] Add a non-blocking dependency audit step to `.github/workflows/ci.yml` running `pip-audit` against `apps/api/requirements.txt` and `npm audit --audit-level=high`, with `continue-on-error: true` so it reports without blocking unrelated work (FR-036)
-- [ ] T084 [P] [US8] Create `.github/dependabot.yml` covering the `pip` ecosystem at `apps/api/`, the `npm` ecosystem at the repository root, and `github-actions`, on a weekly schedule (FR-036)
+- [x] T082 [P] [US8] Pin every third-party action in `.github/workflows/ci.yml` to a full commit SHA with a version comment: `actions/checkout@v4` (lines 16, 110), `actions/setup-python@v5` (18, 112), `actions/setup-node@v4` (24, 118), `supabase/setup-cli@v1` (30, 124), `actions/upload-artifact@v4` (96, 198) (FR-036)
+- [x] T083 [P] [US8] Add a non-blocking dependency audit step to `.github/workflows/ci.yml` running `pip-audit` against `apps/api/requirements.txt` and `npm audit --audit-level=high`, with `continue-on-error: true` so it reports without blocking unrelated work (FR-036)
+- [x] T084 [P] [US8] Create `.github/dependabot.yml` covering the `pip` ecosystem at `apps/api/`, the `npm` ecosystem at the repository root, and `github-actions`, on a weekly schedule (FR-036)
 
 **Checkpoint**: Supply-chain hygiene improved.
 

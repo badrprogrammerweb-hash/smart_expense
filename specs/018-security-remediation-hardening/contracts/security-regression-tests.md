@@ -782,6 +782,82 @@ normal local database remains in the expected Phase 9 state for later phases.
 
 ---
 
+## Phase 10 CI supply-chain evidence
+
+- **Timestamp**: 2026-08-02 15:13:33 +03:00
+- **Branch / HEAD**: `018-security-remediation-hardening` /
+  `c7d2641c35cae5730d055acb94a2e2ba6d44bf7b`
+
+### External-action inventory and verified pins
+
+All ten `uses:` lines in `.github/workflows/ci.yml` were external repository actions. There were no
+local (`./...`) or Docker action references. The pinned Playwright image is invoked by a normal
+`docker run` command and is therefore not a `uses:` action reference.
+
+| Official upstream repository | Occurrences | Previous reference | Verified release | Full commit SHA |
+|---|---:|---|---|---|
+| `https://github.com/actions/checkout` | 2 | `actions/checkout@v4` | `v4.4.0` | `11d5960a326750d5838078e36cf38b85af677262` |
+| `https://github.com/actions/setup-python` | 2 | `actions/setup-python@v5` | `v5.6.0` | `a26af69be951a213d495a4c3e4e4022e16d87065` |
+| `https://github.com/actions/setup-node` | 2 | `actions/setup-node@v4` | `v4.4.0` | `49933ea5288caeca8642d1e84afbd3f7d6820020` |
+| `https://github.com/supabase/setup-cli` | 2 | `supabase/setup-cli@v1` | `v1.7.1` | `ab058987d8d6c725971f6cf9d0b5c98467e30bd1` |
+| `https://github.com/actions/upload-artifact` | 2 | `actions/upload-artifact@v4` | `v4.6.2` | `ea165f8d65b6e75b540449e92b4886f43607fa02` |
+
+Each release was resolved directly from its official upstream with
+`git ls-remote --tags <official-repository> refs/tags/<version> refs/tags/<version>^{}`. The
+dereferenced commit was preferred for annotated tags; otherwise the lightweight tag target was
+used. A second exact-tag resolution verified every recorded value, and all values passed the full
+40-character hexadecimal check. Duplicate occurrences use the same verified SHA and carry the
+exact release comment.
+
+### Static and YAML validation
+
+An isolated Python 3.12 environment with `PyYAML==6.0.2` parsed both changed YAML files. Source-level
+assertions returned exit `0` and proved:
+
+- all 10 external action references use a full 40-character SHA and an exact version comment;
+- no mutable `main`, `master`, or major-tag action reference remains;
+- duplicate references use consistent SHAs;
+- both audit commands are present, both complete steps have `continue-on-error: true`, and no
+  `audit fix` command exists;
+- Dependabot has exactly `pip` at `/apps/api`, `npm` at `/`, and `github-actions` at `/`, all on
+  weekly schedules and with no additional keys.
+
+`actionlint` was not installed locally, so it was not run. YAML parsing, the dedicated source-level
+checks, and `git diff --check` provide the available local static validation; no GitHub-hosted CI
+execution is claimed.
+
+### Non-blocking dependency-audit execution
+
+The Python audit tool version was selected from the official PyPI JSON metadata. `pip-audit 2.10.1`
+was a current, non-yanked stable release requiring Python 3.10 or newer. It was installed only in an
+isolated temporary environment, which was removed after validation.
+
+```powershell
+python -m pip install pip-audit==2.10.1
+pip-audit -r apps/api/requirements.txt
+npm audit --audit-level=high
+```
+
+- `pip-audit` completed in 57.07 seconds with exit `1` and reported 13 known vulnerability records
+  across two packages (`pyjwt` and `pytest`). The tool did not report severity counts in its table.
+- `npm audit` completed in 7.52 seconds with exit `1` and reported 13 vulnerabilities: 1 low,
+  2 moderate, 9 high, and 1 critical.
+- Both nonzero exits represent vulnerability findings, not invalid commands or paths. The CI steps
+  intentionally use `continue-on-error: true`, so these findings are informational in Phase 10.
+  No vulnerability is claimed remediated.
+- Git blob hashes and an explicit diff check confirmed that `apps/api/requirements.txt`,
+  `package.json`, and `package-lock.json` were unchanged after both audits. No fix, upgrade, or
+  dependency rewrite command ran.
+
+### Dependabot result
+
+`.github/dependabot.yml` uses version 2 syntax and contains exactly three weekly update entries:
+Python/pip at `/apps/api`, npm at the repository root, and GitHub Actions at the repository root.
+It contains no registries, credentials, automatic-merge configuration, or dependency groups.
+Configuration validity is proven locally; no Dependabot run or generated pull request is claimed.
+
+---
+
 ## Not tested here, by design
 
 | Item | Why | Where it is covered |
