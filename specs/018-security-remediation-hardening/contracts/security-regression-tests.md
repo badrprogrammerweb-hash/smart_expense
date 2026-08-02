@@ -391,6 +391,72 @@ remains unchecked.
 
 ---
 
+## Phase 5 local rate-limit evidence
+
+- **Timestamp**: 2026-08-02 03:44:32 +03:00
+- **Branch / HEAD**: `018-security-remediation-hardening` /
+  `f0caa5c83e5f8132c3e9833210a9bca4b7e92f55`
+- **Environment**: project virtual environment and local ASGI/Supabase test environment only.
+  Payment and AI providers were deterministic fakes; no hosted provider was called.
+
+### Required pre-implementation red runs
+
+From `apps/api`:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_rate_limits.py -q
+```
+
+Authoritative result: `13 failed, 2 passed in 2.25s`, exit `1` (wall `7.20s`). The four
+allowance-plus-one requests were accepted, `app.core.rate_limit` was absent, forced internal failure
+could not fail closed, and two identical checkout requests produced two fake Stripe sessions and two
+logical purchases. RL-7 (unthrottled malformed-webhook bursts) and RL-12 (unauthenticated `401`)
+already passed, protecting the existing behavior.
+
+From `apps/web`:
+
+```powershell
+npm exec -- vitest run tests/unit/rate-limit-messages.test.ts
+```
+
+Result: `1 failed in 3.38s`, exit `1` (wall `7.53s`), because
+`enMessages.errors.rateLimited` was undefined. The test checks both locales once the first assertion
+passes.
+
+### Focused Phase 5 green runs
+
+The same backend command returned `15 passed in 1.40s`, exit `0` (wall `5.47s`). It proves:
+
+- all four buckets accept their allowance and refuse allowance + 1 with the exact nondisclosing
+  `429/rate_limited` envelope and no `Retry-After`;
+- counters are account-isolated, roll after an injected monotonic hour, fail closed, admit exactly
+  five concurrent final-slot attempts, and remain bounded at the configured entry cap;
+- throttled requests do not resolve the operation database-session dependency or invoke the
+  provider, BYOK/key-read, service, or state-mutation fakes; the synthetic checkout account retains
+  zero database rows;
+- Stripe, Apple, and Google webhook routes contain no limiter dependency and each accepted 35
+  malformed-request bursts with its normal `400`, never `429`;
+- two same-user/same-tier submissions inside the 60-second idempotency bucket created one fake
+  Stripe Checkout Session and one logical purchase with consistent responses; a request 61 seconds
+  later created the legitimate second session/purchase.
+
+The message command returned `1 passed in 3.39s`, exit `0` (wall `5.95s`).
+
+### Existing regressions
+
+| Scope | Exact command | Result | Exit |
+|---|---|---:|---:|
+| Checkout, mobile verify, purchase state/isolation, webhooks, provider mocks | `.\.venv\Scripts\python.exe -m pytest tests/test_support_purchases_api.py tests/test_support_purchases_state.py tests/test_support_purchases_isolation.py tests/test_support_purchases_webhooks.py tests/test_payment_providers.py -q` | 102 passed in 61.79s | 0 |
+| Extraction trigger/errors/secrecy and AI summary | `.\.venv\Scripts\python.exe -m pytest tests/test_extraction_trigger.py tests/test_extraction_error_handling.py tests/test_extraction_secrecy.py tests/test_ai_summary.py tests/test_ai_summary_error_handling.py -q` | 17 passed in 35.10s | 0 |
+| Message parity/localization | `npm exec -- vitest run tests/unit/rate-limit-messages.test.ts tests/unit/localization-rtl.test.tsx` | 7 passed in 3.62s | 0 |
+| Existing support-copy lint | `npm run lint:support-copy` | PASS, 177 production strings/files scanned | 0 |
+| Locale JSON parsing | `node -e "JSON.parse(...en.json...); JSON.parse(...ar.json...)"` | PASS | 0 |
+
+No existing assertion was modified or weakened. The complete 282-test backend suite was not run;
+it remains reserved for T085.
+
+---
+
 ## Not tested here, by design
 
 | Item | Why | Where it is covered |

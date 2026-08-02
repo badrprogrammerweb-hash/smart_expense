@@ -168,6 +168,14 @@ windows on access and cap total entries, discarding the oldest.
 Correctness continues to rest on the unchanged authorization checks and the unchanged purchase state
 machine.
 
+These limitations are accepted Phase 18 behavior. Counters are local to one application instance,
+so multiple Bunny Magic Containers instances multiply the effective global allowance by the number
+of instances. Restarting or replacing an instance clears its counters. Because this is a fixed
+window rather than a sliding window, traffic straddling a boundary can consume up to twice the
+configured allowance in a short interval. This design is therefore neither globally distributed nor
+durable. Strict global enforcement would require a future shared Redis- or database-backed limiter,
+which is intentionally outside Phase 18.
+
 ---
 
 ## Idempotency-key fix (spec FR-022)

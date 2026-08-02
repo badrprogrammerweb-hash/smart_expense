@@ -4,6 +4,10 @@ from functools import lru_cache
 
 
 DEFAULT_CORS_ALLOW_ORIGINS = ("http://localhost:3000", "http://127.0.0.1:3000")
+DEFAULT_RATE_LIMIT_SUPPORT_CHECKOUT = 5
+DEFAULT_RATE_LIMIT_SUPPORT_VERIFY = 10
+DEFAULT_RATE_LIMIT_AI_EXTRACTION = 30
+DEFAULT_RATE_LIMIT_AI_SUMMARY = 10
 
 
 @dataclass(frozen=True)
@@ -24,6 +28,10 @@ class Settings:
     google_play_service_account_json: str
     google_play_notification_audience: str
     google_play_notification_service_account_email: str
+    rate_limit_support_checkout: int
+    rate_limit_support_verify: int
+    rate_limit_ai_extraction: int
+    rate_limit_ai_summary: int
 
     @property
     def jwks_url(self) -> str:
@@ -33,6 +41,17 @@ class Settings:
 def _parse_cors_origins(raw: str) -> tuple[str, ...]:
     origins = tuple(origin.strip() for origin in raw.split(",") if origin.strip())
     return origins or DEFAULT_CORS_ALLOW_ORIGINS
+
+
+def _positive_int_setting(name: str, default: int) -> int:
+    raw = os.getenv(name, str(default)).strip()
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a positive integer.") from exc
+    if value <= 0:
+        raise ValueError(f"{name} must be a positive integer.")
+    return value
 
 
 @lru_cache
@@ -62,4 +81,16 @@ def get_settings() -> Settings:
         google_play_notification_service_account_email=os.getenv(
             "GOOGLE_PLAY_NOTIFICATION_SERVICE_ACCOUNT_EMAIL", ""
         ).strip(),
+        rate_limit_support_checkout=_positive_int_setting(
+            "RATE_LIMIT_SUPPORT_CHECKOUT", DEFAULT_RATE_LIMIT_SUPPORT_CHECKOUT
+        ),
+        rate_limit_support_verify=_positive_int_setting(
+            "RATE_LIMIT_SUPPORT_VERIFY", DEFAULT_RATE_LIMIT_SUPPORT_VERIFY
+        ),
+        rate_limit_ai_extraction=_positive_int_setting(
+            "RATE_LIMIT_AI_EXTRACTION", DEFAULT_RATE_LIMIT_AI_EXTRACTION
+        ),
+        rate_limit_ai_summary=_positive_int_setting(
+            "RATE_LIMIT_AI_SUMMARY", DEFAULT_RATE_LIMIT_AI_SUMMARY
+        ),
     )
