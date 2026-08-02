@@ -26,7 +26,11 @@ holds `EXECUTE` by design.
 | EX-4 | `POST /rest/v1/rpc/shares_workspace_with` with two arbitrary user ids → **404** | FR-001 | SC-001, SC-004 |
 | EX-5 | Control: `POST /rest/v1/rpc/<a still-public safe function>` still succeeds, proving the 404s are relocation-specific and not a broken test harness | — | — |
 | EX-6 | `authenticated` **retains** `USAGE` on `private` and `EXECUTE` on all four relocated functions | FR-003, FR-007 | — |
-| EX-7 | `public.workspace_role_for` and `public.is_workspace_member` are still in `public` and still executable by `authenticated` | FR-011, FR-034 | — |
+| EX-7 | Phase 3 precondition: before optional Phase 9, `public.workspace_role_for` and `public.is_workspace_member` remain executable by `authenticated`; Phase 9 red evidence must capture this state | FR-011, FR-034 | — |
+| EX-8 | After Phase 9, ordinary-user calls to `POST /rest/v1/rpc/workspace_role_for` and `POST /rest/v1/rpc/is_workspace_member` both return **404** | FR-034 | SC-001, SC-006 |
+| EX-9 | Each exact helper signature exists once in `private`, not in `public`; `authenticated` retains EXECUTE while `anon` and PUBLIC do not | FR-011, FR-034 | SC-006 |
+| EX-10 | Live `pg_policy` dependencies follow both helper OIDs into `private`, and owner/member/outsider workspace visibility remains unchanged | FR-034 | SC-006 |
+| EX-11 | `receipt_object_workspace_id` and `validate_category_assignment` remain in `public` with authenticated-only EXECUTE; direct local Storage API access still permits a member and denies an outsider | FR-035 | SC-006 |
 
 **EX-5 is not optional.** Without it, a harness misconfiguration that 404s every RPC would make
 EX-1..4 pass vacuously.
@@ -641,10 +645,147 @@ complete backend suite was not run; it remains reserved for T085.
 
 ---
 
+## Phase 9 local RLS-helper relocation evidence
+
+- **Timestamp**: 2026-08-02 13:57:30 +03:00
+- **Branch / HEAD**: `018-security-remediation-hardening` /
+  `d463bb81cc56b44a08bab7acb67c0d310dea60ff`
+- **Disposable environment**: isolated Supabase-compatible PostgreSQL 15 stack with project id
+  `phase18-p9-disposable`, API on `127.0.0.1:55321`, and PostgreSQL on
+  `127.0.0.1:55322`. Test settings were read from local CLI status into process environment only;
+  no key, token, password, or connection secret was recorded. It was separate from the normal
+  `smart-expense-ai` stack.
+
+### T075 independently re-derived inventory
+
+The source search covered every migration, `apps/api/app`, tests, and Phase 18 documentation. Live
+catalog inspection covered `pg_proc`, `pg_policy`, and `pg_depend`, plus every active function and
+trigger body. Results:
+
+- historical migration source has 40 `workspace_role_for` policy-call occurrences and 7
+  `is_workspace_member` occurrences;
+- the live database has 36 active `workspace_role_for` calls across 21 policies and 7 active
+  `is_workspace_member` calls across 7 policies: 43 active calls across 28 policies;
+- the four-call difference is the policy dropped by `20260703000000...`; its two-call replacement
+  is already part of the historical-source count;
+- five active textual body references exist, exactly in `is_workspace_member`,
+  `set_workspace_ai_key`, `clear_workspace_ai_key`,
+  `get_workspace_ai_key_for_extraction`, and `confirm_ai_extraction`;
+- no trigger body and no backend production SQL string calls either helper directly;
+- the single unqualified historical policy call remains confirmed at
+  `20260722000000_hierarchical_categories.sql:239`;
+- policy dependencies are OID-bound (29 dependency rows for `workspace_role_for`, 7 for
+  `is_workspace_member`); the five bodies are textual/name-bound.
+
+The corrected runtime-sensitive total is therefore 48 (43 policy calls plus five live bodies), not
+the earlier rough `~55`. `data-model.md` records the explained historical-versus-active distinction.
+
+### Required red evidence
+
+From `apps/api`, before the migration, the exact command was:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_private_schema_exposure.py -q
+```
+
+Authoritative normal-local result: `4 failed, 3 passed in 39.65s`, exit `1` (wall `43.2s`). The
+same corrected harness against the disposable Phase 8 baseline returned `4 failed, 3 passed in
+11.61s`, exit `1` (wall `19.2s`). Failures proved that both helper signatures were still in
+`public`, `workspace_role_for` returned HTTP `200` through real PostgREST, live policy dependencies
+still resolved to `public`, and the two residual functions still inherited PUBLIC/anon execution.
+The Phase 3 RPC control and other existing exposure controls passed. An initial disposable attempt
+used the CLI's synchronous PostgreSQL URL with the async SQLAlchemy engine and was discarded as a
+harness error; replacing only its scheme with `postgresql+asyncpg` produced the authoritative red
+result above.
+
+### Disposable migration, idempotence, and catalog result
+
+Migrations through `20260731000000` were applied when the disposable stack started. Phase 9 was
+then applied with:
+
+```powershell
+npx --no-install supabase migration up --local --workdir D:\claude\phase18-p9-disposable
+docker exec supabase_db_phase18-p9-disposable psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/20260732000000_private_schema_rls_helpers.sql
+```
+
+The first command applied the new migration; the second executed the complete SQL again and passed
+all built-in assertions, proving idempotence. Migration history contained exactly one normal
+`20260732000000` row. Helper OIDs remained `17520` and `17521`; owner, security-definer mode,
+stable volatility, non-strictness, parallel mode, and `search_path=public` were unchanged. All 36
+policy dependency rows followed those OIDs into `private`.
+
+The five source bodies were compared before application after reversing only
+`private.workspace_role_for` to the old qualifier; all five reported `BODY_MATCH`. Post-application
+catalog output showed each body containing `private.workspace_role_for` and no stale
+`public.workspace_role_for`.
+
+Final ACLs in the disposable and normal catalogs were identical:
+
+| Function | Schema | `authenticated` | `anon` | PUBLIC |
+|---|---|---:|---:|---:|
+| `workspace_role_for(uuid,uuid)` | `private` only | EXECUTE | none | none |
+| `is_workspace_member(uuid,uuid)` | `private` only | EXECUTE | none | none |
+| `receipt_object_workspace_id(text)` | `public` only | EXECUTE | none | none |
+| `validate_category_assignment(uuid,uuid,text)` | `public` only | EXECUTE | none | none |
+
+### Disposable focused and regression gates
+
+All commands ran from `apps/api` with the project virtual environment and disposable local settings:
+
+| Gate / exact pytest arguments | Result | Duration | Exit |
+|---|---:|---:|---:|
+| `tests/test_private_schema_exposure.py -q` | 8 passed | 19.24s | 0 |
+| RG-1: `tests/acceptance/test_acc_tenant_isolation.py -q` | 4 passed | 17.20s | 0 |
+| RG-2: `tests/acceptance/test_acc_role_permissions.py -q` | 2 passed | 15.36s | 0 |
+| RG-9: six `tests/test_ai_settings_*.py` mapped files | 7 passed | 17.71s | 0 |
+| RG-10: `tests/test_extraction_confirm_workspace_currency.py tests/test_extraction_confirm.py -q` | 6 passed | 13.75s | 0 |
+| Role/workspace supplement | 3 passed | 13.60s | 0 |
+| Extraction trigger/isolation/category/authorization supplement | 16 passed | 38.68s | 0 |
+| Category tree/manage/assignment supplement | 27 passed | 35.14s | 0 |
+| Receipt/file/storage supplement | 15 passed | 35.65s | 0 |
+
+The focused suite includes direct ordinary-user PostgREST calls proving both RPC names return `404`,
+catalog assertions proving private-only placement and ACLs, owner/member/outsider workspace RLS
+visibility, and a direct Storage API test proving an authenticated member can upload/read/delete a
+receipt object while an outsider cannot read it. The category suites exercise valid assignment,
+cross-workspace rejection, and the unchanged validation trigger. No test was skipped, weakened, or
+xfail-marked.
+
+### Normal local application and verification
+
+Only after every disposable gate passed, the migration was applied non-destructively to the normal
+local development database:
+
+```powershell
+npx --no-install supabase migration up --local
+```
+
+The normal helper OIDs remained `17896` and `17897`; all metadata and the 29/7 policy-dependency-row
+counts matched the disposable result. Migration history contains exactly one `20260732000000` row.
+The normal verification commands/results were:
+
+| Gate / exact pytest arguments | Result | Duration | Exit |
+|---|---:|---:|---:|
+| `tests/test_private_schema_exposure.py -q` | 8 passed | 79.24s | 0 |
+| RG-1: `tests/acceptance/test_acc_tenant_isolation.py -q` | 4 passed | 161.11s | 0 |
+| RG-2: `tests/acceptance/test_acc_role_permissions.py -q` | 2 passed | 130.70s | 0 |
+| RG-9: six mapped AI-settings files | 7 passed | 47.51s | 0 |
+| RG-10: two mapped extraction-confirm files | 6 passed | 35.39s | 0 |
+| Category tree/manage/assignment files | 27 passed | 60.94s | 0 |
+| Receipt/file/storage files | 15 passed | 113.10s | 0 |
+
+These results preserve Owner/Admin/Member/Viewer/non-member decisions, tenant isolation, BYOK
+configure/replace/remove and Vault retrieval, extraction confirmation and cross-workspace denial,
+category-trigger behavior, and receipt/storage isolation. The disposable stack was then stopped
+with `--no-backup`; verification found zero matching containers and zero matching volumes. The
+normal local database remains in the expected Phase 9 state for later phases.
+
+---
+
 ## Not tested here, by design
 
 | Item | Why | Where it is covered |
 |---|---|---|
 | Hosted exposed-schemas setting | Not observable from a local test — dashboard config outside version control | Release gate with recorded evidence (spec FR-038, SC-018); quickstart step |
 | Live Stripe/Apple/Google sandbox purchases | Out of scope (spec Out of Scope); Phase 17 T052 stays open | Not covered — must not be claimed |
-| Deferred helper relocation | P3, droppable (spec FR-034) | Only if User Story 7 is attempted |
+| Hosted/production Phase 9 state | Local-only implementation; no hosted database was contacted | Deployment/release verification only |

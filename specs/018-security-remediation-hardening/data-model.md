@@ -58,20 +58,30 @@ Reference counts are from an exhaustive grep of `supabase/migrations/` and `apps
 **Total work implied**: 4 relocations, 1 dependent-body re-creation, 4 call-site re-qualifications,
 **0 policy rewrites**.
 
-### Deferred inventory (NOT touched this phase)
+### Deferred inventory (Phase 9 re-verified)
 
 Recorded so User Story 7 can be executed later without re-deriving it, and so `/speckit-analyze`
 reads the omission as intentional.
 
-`workspace_role_for(uuid,uuid)` — ~48 policy references across:
+`workspace_role_for(uuid,uuid)` — 40 policy-call occurrences in historical migration
+source, but **36 active policy-call occurrences across 21 live policies**. The difference is the
+four calls in the superseded `Owners admins and uploaders can update files` policy from
+`20260702000000...`; `20260703000000...` drops that policy and replaces it with a two-call policy
+already included in the 40-source-occurrence count. Source locations:
 `20260624000000...` 187, 188, 202, 210, 212, 217, 219, 230, 232 ·
 `20260625000000...` 161, 167, 168, 182, 189, 190, 204, 212, 214, 219, 221 ·
 `20260702000000...` 87, 95, 97, 102, 104, 156, 166, 171, 181 ·
 `20260703000000...` 23, 26 · `20260704000000...` 19 · `20260705000000...` 43, 53, 76, 77, 80, 81 ·
 `20260708000000...` 282 · `20260722000000...` **239 (unqualified — the only such reference)**.
 
-`is_workspace_member(uuid,uuid)` — ~7 policy references:
+`is_workspace_member(uuid,uuid)` — **7 active policy-call occurrences across 7 live policies**:
 `20260624000000...` 175, 194 · `20260625000000...` 155, 174, 196 · `20260702000000...` 79, 146.
+
+The active-database total is therefore **43 policy-call occurrences across 28 policies**, plus the
+five live function-body references below, for **48 runtime-sensitive references**. Catalog checks
+found no trigger-body dependency and no backend direct call to either helper. PostgreSQL records
+the policy dependencies by OID; the five PL/pgSQL references remain textual/name-bound and require
+the explicit body re-creations listed below.
 
 **Body references that would break silently at runtime** if either helper moved without a
 `CREATE OR REPLACE`:
@@ -83,6 +93,11 @@ reads the omission as intentional.
 | `20260704000000_byok_ai_settings.sql:118` | `clear_workspace_ai_key` | AI key removal |
 | `20260705000000_ai_extraction_review.sql:113` | `get_workspace_ai_key_for_extraction` | all AI features |
 | `20260720010000_ai_extraction_confirm_workspace_currency.sql:50` | `confirm_ai_extraction` | AI extraction confirm |
+
+Phase 9 consumes this inventory in `20260732000000_private_schema_rls_helpers.sql`: both helper
+signatures are private-only, all 43 policy calls follow their preserved OIDs, and these five current
+bodies are recreated with `private.workspace_role_for(...)`. The historical source locations above
+remain unchanged by design.
 
 ---
 
