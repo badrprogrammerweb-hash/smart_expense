@@ -239,18 +239,18 @@ unavailable and no error response carries diagnostic detail; with `APP_ENV=dev` 
 
 ### Tests for User Story 6 (write first, confirm they FAIL)
 
-- [ ] T066 [P] [US6] Write **PS-1**, **PS-2**, **PS-3** in `apps/api/tests/test_production_surface.py`: `/docs`, `/redoc`, `/openapi.json` return `404` with `APP_ENV=production` **and** with `APP_ENV` unset, and are available with `APP_ENV=dev` — the unset case is the important one, an absent variable must select the safe behaviour (FR-030, SC-014)
-- [ ] T067 [P] [US6] Write **PS-4**, **PS-5** in `apps/api/tests/test_production_surface.py`: an error response carries no `diagnostic` field with `APP_ENV=production` and with `APP_ENV` unset (FR-031, SC-014)
-- [ ] T068 [P] [US6] Write **PS-6**, **PS-7**, **PS-8** in `apps/api/tests/test_production_surface.py`: `/health` makes zero outbound network requests (assert a patched HTTP layer was never called), never reads `SUPABASE_SERVICE_ROLE_KEY`, and responds promptly without blocking a worker thread (FR-032, FR-033, SC-015)
+- [x] T066 [P] [US6] Write **PS-1**, **PS-2**, **PS-3** in `apps/api/tests/test_production_surface.py`: `/docs`, `/redoc`, `/openapi.json` return `404` with `APP_ENV=production` **and** with `APP_ENV` unset, and are available with `APP_ENV=dev` — the unset case is the important one, an absent variable must select the safe behaviour (FR-030, SC-014)
+- [x] T067 [P] [US6] Write **PS-4**, **PS-5** in `apps/api/tests/test_production_surface.py`: an error response carries no `diagnostic` field with `APP_ENV=production` and with `APP_ENV` unset (FR-031, SC-014)
+- [x] T068 [P] [US6] Write **PS-6**, **PS-7**, **PS-8** in `apps/api/tests/test_production_surface.py`: `/health` makes zero outbound network requests (assert a patched HTTP layer was never called), never reads `SUPABASE_SERVICE_ROLE_KEY`, and responds promptly without blocking a worker thread (FR-032, FR-033, SC-015)
 
 ### Implementation for User Story 6
 
-- [ ] T069 [US6] Add a shared environment predicate to `apps/api/app/core/config.py` returning dev/test status from `APP_ENV`, treating unset and unrecognised values as **not** dev/test so both consumers fail closed (FR-031)
-- [ ] T070 [US6] Refactor `_is_test_or_dev_mode()` in `apps/api/app/core/auth.py:30-37` to delegate to the shared predicate, preserving the existing `PYTEST_CURRENT_TEST` behaviour so the test suite keeps its diagnostics (FR-031)
-- [ ] T071 [US6] Pass `docs_url=None, redoc_url=None, openapi_url=None` to the `FastAPI(...)` constructor at `apps/api/app/main.py:28` unless the shared predicate reports dev/test (FR-030)
-- [ ] T072 [US6] Rewrite `apps/api/app/routes/health.py:16-31`: delete `_database_status()` and its `urlopen` call, remove all use of `SUPABASE_SERVICE_ROLE_KEY`, and make the route `async def` returning process liveness only (FR-032, FR-033)
-- [ ] T073 [US6] Apply the T008 finding: if an existing test asserts on `/health`'s `dependencies.database` payload or on `/openapi.json`, either update that test as part of this phase and record the change explicitly in `specs/018-security-remediation-hardening/contracts/security-regression-tests.md`, or keep a statically-computed `dependencies` shape — do not let it break silently (FR-039)
-- [ ] T074 [US6] Update `apps/api/.env.example` and `docs/deployment.md` to document that `APP_ENV` must be explicitly set to `production` in deployed environments and that leaving it unset is safe but not recommended (FR-031)
+- [x] T069 [US6] Add a shared environment predicate to `apps/api/app/core/config.py` returning dev/test status from `APP_ENV`, treating unset and unrecognised values as **not** dev/test so both consumers fail closed (FR-031)
+- [x] T070 [US6] Refactor `_is_test_or_dev_mode()` in `apps/api/app/core/auth.py:30-37` to delegate to the shared predicate, preserving the existing `PYTEST_CURRENT_TEST` behaviour so the test suite keeps its diagnostics (FR-031)
+- [x] T071 [US6] Pass `docs_url=None, redoc_url=None, openapi_url=None` to the `FastAPI(...)` constructor at `apps/api/app/main.py:28` unless the shared predicate reports dev/test (FR-030)
+- [x] T072 [US6] Rewrite `apps/api/app/routes/health.py:16-31`: delete `_database_status()` and its `urlopen` call, remove all use of `SUPABASE_SERVICE_ROLE_KEY`, and make the route `async def` returning process liveness only (FR-032, FR-033)
+- [x] T073 [US6] Apply the T008 finding: if an existing test asserts on `/health`'s `dependencies.database` payload or on `/openapi.json`, either update that test as part of this phase and record the change explicitly in `specs/018-security-remediation-hardening/contracts/security-regression-tests.md`, or keep a statically-computed `dependencies` shape — do not let it break silently (FR-039)
+- [x] T074 [US6] Update `apps/api/.env.example` and `docs/deployment.md` to document that `APP_ENV` must be explicitly set to `production` in deployed environments and that leaving it unset is safe but not recommended (FR-031)
 
 **Checkpoint**: Production surface minimised; all hardening stories complete.
 

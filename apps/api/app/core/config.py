@@ -8,6 +8,7 @@ DEFAULT_RATE_LIMIT_SUPPORT_CHECKOUT = 5
 DEFAULT_RATE_LIMIT_SUPPORT_VERIFY = 10
 DEFAULT_RATE_LIMIT_AI_EXTRACTION = 30
 DEFAULT_RATE_LIMIT_AI_SUMMARY = 10
+DEV_OR_TEST_ENVIRONMENTS = frozenset({"dev", "development", "local", "test", "testing"})
 
 
 @dataclass(frozen=True)
@@ -52,6 +53,13 @@ def _positive_int_setting(name: str, default: int) -> int:
     if value <= 0:
         raise ValueError(f"{name} must be a positive integer.")
     return value
+
+
+def is_dev_or_test_environment(app_env: str | None) -> bool:
+    """Allow development surfaces only for explicitly recognized APP_ENV values."""
+
+    # Unset, empty, and unrecognized values intentionally select the safe mode.
+    return (app_env or "").strip().lower() in DEV_OR_TEST_ENVIRONMENTS
 
 
 @lru_cache

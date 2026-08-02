@@ -1,10 +1,12 @@
+import os
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 
-from app.core.config import get_settings
+from app.core.config import get_settings, is_dev_or_test_environment
 from app.core.logging import configure_logging
 from app.routes.ai_settings import router as ai_settings_router
 from app.routes.categories import router as categories_router
@@ -25,7 +27,13 @@ from app.routes.workspaces import router as workspaces_router
 load_dotenv()
 configure_logging()
 
-app = FastAPI(title="Smart Expense API")
+development_surface_enabled = is_dev_or_test_environment(os.getenv("APP_ENV"))
+app = FastAPI(
+    title="Smart Expense API",
+    docs_url="/docs" if development_surface_enabled else None,
+    redoc_url="/redoc" if development_surface_enabled else None,
+    openapi_url="/openapi.json" if development_surface_enabled else None,
+)
 
 # apps/web calls this API directly from the browser (Authorization: Bearer
 # <token>, never cookies), so credentials aren't needed here — only an

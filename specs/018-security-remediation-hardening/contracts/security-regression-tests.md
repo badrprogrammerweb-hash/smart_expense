@@ -575,6 +575,72 @@ complete backend suite was not run; it remains reserved for T085.
 
 ---
 
+## Phase 8 local production-surface evidence
+
+- **Timestamp**: 2026-08-02 12:35:44 +03:00
+- **Branch / HEAD**: `018-security-remediation-hardening` /
+  `d376cd9817143ee2d01486560e4fe60f01e0fe9e`
+- **Environment**: fresh in-process FastAPI applications created after each controlled environment
+  change; local ASGI transport only. No hosted service or outbound provider was contacted.
+
+### Required pre-implementation red run
+
+From `apps/api`:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_production_surface.py -q
+```
+
+Authoritative result: `7 failed, 5 passed in 3.01s`, exit `1` (wall `5.6s`). Actual HTTP
+requests showed `/docs`, `/redoc`, and `/openapi.json` returning `200` under production, unset,
+and unrecognized `APP_ENV`; the pytest marker caused diagnostic disclosure even when `APP_ENV`
+was explicitly production; the old `/health` invoked the patched `urlopen`, read the guarded
+service-role environment key, and was a synchronous handler. The dev diagnostic/docs controls and
+production-like diagnostic controls with the pytest marker removed passed, demonstrating that the
+app construction and response-capture harness was valid.
+
+### Focused Phase 8 green run
+
+The final focused command returned `15 passed in 2.47s`, exit `0` (wall `5.4s`), with no skips.
+Each environment case constructs a fresh app after setting `APP_ENV`, clears the settings cache,
+and restores the imported module and process environment afterward. Actual HTTP results prove:
+
+- production, unset, empty, and unrecognized `APP_ENV` return `404` from all three documentation
+  routes; `dev` and a normalized mixed-case `development` value return normal `200` HTML/JSON;
+- production, unset, empty, and unrecognized values omit `diagnostic` at every response nesting
+  level while preserving `503/workspace_bootstrap_unavailable`; explicit `dev` retains the existing
+  diagnostic control;
+- `PYTEST_CURRENT_TEST` retains compatibility only when `APP_ENV` is absent and cannot override an
+  explicit production value;
+- `/health` returns exactly `{"status":"ok"}` when both the legacy bound `urlopen` and the urllib
+  primitive are patched to fail, with neither patched function called;
+- a guarded environment accessor proves `/health` never reads `SUPABASE_SERVICE_ROLE_KEY`;
+- the route is an async coroutine, never invokes the patched legacy database helper, and completes
+  promptly with an unroutable `SUPABASE_URL`, without worker-thread offloading or a connectivity
+  claim.
+
+### T073 existing-test review and regressions
+
+The Phase 2 T008 follow-up was rechecked across `apps/api/tests/`, `apps/web/tests/`,
+`apps/web/e2e/`, `apps/web/components/**/__tests__/`, and `apps/web/lib/**/__tests__/`. No
+pre-existing test asserted `/health`'s former `dependencies.database` shape or assumed that docs or
+OpenAPI were always enabled, so no existing test file required an expectation change. The new
+production-surface suite owns the revised process-liveness and environment-controlled docs
+contracts explicitly.
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_jwt_algorithm_pinning.py tests/test_signup_bootstrap.py tests/test_users_locale.py tests/test_log_redaction.py -q
+```
+
+Result: `22 passed in 15.78s`, exit `0` (wall `19.2s`), with no skips. This preserves JWT and
+authenticated-route behavior, workspace bootstrap, normal `401` behavior, and diagnostic/log
+redaction while exercising startup imports. Python compilation of all four changed production
+modules and the new test module passed with exit `0`; Ruff is not installed in the project virtual
+environment, so no Ruff run was available. No existing assertion was modified or weakened. The
+complete backend suite was not run; it remains reserved for T085.
+
+---
+
 ## Not tested here, by design
 
 | Item | Why | Where it is covered |

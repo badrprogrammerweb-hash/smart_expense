@@ -27,12 +27,12 @@ as Docker build arguments.
 
 | Scope | Name | Secret | Source | Notes |
 |-------|------|--------|--------|-------|
-| API runtime | `SUPABASE_URL` | no | Hosted Supabase project URL | Used by auth, storage, and health checks. |
+| API runtime | `SUPABASE_URL` | no | Hosted Supabase project URL | Used by auth and storage paths. |
 | API runtime | `SUPABASE_DB_URL` | yes | Hosted Supabase Postgres connection string | Server-only RLS-aware database connection. |
-| API runtime | `SUPABASE_SERVICE_ROLE_KEY` | yes | Hosted Supabase service-role key | Server-only; used by health and storage paths. |
+| API runtime | `SUPABASE_SERVICE_ROLE_KEY` | yes | Hosted Supabase service-role key | Server-only; used by storage paths. The liveness endpoint never reads it. |
 | API runtime | `SUPABASE_JWT_SECRET` | yes | Hosted Supabase JWT secret | Legacy HS256 fallback; preserve if the hosted project requires it. |
 | API runtime | `CORS_ALLOW_ORIGINS` | no | Final web origin(s) | Comma-separated exact HTTPS web origins. |
-| API runtime | `APP_ENV` | no | `production` | Sets production auth behavior. |
+| API runtime | `APP_ENV` | no | `production` | Required explicit production identity; disables API docs and diagnostic disclosure. |
 | Web build and runtime | `NEXT_PUBLIC_API_URL` | no | Final public API URL | Public browser value; set during image build and in Bunny container config. |
 | Web build and runtime | `NEXT_PUBLIC_SUPABASE_URL` | no | Hosted Supabase project URL | Public browser value. |
 | Web build and runtime | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | no | Hosted Supabase anon key | Public, RLS-constrained browser credential; never a service-role key. |
@@ -49,6 +49,14 @@ environment variables and must not be copied into Bunny.
 External services are Supabase Auth, Postgres, Vault, and Storage; a private image
 registry; and Bunny Magic Containers. No managed database, object store, or AI key
 is provided by the container images.
+
+Every deployed API container must set `APP_ENV=production` explicitly. An unset,
+empty, or unrecognized value now fails closed by disabling `/docs`, `/redoc`,
+`/openapi.json`, and diagnostic error detail, but leaving the value unset is not
+recommended because an explicit environment identity is operationally clearer.
+Recognized development/test values (`dev`, `development`, `local`, `test`, and
+`testing`) are for non-production environments only. `APP_ENV` controls these
+surfaces; it is not by itself a complete security boundary.
 
 ## Apply Migrations
 
@@ -126,8 +134,9 @@ docker push "$REGISTRY/smart-expense-web:$TAG"
 
 ## Post-Deploy Smoke Check
 
-1. Request `https://<api-endpoint>/health`; expect `status: "ok"` and a database
-   dependency state of `ok`.
+1. Request `https://<api-endpoint>/health`; expect exactly `{"status":"ok"}` as a
+   lightweight process-liveness signal. It intentionally makes no database or
+   external-service connectivity claim.
 2. Open the web endpoint and complete sign-in through the hosted Supabase project.
 3. In a test workspace, create a confirmed income and expense, then verify the
    dashboard and report totals agree.

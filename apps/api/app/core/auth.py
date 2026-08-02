@@ -12,7 +12,7 @@ from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
-from app.core.config import get_settings
+from app.core.config import get_settings, is_dev_or_test_environment
 
 
 @dataclass(frozen=True)
@@ -30,13 +30,10 @@ logger = logging.getLogger(__name__)
 
 
 def _is_test_or_dev_mode() -> bool:
-    app_env = os.getenv("APP_ENV", "").strip().lower()
-    return bool(os.getenv("PYTEST_CURRENT_TEST")) or app_env in {
-        "test",
-        "dev",
-        "development",
-        "local",
-    }
+    app_env = os.getenv("APP_ENV")
+    if app_env is None:
+        return bool(os.getenv("PYTEST_CURRENT_TEST"))
+    return is_dev_or_test_environment(app_env)
 
 
 def _sanitized_db_error(exc: DBAPIError) -> str:
