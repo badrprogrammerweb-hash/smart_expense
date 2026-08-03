@@ -16,10 +16,5 @@
     "mobile:run:android": "npm --prefix apps/mobile run run:android",
     "mobile:run:ios": "npm --prefix apps/mobile run run:ios",
     "mobile:test": "npm --prefix apps/mobile run test:e2e"
-  },
-  "overrides": {
-    "next@16.2.9": {
-      "postcss": "8.5.10"
-    }
   }
 }
