@@ -251,20 +251,68 @@ async def _signing_key_from_jwks(
     raise unauthenticated_exception()
 
 
+#: Claims a Supabase access token must carry. `exp` bounds the token's life,
+#: `iss` and `aud` bind it to this project's identity provider and audience,
+#: and `sub` is the identity everything downstream keys off. PyJWT's `require`
+#: only asserts presence; the value checks are `issuer=`/`audience=` plus the
+#: explicit type checks in `_assert_supabase_claims`.
+_REQUIRED_SUPABASE_CLAIMS = ["exp", "iss", "aud", "sub"]
+
+
+def _decode_options() -> dict[str, Any]:
+    return {
+        "require": list(_REQUIRED_SUPABASE_CLAIMS),
+        "verify_aud": True,
+        "verify_iss": True,
+        "verify_exp": True,
+    }
+
+
+def _assert_supabase_claims(claims: dict[str, Any]) -> None:
+    """Enforce claim shape that PyJWT's own checks do not cover.
+
+    PyJWT verifies that `iss`/`aud` *match* and that required claims are
+    present, but it does not constrain `sub`'s type. A non-string `sub` would
+    otherwise reach `UUID(str(claims["sub"]))` in `get_current_user` and could
+    stringify into something unintended.
+    """
+
+    subject = claims.get("sub")
+    if not isinstance(subject, str) or not subject.strip():
+        raise unauthenticated_exception()
+
+
 async def verify_access_token(token: str) -> dict[str, Any]:
     settings = get_settings()
     if not settings.supabase_url and not settings.supabase_jwt_secret:
+        raise unauthenticated_exception()
+
+    # Fail closed when the expected issuer cannot be determined. Leaving `iss`
+    # unchecked because it was not configured is exactly the weakness this
+    # validation exists to remove, so an unresolvable issuer rejects instead.
+    #
+    # NOTE: this narrows a previously supported configuration. `SUPABASE_URL`
+    # is documented as optional, so a deployment that set only
+    # `SUPABASE_JWT_SECRET` used to authenticate; it must now also set
+    # `SUPABASE_JWT_ISSUER` (or `SUPABASE_URL`).
+    expected_issuer = settings.expected_jwt_issuer
+    if not expected_issuer:
         raise unauthenticated_exception()
 
     try:
         header = jwt.get_unverified_header(token)
         key_id = header.get("kid")
         if settings.supabase_jwt_secret and not key_id:
+            # Legacy HS256 fallback for older Supabase projects. It receives
+            # the same claim rules as the JWKS path: the signing algorithm
+            # differs, the claim shape does not.
             claims = jwt.decode(
                 token,
                 settings.supabase_jwt_secret,
                 algorithms=["HS256"],
-                options={"verify_aud": False},
+                audience=settings.supabase_jwt_audience,
+                issuer=expected_issuer,
+                options=_decode_options(),
             )
         else:
             signing_key, algorithm = await _signing_key_from_jwks(
@@ -274,13 +322,17 @@ async def verify_access_token(token: str) -> dict[str, Any]:
                 token,
                 signing_key,
                 algorithms=[algorithm],
-                options={"verify_aud": False},
+                audience=settings.supabase_jwt_audience,
+                issuer=expected_issuer,
+                options=_decode_options(),
             )
     except (httpx.HTTPError, jwt.PyJWTError, TypeError, ValueError) as exc:
+        # Every failure collapses into one generic 401: the caller learns that
+        # the token was rejected, never which claim betrayed it, and no key
+        # material or library exception text is echoed back.
         raise unauthenticated_exception() from exc
 
-    if not claims.get("sub"):
-        raise unauthenticated_exception()
+    _assert_supabase_claims(claims)
     return claims
 
 

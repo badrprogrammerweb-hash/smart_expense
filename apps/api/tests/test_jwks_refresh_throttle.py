@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from dataclasses import replace
 from typing import Any
 
@@ -29,9 +30,16 @@ from app.core.config import get_settings
 
 pytestmark = pytest.mark.asyncio
 
+_SUPABASE_URL = "http://jwks-throttle.invalid"
+#: Claims must satisfy the issuer/audience/expiry rules enforced by
+#: `verify_access_token`; this suite is about fetch counts, not claim shape, so
+#: the tokens it mints are otherwise valid.
 _CLAIMS = {
     "sub": "00000000-0000-4000-8000-000000000042",
     "email": "jwks-throttle@example.test",
+    "iss": f"{_SUPABASE_URL}/auth/v1",
+    "aud": "authenticated",
+    "exp": int(time.time()) + 3600,
 }
 _KNOWN_KID = "throttle-known-kid"
 _ROTATED_KID = "throttle-rotated-kid"
@@ -110,7 +118,7 @@ async def jwks_env(monkeypatch):
     settings = replace(
         get_settings(),
         supabase_jwt_secret="",
-        supabase_url="http://jwks-throttle.invalid",
+        supabase_url=_SUPABASE_URL,
     )
     monkeypatch.setattr(auth, "get_settings", lambda: settings)
 

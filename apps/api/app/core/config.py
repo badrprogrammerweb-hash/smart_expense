@@ -12,6 +12,18 @@ DEFAULT_RATE_LIMIT_AI_EXTRACTION = 30
 DEFAULT_RATE_LIMIT_AI_SUMMARY = 10
 DEV_OR_TEST_ENVIRONMENTS = frozenset({"dev", "development", "local", "test", "testing"})
 
+#: Audience carried by Supabase user access tokens. Verified against this
+#: project's own local stack: a freshly issued access token decodes with
+#: `"aud": "authenticated"`, which is Supabase's fixed audience for signed-in
+#: users. Overridable for deployments that customize it, but the default is the
+#: value this project's tokens actually carry rather than an assumption.
+DEFAULT_SUPABASE_JWT_AUDIENCE = "authenticated"
+
+#: Path appended to `SUPABASE_URL` to form the issuer. Confirmed against a real
+#: token: `"iss": "http://127.0.0.1:54321/auth/v1"` for
+#: `SUPABASE_URL=http://127.0.0.1:54321`. Mirrors how `jwks_url` is derived.
+SUPABASE_ISSUER_PATH = "/auth/v1"
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -19,6 +31,8 @@ class Settings:
     supabase_db_url: str
     supabase_service_role_key: str
     supabase_jwt_secret: str
+    supabase_jwt_audience: str
+    supabase_jwt_issuer: str
     cors_allow_origins: tuple[str, ...]
     stripe_secret_key: str
     stripe_publishable_key: str
@@ -39,6 +53,25 @@ class Settings:
     @property
     def jwks_url(self) -> str:
         return f"{self.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+
+    @property
+    def expected_jwt_issuer(self) -> str:
+        """Issuer that a Supabase access token must declare.
+
+        An explicit `SUPABASE_JWT_ISSUER` wins, so a deployment fronting
+        Supabase with a custom domain can state its issuer directly. Otherwise
+        it is derived from `SUPABASE_URL` exactly as `jwks_url` is.
+
+        Returns an empty string when neither is available. Callers must treat
+        that as "cannot verify" and reject, not as "skip the check" — see
+        `auth._assert_supabase_claims`.
+        """
+
+        if self.supabase_jwt_issuer:
+            return self.supabase_jwt_issuer
+        if not self.supabase_url:
+            return ""
+        return f"{self.supabase_url.rstrip('/')}{SUPABASE_ISSUER_PATH}"
 
 
 def _parse_cors_origins(raw: str) -> tuple[str, ...]:
@@ -93,6 +126,11 @@ def get_settings() -> Settings:
         supabase_db_url=os.getenv("SUPABASE_DB_URL", "").strip(),
         supabase_service_role_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip(),
         supabase_jwt_secret=os.getenv("SUPABASE_JWT_SECRET", "").strip(),
+        supabase_jwt_audience=os.getenv(
+            "SUPABASE_JWT_AUDIENCE", DEFAULT_SUPABASE_JWT_AUDIENCE
+        ).strip()
+        or DEFAULT_SUPABASE_JWT_AUDIENCE,
+        supabase_jwt_issuer=os.getenv("SUPABASE_JWT_ISSUER", "").strip(),
         cors_allow_origins=_parse_cors_origins(os.getenv("CORS_ALLOW_ORIGINS", "")),
         stripe_secret_key=os.getenv("STRIPE_SECRET_KEY", "").strip(),
         stripe_publishable_key=os.getenv("STRIPE_PUBLISHABLE_KEY", "").strip(),

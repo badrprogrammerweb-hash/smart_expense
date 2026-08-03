@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from collections.abc import AsyncIterator
 from dataclasses import replace
 from typing import Any
@@ -22,9 +23,18 @@ from supabase_credentials import local_supabase_credential
 
 pytestmark = [pytest.mark.asyncio, requires_supabase]
 
+#: The fixture below pins `supabase_url` to this host, so a token that should
+#: verify must declare the issuer derived from it. Claim validation is exercised
+#: in detail by `test_supabase_claim_validation.py`; here the claims exist so
+#: the algorithm assertions are not masked by an unrelated claim rejection.
+_SYNTHETIC_SUPABASE_URL = "http://jwks.invalid"
+_SYNTHETIC_ISSUER = f"{_SYNTHETIC_SUPABASE_URL}/auth/v1"
 _SYNTHETIC_CLAIMS = {
     "sub": "00000000-0000-4000-8000-000000000007",
     "email": "phase7-user@example.test",
+    "iss": _SYNTHETIC_ISSUER,
+    "aud": "authenticated",
+    "exp": int(time.time()) + 3600,
 }
 
 
@@ -101,7 +111,7 @@ async def jwks_only(monkeypatch) -> AsyncIterator[tuple[str, Any]]:
     settings = replace(
         get_settings(),
         supabase_jwt_secret="",
-        supabase_url="http://jwks.invalid",
+        supabase_url=_SYNTHETIC_SUPABASE_URL,
     )
     monkeypatch.setattr(auth, "get_settings", lambda: settings)
 
