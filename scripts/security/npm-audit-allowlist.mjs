@@ -41,8 +41,12 @@ export const ACCEPTED_FINDINGS = [
       "Introducing user-authored themes or style customization",
     ],
     removedBy:
-      "A Next.js release that pins postcss > 8.5.17. Next 16.2.12 pins it " +
-      "exactly at 8.4.31, so this cannot be resolved without upgrading Next.",
+      "An upstream-compatible resolution to postcss >= 8.5.23. That is the " +
+      "floor for every PostCSS residual here: GHSA-fxqj-rqcc-2cmp affects " +
+      "through 8.5.22, so clearing this one alone is not enough to drop the " +
+      "vulnerable copy. Next 16.2.12 pins postcss exactly at 8.4.31, so this " +
+      "cannot be resolved without upgrading Next — and deliberately not with " +
+      "an npm override.",
   },
   {
     package: "postcss",
@@ -57,7 +61,9 @@ export const ACCEPTED_FINDINGS = [
       "Compiling CSS from any untrusted source",
       "Accepting uploaded or third-party stylesheets into the build",
     ],
-    removedBy: "Same as GHSA-qx2v-qp2m-jg93 — a Next.js release pinning postcss > 8.5.17.",
+    removedBy:
+      "Same as GHSA-qx2v-qp2m-jg93 — an upstream-compatible resolution to " +
+      "postcss >= 8.5.23.",
   },
   {
     package: "postcss",
@@ -72,7 +78,45 @@ export const ACCEPTED_FINDINGS = [
       "Compiling CSS from any untrusted source",
       "Loading source maps from a location writable by anyone but the build",
     ],
-    removedBy: "Same as GHSA-qx2v-qp2m-jg93 — a Next.js release pinning postcss > 8.5.17.",
+    removedBy:
+      "Same as GHSA-qx2v-qp2m-jg93 — an upstream-compatible resolution to " +
+      "postcss >= 8.5.23.",
+  },
+  {
+    package: "postcss",
+    advisory: "GHSA-fxqj-rqcc-2cmp",
+    version: "8.4.31",
+    path: "node_modules/postcss",
+    reason:
+      "CVE-2026-69153 — incomplete fix of GHSA-6g55-p6wh-862q. Arbitrary .map " +
+      "file read when a malicious sourceMappingURL is processed without a " +
+      "reliable `from` value. Exploitation needs all three of: attacker-authored " +
+      "CSS reaching PostCSS, processing without a trustworthy `from`, and the " +
+      "generated source map being exposed or consumed. None exist here. The only " +
+      "stylesheet compiled by this app is the first-party apps/web/app/globals.css " +
+      "(imported at apps/web/app/layout.tsx:7); PostCSS runs solely inside " +
+      "`next build`/`next dev` over repo-committed CSS. No first-party code " +
+      "imports postcss or calls .process() (apps/web has zero route handlers, so " +
+      "there is no runtime CSS endpoint at all), no migration stores CSS/theme/" +
+      "style content, and uploads are magic-byte sniffed and restricted to " +
+      "image/png, image/jpeg, image/webp and application/pdf — a stylesheet " +
+      "cannot enter the system as data. Nothing reads result.map, " +
+      "productionBrowserSourceMaps is unset (default false), and no .map file " +
+      "ships in apps/web/public or the exported apps/web/out. Secondary note: the " +
+      "plugin that actually compiles globals.css, @tailwindcss/postcss, carries " +
+      "its own patched postcss 8.5.25; this 8.4.31 copy is Next.js's internal one.",
+    invalidatedBy: [
+      "Accepting user-supplied CSS, uploaded stylesheets, or user-authored themes",
+      "Calling PostCSS at runtime on any user-controlled string",
+      "Exposing a PostCSS result.map, or serving build-generated source maps",
+      "Adding a CSS playground, minifier, linter, or per-tenant build service",
+      "Changing the installed PostCSS version or the node_modules/postcss path",
+    ],
+    removedBy:
+      "An upstream-compatible resolution to postcss >= 8.5.23. next@16.2.12 " +
+      "declares `\"postcss\": \"8.4.31\"` as an exact pin (see package-lock.json), " +
+      "so this cannot be resolved without a Next.js upgrade — and deliberately " +
+      "not with an npm override. Delete this entry as soon as such a release lands.",
   },
   {
     package: "sharp",
