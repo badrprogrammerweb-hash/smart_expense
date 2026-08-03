@@ -111,11 +111,14 @@ async def jwks_only(monkeypatch) -> AsyncIterator[tuple[str, Any]]:
 
     monkeypatch.setattr(auth, "_jwks", _synthetic_jwks)
 
-    auth._jwks_cache.clear()
+    # Resets the JWKS cache *and* the forced-refresh cooldown together; a
+    # cooldown left over from another test would otherwise suppress the
+    # refresh under test and make results depend on execution order.
+    auth._reset_jwks_state()
     try:
         yield _SYNTHETIC_KID, private_key
     finally:
-        auth._jwks_cache.clear()
+        auth._reset_jwks_state()
 
 
 @pytest_asyncio.fixture

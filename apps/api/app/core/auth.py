@@ -1,7 +1,9 @@
+import asyncio
 import json
 import logging
 import os
 import re
+import time
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
@@ -27,6 +29,75 @@ _jwks_cache: dict[str, dict[str, Any]] = {}
 _JWKS_ALGORITHMS = frozenset({"ES256", "RS256"})
 _JWKS_ALGORITHM_BY_KEY_TYPE = {"EC": "ES256", "RSA": "RS256"}
 logger = logging.getLogger(__name__)
+
+#: Minimum wall-clock gap between two *forced* JWKS refreshes, process-wide.
+#:
+#: `kid` is read from the unverified token header before any authentication
+#: happens, so an unauthenticated client fully controls it. Without a bound,
+#: every request carrying a previously unseen `kid` forced its own outbound
+#: fetch to the Supabase JWKS endpoint, letting one client amplify unauthorized
+#: traffic into our identity provider.
+#:
+#: 300s is deliberately conservative. Supabase signing keys rotate on the order
+#: of days, so a five-minute worst-case delay in noticing a rotation is
+#: immaterial, while the bound caps forced refreshes at 12/hour no matter how
+#: much unknown-`kid` traffic arrives. Nothing about a *known* key is delayed:
+#: cached keys are served without ever consulting this cooldown.
+#:
+#: NOTE: this throttle is process-local. It bounds amplification per API
+#: process/replica, not across a cluster — N replicas permit N forced refreshes
+#: per window. That is an intentional trade-off: a globally coordinated limiter
+#: would require Redis or a database, which this deployment does not have and
+#: which would put a hard dependency in the pre-authentication path.
+_JWKS_REFRESH_COOLDOWN_SECONDS = 300.0
+
+#: Serializes forced refreshes so concurrent unknown-`kid` requests coalesce
+#: into a single fetch instead of stampeding the JWKS endpoint together.
+#:
+#: Created lazily and re-bound if the running loop changes. `asyncio.Lock`
+#: attaches to the first loop that awaits it, so a module-level instance would
+#: raise "bound to a different event loop" as soon as a second loop used it.
+#: The server runs one long-lived loop, so this rebinds exactly once in
+#: production; the branch exists for test runners that build a loop per test.
+_jwks_refresh_lock: asyncio.Lock | None = None
+_jwks_refresh_lock_loop: asyncio.AbstractEventLoop | None = None
+
+
+def _refresh_lock() -> asyncio.Lock:
+    global _jwks_refresh_lock, _jwks_refresh_lock_loop
+
+    loop = asyncio.get_running_loop()
+    if _jwks_refresh_lock is None or _jwks_refresh_lock_loop is not loop:
+        _jwks_refresh_lock = asyncio.Lock()
+        _jwks_refresh_lock_loop = loop
+    return _jwks_refresh_lock
+
+#: Monotonic timestamp of the last forced refresh attempt, or None if none has
+#: happened in this process. Monotonic (not wall-clock) so that NTP steps or
+#: DST changes can never widen or disable the window.
+_jwks_last_forced_refresh: float | None = None
+
+
+def _monotonic() -> float:
+    """Indirection seam so tests can drive the cooldown without real sleeps."""
+
+    return time.monotonic()
+
+
+def _reset_jwks_state() -> None:
+    """Clear cached JWKS data and the refresh cooldown.
+
+    Tests must reset both together: clearing only the cache would leave a
+    cooldown from a previous test suppressing the refresh under test, making
+    results depend on execution order.
+    """
+
+    global _jwks_last_forced_refresh, _jwks_refresh_lock, _jwks_refresh_lock_loop
+
+    _jwks_cache.clear()
+    _jwks_last_forced_refresh = None
+    _jwks_refresh_lock = None
+    _jwks_refresh_lock_loop = None
 
 
 def _is_test_or_dev_mode() -> bool:
@@ -85,23 +156,98 @@ async def _jwks(jwks_url: str, *, force_refresh: bool = False) -> dict[str, Any]
     return _jwks_cache[jwks_url]
 
 
+def _match_signing_key(
+    jwks: dict[str, Any], kid: str | None
+) -> tuple[Any, str] | None:
+    """Resolve a JWKS document to a `(key, algorithm)` pair, or None if absent.
+
+    The algorithm allow-list is unchanged: the algorithm comes from the key's
+    own `alg`, falls back to the key type, and must be one of
+    `_JWKS_ALGORITHMS`. A key that matches but carries an unusable algorithm
+    still rejects immediately rather than reporting "not found" — a refresh
+    cannot turn a disallowed algorithm into an allowed one, and treating it as
+    a miss would spend the refresh budget on a token that can never verify.
+    """
+
+    keys = jwks.get("keys", [])
+    for key in keys:
+        if key.get("kid") == kid or (kid is None and len(keys) == 1):
+            signing_jwk = jwt.PyJWK.from_dict(key)
+            algorithm = key.get("alg")
+            if algorithm is None:
+                algorithm = _JWKS_ALGORITHM_BY_KEY_TYPE.get(
+                    signing_jwk.key_type
+                )
+            if not isinstance(algorithm, str) or algorithm not in _JWKS_ALGORITHMS:
+                raise unauthenticated_exception()
+            return signing_jwk.key, algorithm
+    return None
+
+
+async def _refresh_jwks_within_cooldown(jwks_url: str) -> dict[str, Any] | None:
+    """Fetch JWKS if the cooldown allows, else return None.
+
+    Returns the freshest JWKS document available to the caller, or None when
+    no fetch was permitted. Concurrent callers coalesce: the first one performs
+    the fetch while the rest wait on the lock and then reuse its result rather
+    than issuing fetches of their own.
+
+    This guards *every* network fetch, not just refreshes of an already-cached
+    document. An uncached fetch is equally amplifiable: `_jwks` only populates
+    its cache on success, so while the endpoint is unreachable — or simply cold
+    — an unauthenticated caller would otherwise drive one outbound request per
+    request, with no cache ever forming to stop it.
+    """
+
+    global _jwks_last_forced_refresh
+
+    # Always take the lock rather than short-circuiting on a lock-free read of
+    # the timestamp. A fast path there would let callers that arrive *during*
+    # an in-flight fetch see the just-written timestamp, conclude the window is
+    # closed, and give up — rejecting a legitimately rotated key that the
+    # in-flight fetch was about to deliver. Waiting is what makes coalescing
+    # share the result instead of merely suppressing requests. Cache hits never
+    # reach this function, so ordinary traffic never contends on this lock.
+    async with _refresh_lock():
+        # Re-check under the lock. Whoever held it may have just refreshed, in
+        # which case we hand back their result — that is what turns a
+        # concurrent stampede into a single fetch while still letting every
+        # waiter see a newly rotated key.
+        last = _jwks_last_forced_refresh
+        if last is not None and _monotonic() - last < _JWKS_REFRESH_COOLDOWN_SECONDS:
+            return _jwks_cache.get(jwks_url)
+
+        # Consume the budget *before* the fetch, so an endpoint that is failing
+        # or slow cannot be used to drive a retry storm. The cost is that a
+        # transient JWKS outage delays rotation discovery by one cooldown,
+        # which is the safe direction to err.
+        _jwks_last_forced_refresh = _monotonic()
+        return await _jwks(jwks_url, force_refresh=True)
+
+
 async def _signing_key_from_jwks(
     jwks_url: str, kid: str | None
 ) -> tuple[Any, str]:
-    for refresh in (False, True):
-        jwks = await _jwks(jwks_url, force_refresh=refresh)
-        keys = jwks.get("keys", [])
-        for key in keys:
-            if key.get("kid") == kid or (kid is None and len(keys) == 1):
-                signing_jwk = jwt.PyJWK.from_dict(key)
-                algorithm = key.get("alg")
-                if algorithm is None:
-                    algorithm = _JWKS_ALGORITHM_BY_KEY_TYPE.get(
-                        signing_jwk.key_type
-                    )
-                if not isinstance(algorithm, str) or algorithm not in _JWKS_ALGORITHMS:
-                    raise unauthenticated_exception()
-                return signing_jwk.key, algorithm
+    # Serve from cache without touching the network whenever possible. This is
+    # the path every legitimate request takes, and it is never throttled.
+    cached = _jwks_cache.get(jwks_url)
+    if cached is not None:
+        signing_key = _match_signing_key(cached, kid)
+        if signing_key is not None:
+            return signing_key
+
+    # Either nothing is cached yet, or this `kid` is absent from what is. The
+    # latter is either a genuine key rotation we have not observed or an
+    # attacker probing invented values; the two are indistinguishable here, so
+    # the fetch is rate-limited rather than made conditional on the token.
+    refreshed = await _refresh_jwks_within_cooldown(jwks_url)
+    if refreshed is not None:
+        signing_key = _match_signing_key(refreshed, kid)
+        if signing_key is not None:
+            return signing_key
+
+    # Fail closed: an unresolvable `kid` is never authenticated, whether the
+    # refresh was skipped, failed, or simply did not contain the key.
     raise unauthenticated_exception()
 
 
