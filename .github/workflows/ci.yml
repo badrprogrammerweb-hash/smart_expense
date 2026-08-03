@@ -35,15 +35,33 @@ jobs:
           python -m pip install -r apps/api/requirements.txt
           npm ci
 
-      - name: Audit Python dependencies
-        continue-on-error: true
+      # Blocking. Declared Python requirements must have no known advisory.
+      # There is no allowlist here: at the time of writing pip-audit reports a
+      # clean tree, so any finding is new and must be triaged, not waived.
+      - name: Security gate — Python dependency audit (blocking)
         run: |
           python -m pip install pip-audit==2.10.1
           pip-audit -r apps/api/requirements.txt
 
-      - name: Audit npm dependencies
+      # Blocking. Compares production npm findings against an explicit,
+      # documented allowlist rather than a severity threshold. New advisories,
+      # new packages, version drift, and changed dependency paths all fail.
+      # See scripts/security/npm-audit-allowlist.mjs for why each accepted
+      # residual is unreachable and what would invalidate that reasoning.
+      - name: Security gate — production npm audit policy (blocking)
+        run: node scripts/security/check-npm-audit.mjs
+
+      - name: Verify npm audit policy script
+        run: node --test scripts/security/check-npm-audit.test.mjs
+
+      # NOT a security gate. Development and build tooling only — the known
+      # cluster under @capacitor/assets (tar, minimatch, brace-expansion,
+      # uuid, sharp 0.32.6) has no upgrade path in tree and never runs in
+      # production or CI. Reported for visibility; deliberately non-blocking.
+      # Production exposure is gated by the blocking step above, not here.
+      - name: Dependency report — development tooling advisories (informational)
         continue-on-error: true
-        run: npm audit --audit-level=high
+        run: npm audit
 
       - name: Check support-purchase copy
         run: npm run lint:support-copy
