@@ -1,8 +1,4 @@
-import json
 import os
-import shutil
-import subprocess
-from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
@@ -10,6 +6,7 @@ import pytest
 from sqlalchemy import text
 
 from conftest import add_member, create_team_workspace, requires_supabase
+from supabase_credentials import local_supabase_credential
 
 
 pytestmark = [pytest.mark.asyncio, requires_supabase]
@@ -25,7 +22,6 @@ RLS_HELPERS = (
     "workspace_role_for(uuid,uuid)",
     "is_workspace_member(uuid,uuid)",
 )
-REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def _local_supabase_url() -> str:
@@ -36,29 +32,10 @@ def _local_supabase_url() -> str:
 
 
 def _local_anon_key() -> str:
-    configured = os.getenv("SUPABASE_ANON_KEY", "").strip()
-    if configured:
-        return configured
-
-    npx = shutil.which("npx")
-    if not npx:
-        raise RuntimeError("Local Supabase anon key is unavailable")
-    completed = subprocess.run(
-        [npx, "--no-install", "supabase", "status", "-o", "json"],
-        cwd=REPO_ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-        timeout=30,
-    )
-    if completed.returncode != 0:
-        raise RuntimeError("Could not read the local Supabase anon key")
-    try:
-        anon_key = json.loads(completed.stdout)["ANON_KEY"]
-    except (KeyError, json.JSONDecodeError) as exc:
-        raise RuntimeError("Local Supabase status omitted the anon key") from exc
-    assert anon_key
-    return anon_key
+    # Resolution lives in tests/supabase_credentials.py so every suite discovers
+    # the local stack the same way: the SUPABASE_ANON_KEY that CI exports, else
+    # the Supabase CLI however it is installed.
+    return local_supabase_credential("ANON_KEY")
 
 
 async def _postgrest_rpc(user, function_name: str, payload: dict) -> httpx.Response:

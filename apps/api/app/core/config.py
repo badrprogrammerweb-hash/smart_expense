@@ -2,6 +2,8 @@ import os
 from dataclasses import dataclass
 from functools import lru_cache
 
+from dotenv import dotenv_values
+
 
 DEFAULT_CORS_ALLOW_ORIGINS = ("http://localhost:3000", "http://127.0.0.1:3000")
 DEFAULT_RATE_LIMIT_SUPPORT_CHECKOUT = 5
@@ -60,6 +62,28 @@ def is_dev_or_test_environment(app_env: str | None) -> bool:
 
     # Unset, empty, and unrecognized values intentionally select the safe mode.
     return (app_env or "").strip().lower() in DEV_OR_TEST_ENVIRONMENTS
+
+
+#: `APP_ENV` decides whether `/docs`, `/redoc`, `/openapi.json`, and internal
+#: diagnostics are exposed, so it is the one setting a file is never allowed to
+#: supply. A stray `.env` left on a production host — or checked out beside the
+#: process — must not be able to turn those surfaces back on when the real
+#: process environment says nothing. Everything else in `.env` is still honoured.
+FILE_EXCLUDED_ENVIRONMENT_NAMES = frozenset({"APP_ENV"})
+
+
+def load_environment(dotenv_path: str | None = None) -> None:
+    """Populate `os.environ` from `.env`, except the deployment-mode switch.
+
+    Mirrors `load_dotenv()`'s precedence — real environment variables win over
+    file values — but refuses to let the file introduce any name in
+    `FILE_EXCLUDED_ENVIRONMENT_NAMES`.
+    """
+
+    for name, value in dotenv_values(dotenv_path).items():
+        if value is None or name in FILE_EXCLUDED_ENVIRONMENT_NAMES:
+            continue
+        os.environ.setdefault(name, value)
 
 
 @lru_cache

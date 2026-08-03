@@ -4,9 +4,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from dotenv import load_dotenv
-
-from app.core.config import get_settings, is_dev_or_test_environment
+from app.core.config import get_settings, is_dev_or_test_environment, load_environment
 from app.core.logging import configure_logging
 from app.routes.ai_settings import router as ai_settings_router
 from app.routes.categories import router as categories_router
@@ -24,7 +22,7 @@ from app.routes.workspace_members import router as workspace_members_router
 from app.routes.workspaces import router as workspaces_router
 
 
-load_dotenv()
+load_environment()
 configure_logging()
 
 development_surface_enabled = is_dev_or_test_environment(os.getenv("APP_ENV"))

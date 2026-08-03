@@ -13,6 +13,7 @@ import app.core.config as config_module
 import app.main as main_module
 import app.routes.health as health_module
 from app.core.auth import bootstrap_unavailable_exception
+from app.core.config import is_dev_or_test_environment
 
 
 pytestmark = pytest.mark.asyncio
@@ -232,3 +233,48 @@ async def test_health_is_async_process_liveness_without_blocking_probe(
     assert response.json() == {"status": "ok"}
     assert legacy_probe_calls == []
     assert elapsed < 2.0
+
+
+async def test_dotenv_file_cannot_supply_app_env(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """A `.env` must never be able to enable developer surfaces.
+
+    Regression guard for the CI-only failure where `load_dotenv()` re-populated
+    `APP_ENV` from `apps/api/.env` on module reload, so a deployment that left
+    `APP_ENV` out of its real process environment silently ran in development
+    mode. This asserts the boundary directly, independently of whichever `.env`
+    happens to exist on the machine running the suite.
+    """
+
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "APP_ENV=development\nSYNTHETIC_FILE_ONLY_SETTING=from-file\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.delenv("SYNTHETIC_FILE_ONLY_SETTING", raising=False)
+
+    config_module.load_environment(str(env_file))
+
+    # The deployment-mode switch is refused ...
+    assert os.getenv("APP_ENV") is None
+    assert is_dev_or_test_environment(os.getenv("APP_ENV")) is False
+    # ... while ordinary settings from the same file are still honoured.
+    assert os.getenv("SYNTHETIC_FILE_ONLY_SETTING") == "from-file"
+
+
+async def test_real_process_app_env_still_wins_over_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """Explicit development via the real environment keeps working."""
+
+    env_file = tmp_path / ".env"
+    env_file.write_text("APP_ENV=production\n", encoding="utf-8")
+
+    monkeypatch.setenv("APP_ENV", "development")
+    config_module.load_environment(str(env_file))
+
+    assert os.getenv("APP_ENV") == "development"
+    assert is_dev_or_test_environment(os.getenv("APP_ENV")) is True

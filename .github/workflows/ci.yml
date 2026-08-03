@@ -59,13 +59,18 @@ jobs:
           set -euo pipefail
           eval "$(supabase status -o env)"
 
+          # SUPABASE_ANON_KEY is required by the PostgREST exposure tests, which
+          # must reach the HTTP boundary as an ordinary client. APP_ENV is
+          # deliberately NOT written here: a .env file can no longer supply the
+          # deployment-mode switch (app/core/config.py load_environment), so it is
+          # exported into the real process environment on the test step instead.
           cat > apps/api/.env <<EOF
           SUPABASE_URL=$API_URL
           SUPABASE_DB_URL=postgresql+asyncpg://postgres:postgres@127.0.0.1:54322/postgres
           SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
+          SUPABASE_ANON_KEY=$ANON_KEY
           SUPABASE_JWT_SECRET=$JWT_SECRET
           CORS_ALLOW_ORIGINS=http://127.0.0.1:3000,http://localhost:3000
-          APP_ENV=test
           EOF
 
           cat > apps/web/.env.local <<EOF
@@ -78,6 +83,9 @@ jobs:
         working-directory: apps/api
         env:
           PYTHONPATH: ${{ github.workspace }}/apps/api
+          # Explicit, and in the real process environment: the deployment-mode
+          # switch is intentionally no longer readable from a .env file.
+          APP_ENV: test
         run: python -m pytest tests/ -q
 
       - name: Run frontend unit tests
@@ -89,6 +97,11 @@ jobs:
 
       - name: Start API for browser acceptance tests
         working-directory: apps/api
+        env:
+          # Previously inherited from apps/api/.env; now that a file cannot supply
+          # the deployment-mode switch it is stated explicitly, preserving the
+          # behaviour the acceptance suite already ran against.
+          APP_ENV: test
         run: |
           python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > "$RUNNER_TEMP/api.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/api.pid"
@@ -150,13 +163,15 @@ jobs:
           set -euo pipefail
           eval "$(supabase status -o env)"
 
+          # APP_ENV is exported on the API step below rather than written here:
+          # a .env file can no longer supply the deployment-mode switch.
           cat > apps/api/.env <<EOF
           SUPABASE_URL=$API_URL
           SUPABASE_DB_URL=postgresql+asyncpg://postgres:postgres@127.0.0.1:54322/postgres
           SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
+          SUPABASE_ANON_KEY=$ANON_KEY
           SUPABASE_JWT_SECRET=$JWT_SECRET
           CORS_ALLOW_ORIGINS=http://127.0.0.1:3000,http://localhost:3000
-          APP_ENV=test
           EOF
 
           cat > apps/web/.env.local <<EOF
@@ -169,6 +184,7 @@ jobs:
         working-directory: apps/api
         env:
           PYTHONPATH: ${{ github.workspace }}/apps/api
+          APP_ENV: test
         run: |
           python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > "$RUNNER_TEMP/api.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/api.pid"

@@ -50,6 +50,10 @@ External services are Supabase Auth, Postgres, Vault, and Storage; a private ima
 registry; and Bunny Magic Containers. No managed database, object store, or AI key
 is provided by the container images.
 
+`APP_ENV` is read **only** from the process/container environment: it is
+deliberately ignored when it appears in a dotenv file, so a stray `.env` beside a
+deployed process can never re-enable the developer surfaces.
+
 Every deployed API container must set `APP_ENV=production` explicitly. An unset,
 empty, or unrecognized value now fails closed by disabling `/docs`, `/redoc`,
 `/openapi.json`, and diagnostic error detail, but leaving the value unset is not
