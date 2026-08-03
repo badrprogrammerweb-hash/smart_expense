@@ -2,8 +2,15 @@ import os
 from dataclasses import dataclass
 from functools import lru_cache
 
+from dotenv import dotenv_values
+
 
 DEFAULT_CORS_ALLOW_ORIGINS = ("http://localhost:3000", "http://127.0.0.1:3000")
+DEFAULT_RATE_LIMIT_SUPPORT_CHECKOUT = 5
+DEFAULT_RATE_LIMIT_SUPPORT_VERIFY = 10
+DEFAULT_RATE_LIMIT_AI_EXTRACTION = 30
+DEFAULT_RATE_LIMIT_AI_SUMMARY = 10
+DEV_OR_TEST_ENVIRONMENTS = frozenset({"dev", "development", "local", "test", "testing"})
 
 
 @dataclass(frozen=True)
@@ -24,6 +31,10 @@ class Settings:
     google_play_service_account_json: str
     google_play_notification_audience: str
     google_play_notification_service_account_email: str
+    rate_limit_support_checkout: int
+    rate_limit_support_verify: int
+    rate_limit_ai_extraction: int
+    rate_limit_ai_summary: int
 
     @property
     def jwks_url(self) -> str:
@@ -33,6 +44,46 @@ class Settings:
 def _parse_cors_origins(raw: str) -> tuple[str, ...]:
     origins = tuple(origin.strip() for origin in raw.split(",") if origin.strip())
     return origins or DEFAULT_CORS_ALLOW_ORIGINS
+
+
+def _positive_int_setting(name: str, default: int) -> int:
+    raw = os.getenv(name, str(default)).strip()
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a positive integer.") from exc
+    if value <= 0:
+        raise ValueError(f"{name} must be a positive integer.")
+    return value
+
+
+def is_dev_or_test_environment(app_env: str | None) -> bool:
+    """Allow development surfaces only for explicitly recognized APP_ENV values."""
+
+    # Unset, empty, and unrecognized values intentionally select the safe mode.
+    return (app_env or "").strip().lower() in DEV_OR_TEST_ENVIRONMENTS
+
+
+#: `APP_ENV` decides whether `/docs`, `/redoc`, `/openapi.json`, and internal
+#: diagnostics are exposed, so it is the one setting a file is never allowed to
+#: supply. A stray `.env` left on a production host — or checked out beside the
+#: process — must not be able to turn those surfaces back on when the real
+#: process environment says nothing. Everything else in `.env` is still honoured.
+FILE_EXCLUDED_ENVIRONMENT_NAMES = frozenset({"APP_ENV"})
+
+
+def load_environment(dotenv_path: str | None = None) -> None:
+    """Populate `os.environ` from `.env`, except the deployment-mode switch.
+
+    Mirrors `load_dotenv()`'s precedence — real environment variables win over
+    file values — but refuses to let the file introduce any name in
+    `FILE_EXCLUDED_ENVIRONMENT_NAMES`.
+    """
+
+    for name, value in dotenv_values(dotenv_path).items():
+        if value is None or name in FILE_EXCLUDED_ENVIRONMENT_NAMES:
+            continue
+        os.environ.setdefault(name, value)
 
 
 @lru_cache
@@ -62,4 +113,16 @@ def get_settings() -> Settings:
         google_play_notification_service_account_email=os.getenv(
             "GOOGLE_PLAY_NOTIFICATION_SERVICE_ACCOUNT_EMAIL", ""
         ).strip(),
+        rate_limit_support_checkout=_positive_int_setting(
+            "RATE_LIMIT_SUPPORT_CHECKOUT", DEFAULT_RATE_LIMIT_SUPPORT_CHECKOUT
+        ),
+        rate_limit_support_verify=_positive_int_setting(
+            "RATE_LIMIT_SUPPORT_VERIFY", DEFAULT_RATE_LIMIT_SUPPORT_VERIFY
+        ),
+        rate_limit_ai_extraction=_positive_int_setting(
+            "RATE_LIMIT_AI_EXTRACTION", DEFAULT_RATE_LIMIT_AI_EXTRACTION
+        ),
+        rate_limit_ai_summary=_positive_int_setting(
+            "RATE_LIMIT_AI_SUMMARY", DEFAULT_RATE_LIMIT_AI_SUMMARY
+        ),
     )

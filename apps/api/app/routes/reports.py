@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser, get_current_user
+from app.core.rate_limit import rate_limit_ai_summary
 from app.db import get_rls_session
 from app.schemas.ai_summary import AiSummaryRequest, AiSummaryResponse
 from app.schemas.reports import ReportData, ReportPreset, SubcategoryDrilldownResponse
@@ -49,7 +50,11 @@ async def get_category_subcategory_breakdown(
     return await get_subcategory_drilldown(workspace_id, main_category_id, report_period, session)
 
 
-@router.post("/ai-summary", response_model=AiSummaryResponse)
+@router.post(
+    "/ai-summary",
+    response_model=AiSummaryResponse,
+    dependencies=[Depends(rate_limit_ai_summary)],
+)
 async def post_workspace_ai_summary(
     workspace_id: UUID,
     request: AiSummaryRequest,

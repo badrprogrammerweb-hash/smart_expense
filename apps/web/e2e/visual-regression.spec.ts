@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { addWorkspaceMember, createSeededUser, hasE2eEnvironment, seedIncome, seedWorkspace, signIn } from "./_helpers/matrix";
+import { pinDashboardPeriod } from "./_helpers/visual-dashboard";
 
 const labels = {
   ar: { navigation: "التنقل", openNavigation: "فتح التنقل" },
@@ -34,6 +35,13 @@ test.describe("design refresh visual regression", () => {
       const emptyWorkspace = await seedWorkspace(owner, `Visual empty ${locale}`);
       await seedIncome(owner, workspace.id);
       await addWorkspaceMember(owner, workspace.id, viewer.email, "viewer");
+
+      // The clock freeze above only pins the browser. The dashboard's reporting
+      // window is computed server-side, so it must be pinned separately or the
+      // captured "Current period" text drifts with the real calendar month —
+      // see e2e/_helpers/visual-dashboard.ts.
+      await pinDashboardPeriod(page, workspace.id);
+
       await signIn(page, locale, owner);
 
       await page.setViewportSize({ width: 1440, height: 960 });

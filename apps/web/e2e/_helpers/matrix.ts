@@ -99,11 +99,33 @@ export async function seedWorkspace(user: SeededUser, name = `Refresh ${Date.now
   return workspace;
 }
 
-export async function seedIncome(user: SeededUser, workspaceId: string) {
+// The dashboard's reporting window is decided by the *server*
+// (apps/api/app/services/dashboard.py `get_current_period`, which reads
+// `datetime.now(UTC+3)`), and GET /workspaces/{id}/dashboard takes no period
+// argument. Browser-side time control such as `page.clock` therefore cannot
+// move that window, so any test asserting a seeded record on the dashboard has
+// to seed a date inside the server's *real* current period. This returns today
+// in UTC+3 so the seeded day matches the same clock the API uses.
+export function currentPeriodDate(): string {
+  const nowUtcPlus3 = new Date(Date.now() + 3 * 60 * 60 * 1000);
+  return nowUtcPlus3.toISOString().slice(0, 10);
+}
+
+/** `YYYY-MM-DD` -> the `DD/MM/YYYY` string the UI renders for it. */
+export function toDisplayDate(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+// `occurredOn` defaults to the original fixed date on purpose: the committed
+// Linux visual-regression baselines render it, so changing the default would
+// invalidate snapshots that must not be regenerated. Callers that need the
+// record to fall inside the dashboard period pass `currentPeriodDate()`.
+export async function seedIncome(user: SeededUser, workspaceId: string, occurredOn = "2026-07-13") {
   const response = await fetch(`${apiUrl}/workspaces/${workspaceId}/incomes`, {
     method: "POST",
     headers: { Authorization: `Bearer ${user.accessToken}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ amount_minor: 125_000, occurred_on: "2026-07-13", description: "RTL regression income" }),
+    body: JSON.stringify({ amount_minor: 125_000, occurred_on: occurredOn, description: "RTL regression income" }),
   });
   if (!response.ok) throw new Error(await response.text());
 }

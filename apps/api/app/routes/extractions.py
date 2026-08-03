@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser, get_current_user
+from app.core.rate_limit import rate_limit_ai_extraction
 from app.db import get_rls_session
 from app.schemas.extractions import ConfirmExtractionRequest, ExtractionRead, ExtractionStatus
 from app.services.extractions import (
@@ -22,7 +23,11 @@ from app.services.extractions import (
 router = APIRouter(prefix="/workspaces/{workspace_id}", tags=["extractions"])
 
 
-@router.post("/files/{file_id}/extractions", response_model=ExtractionRead)
+@router.post(
+    "/files/{file_id}/extractions",
+    response_model=ExtractionRead,
+    dependencies=[Depends(rate_limit_ai_extraction)],
+)
 async def trigger_workspace_extraction(
     workspace_id: UUID,
     file_id: UUID,

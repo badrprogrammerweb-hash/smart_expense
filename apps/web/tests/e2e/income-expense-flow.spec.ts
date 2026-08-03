@@ -1,7 +1,26 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const email = process.env.E2E_EMAIL;
 const password = process.env.E2E_PASSWORD;
+
+// Every record is rendered twice: once in the desktop list
+// (`<ul className="hidden … md:block">`) and once as a mobile card
+// (`<div className="… md:hidden">` wrapping `MobileRecordCard`, which carries
+// `data-testid="mobile-record-card"`). Both stay in the DOM at every viewport
+// — only CSS decides which one is displayed — so an unscoped `getByText`
+// always resolves to two elements and trips strict mode.
+//
+// `:visible` selects by rendered box rather than by guessing which branch the
+// viewport took, so this resolves to whichever representation is genuinely
+// displayed (the desktop row under the `chromium` project, the mobile card
+// under the `mobile-*` projects) and never to the hidden twin. That keeps the
+// "exactly one logical record" assertions meaningful: one record still yields
+// exactly one match.
+function recordRow(page: Page, text: string): Locator {
+  return page
+    .locator("li:visible, [data-testid='mobile-record-card']:visible")
+    .filter({ hasText: text });
+}
 
 test.describe("income and expense flow", () => {
   test.skip(!email || !password, "Set E2E_EMAIL and E2E_PASSWORD to run income/expense flow.");
@@ -27,20 +46,27 @@ test.describe("income and expense flow", () => {
     await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill("Lunch");
     await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByText("Lunch")).toBeVisible();
+    const lunchRow = recordRow(page, "Lunch");
+    await expect(lunchRow).toBeVisible();
+    await expect(lunchRow).toHaveCount(1);
 
-    await page.getByRole("button", { name: "Edit" }).first().click();
+    await lunchRow.getByRole("button", { name: "Edit" }).click();
     // The always-visible "create" form above the list also has an "Amount"
-    // field, so once editing starts there are two on the page — scope to
-    // the row currently in edit mode (the only <li> containing a textbox).
-    const editingRow = page.locator("li").filter({ has: page.getByRole("textbox") });
-    await editingRow.getByLabel("Amount").fill("500.00");
+    // field, and both forms label it via the same `id="expense-amount"`
+    // (ExpenseForm.tsx) — so `getByLabel("Amount")` resolves through the
+    // label's `for` to the *create* form's input, which sits outside this row.
+    // Address the editing row's own control by form field name instead.
+    const editingRow = page
+      .locator("li:visible, [data-testid='mobile-record-card']:visible")
+      .filter({ has: page.locator('input[name="amount"]') });
+    await editingRow.locator('input[name="amount"]').fill("500.00");
     await editingRow.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByText("SAR 500.00").first()).toBeVisible();
+    await expect(recordRow(page, "Lunch").getByText("SAR 500.00")).toBeVisible();
 
-    await page.getByRole("button", { name: "Delete" }).first().click();
-    await page.getByRole("button", { name: "Confirm delete" }).first().click();
-    await expect(page.getByText("Lunch")).toHaveCount(0);
+    const rowToDelete = recordRow(page, "Lunch");
+    await rowToDelete.getByRole("button", { name: "Delete" }).click();
+    await rowToDelete.getByRole("button", { name: "Confirm delete" }).click();
+    await expect(recordRow(page, "Lunch")).toHaveCount(0);
   });
 
   test("double-submitting the income form does not create a duplicate record", async ({ page }) => {
@@ -76,8 +102,11 @@ test.describe("income and expense flow", () => {
     // otherwise go unnoticed.
     await page.getByRole("button", { name: "Save" }).dblclick();
 
-    await expect(page.getByText(description)).toBeVisible();
-    await expect(page.getByText(description)).toHaveCount(1);
+    // Scoped to the displayed representation so the hidden mobile/desktop twin
+    // does not inflate the count — this must still fail if a genuine duplicate
+    // record is created.
+    await expect(recordRow(page, description)).toBeVisible();
+    await expect(recordRow(page, description)).toHaveCount(1);
     expect(createRequests).toHaveLength(1);
   });
 });

@@ -122,7 +122,14 @@ async function mockSupportApi(
   );
 }
 
-async function mockStripeHostedPage(page: Page, checkoutSessionId: string) {
+// `baseURL` comes from the Playwright config (PLAYWRIGHT_BASE_URL, else the
+// documented http://localhost:3000 default), so the mocked return links follow
+// the port the suite is actually running against instead of a hard-coded one.
+async function mockStripeHostedPage(page: Page, checkoutSessionId: string, baseURL: string) {
+  const resultUrl = new URL(
+    `/en/settings/support/result?session_id=${checkoutSessionId}`,
+    baseURL,
+  ).toString();
   await page.route("https://checkout.stripe.com/**", async (route) => {
     await route.fulfill({
       status: 200,
@@ -132,10 +139,10 @@ async function mockStripeHostedPage(page: Page, checkoutSessionId: string) {
           <body>
             <h1>Mock Stripe-hosted checkout</h1>
             <p>No external payment is performed by this automated test.</p>
-            <a href="http://localhost:3000/en/settings/support/result?session_id=${checkoutSessionId}">
+            <a href="${resultUrl}">
               Complete test checkout
             </a>
-            <a href="http://localhost:3000/en/settings/support/result?session_id=${checkoutSessionId}">
+            <a href="${resultUrl}">
               Cancel test checkout
             </a>
           </body>
@@ -152,6 +159,7 @@ test.describe("web support purchase", () => {
 
   test("hosted checkout return stays pending until backend polling reports completion", async ({
     page,
+    baseURL,
   }) => {
     test.skip(
       !hasE2eEnvironment,
@@ -164,7 +172,7 @@ test.describe("web support purchase", () => {
       checkoutSessionId,
       (requestNumber) => (requestNumber === 1 ? "pending" : "completed"),
     );
-    await mockStripeHostedPage(page, checkoutSessionId);
+    await mockStripeHostedPage(page, checkoutSessionId, baseURL!);
     await signIn(page, "en", user);
 
     await page.goto("/en/settings/support");
@@ -196,6 +204,7 @@ test.describe("web support purchase", () => {
 
   test("cancelled hosted checkout returns to a retryable non-success state", async ({
     page,
+    baseURL,
   }) => {
     test.skip(
       !hasE2eEnvironment,
@@ -204,7 +213,7 @@ test.describe("web support purchase", () => {
     const user = await createSeededUser();
     const checkoutSessionId = "cs_test_e2e_cancelled";
     await mockSupportApi(page, checkoutSessionId, () => "pending");
-    await mockStripeHostedPage(page, checkoutSessionId);
+    await mockStripeHostedPage(page, checkoutSessionId, baseURL!);
     await signIn(page, "en", user);
 
     await page.goto("/en/settings/support");

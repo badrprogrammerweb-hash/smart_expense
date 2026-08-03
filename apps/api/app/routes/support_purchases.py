@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import re
+import time
 from collections.abc import Mapping
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from sqlalchemy.exc import DBAPIError
@@ -13,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser, get_current_user
 from app.core.config import get_settings
+from app.core.rate_limit import rate_limit_support_checkout, rate_limit_support_verify
 from app.core.support_tiers import SUPPORT_TIERS, SupportTier
 from app.db import database_unavailable_exception, get_trusted_session
 from app.schemas.support_purchases import (
@@ -66,6 +69,8 @@ _FAILED_EVENTS = {
 }
 _REFUND_EVENTS = {"charge.refunded", "refund.updated"}
 _ACTIONABLE_EVENTS = _COMPLETED_EVENTS | _FAILED_EVENTS | _REFUND_EVENTS
+_CHECKOUT_IDEMPOTENCY_BUCKET_SECONDS = 60
+_checkout_idempotency_clock = time.time
 
 
 def _display_amount(amount_minor_units: int) -> str:
@@ -189,6 +194,12 @@ def _web_app_origin(request: Request) -> str:
     if request_origin in allowed:
         return request_origin
     return settings.cors_allow_origins[0].rstrip("/")
+
+
+def _checkout_idempotency_key(user_id: UUID, tier_id: str) -> str:
+    bucket = int(_checkout_idempotency_clock() // _CHECKOUT_IDEMPOTENCY_BUCKET_SECONDS)
+    material = f"{user_id}:{tier_id}:{bucket}".encode("utf-8")
+    return f"support-{hashlib.sha256(material).hexdigest()}"
 
 
 def _provider_object(event: payment_providers.VerifiedStripeEvent) -> dict:
@@ -445,6 +456,7 @@ async def get_support_purchase_receipt(
     "/checkout-sessions",
     response_model=CheckoutSessionResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit_support_checkout)],
 )
 async def create_checkout_session(
     body: CheckoutSessionRequest,
@@ -473,7 +485,10 @@ async def create_checkout_session(
             cancel_url=result_url,
             user_id=str(current_user.user_id),
             tier_id=tier.id,
-            idempotency_key=f"support-{current_user.user_id}-{uuid4()}",
+            idempotency_key=_checkout_idempotency_key(
+                current_user.user_id,
+                tier.id,
+            ),
         )
         purchase = await create_pending(
             session,
@@ -520,6 +535,7 @@ async def create_checkout_session(
 @router.post(
     "/mobile/verify",
     response_model=SupportPurchaseResponse,
+    dependencies=[Depends(rate_limit_support_verify)],
 )
 async def verify_mobile_purchase(
     body: MobilePurchaseVerifyRequest,

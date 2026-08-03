@@ -1,4 +1,11 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+
+// Category names render twice on the Categories screen: as an <option> in the
+// "Parent category" picker and as the row in the list below it. Assertions must
+// target the list row, otherwise an unscoped getByText trips strict mode.
+function categoryListRow(page: Page, name: string): Locator {
+  return page.locator("li", { hasText: name });
+}
 
 const email = process.env.E2E_EMAIL;
 const password = process.env.E2E_PASSWORD;
@@ -22,14 +29,19 @@ test.describe("categories", () => {
     await expect(page).toHaveURL(/\/dashboard/);
 
     await page.getByRole("link", { name: "Categories" }).click();
-    await expect(page.getByText("Restaurants")).toBeVisible();
-    await expect(page.getByText("Groceries")).toBeVisible();
-    await expect(page.getByText("Other")).toBeVisible();
+    // Every catalog name also renders as an <option> in the "Parent category"
+    // picker above the list (CategoryForm), so an unscoped getByText resolves
+    // to both the option and the list row. Assert against the row itself,
+    // using the same <li> idiom this test already uses for rename/archive
+    // below; `exact` keeps "Other" from also matching a longer name.
+    for (const name of ["Restaurants", "Groceries", "Other"]) {
+      await expect(page.locator("li", { hasText: name }).getByText(name, { exact: true })).toBeVisible();
+    }
 
     const categoryName = `QA Category ${Date.now()}`;
     await page.getByLabel("Category name").fill(categoryName);
     await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByText(categoryName)).toBeVisible();
+    await expect(categoryListRow(page, categoryName).getByText(categoryName, { exact: true })).toBeVisible();
 
     // Assign the new category to an expense before archiving it, so we can
     // confirm the archived category still displays correctly on that expense.
@@ -37,9 +49,17 @@ test.describe("categories", () => {
     await page.getByLabel("Amount").fill("25.00");
     await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill("Category archive check");
-    await page.getByLabel("Category").selectOption({ label: categoryName });
+    // CategoryPicker renders a "Category" and a "Subcategory" select; the
+    // default substring match would resolve to both, so pin the main one.
+    await page.getByLabel("Category", { exact: true }).selectOption({ label: categoryName });
     await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByText("Category archive check")).toBeVisible();
+    // The expense list renders each record twice (desktop <li> + mobile
+    // MobileRecordCard), both kept in the DOM, so scope to the displayed one.
+    await expect(
+      page
+        .locator("li:visible, [data-testid='mobile-record-card']:visible")
+        .filter({ hasText: "Category archive check" }),
+    ).toBeVisible();
 
     await page.getByRole("link", { name: "Categories" }).click();
     const categoryRow = page.locator("li", { hasText: categoryName });
@@ -51,14 +71,14 @@ test.describe("categories", () => {
     const editingRow = page.locator("li").filter({ has: page.getByRole("textbox") });
     await editingRow.getByRole("textbox").fill(renamedName);
     await editingRow.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByText(renamedName)).toBeVisible();
+    await expect(categoryListRow(page, renamedName).getByText(renamedName, { exact: true })).toBeVisible();
 
     await page.locator("li", { hasText: renamedName }).getByRole("button", { name: "Archive" }).click();
     await expect(page.locator("li", { hasText: renamedName }).getByText("Archived")).toBeVisible();
 
     // Archived category is excluded from the expense form's picker...
     await page.getByRole("link", { name: "Expenses" }).click();
-    const categorySelect = page.getByLabel("Category");
+    const categorySelect = page.getByLabel("Category", { exact: true });
     await expect(categorySelect.locator("option", { hasText: "Restaurants" })).toHaveCount(1);
     const categoryOptions = await categorySelect.locator("option").allTextContents();
     expect(categoryOptions).not.toContain(renamedName);

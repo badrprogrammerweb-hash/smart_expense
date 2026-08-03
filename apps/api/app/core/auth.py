@@ -12,7 +12,7 @@ from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
-from app.core.config import get_settings
+from app.core.config import get_settings, is_dev_or_test_environment
 
 
 @dataclass(frozen=True)
@@ -24,17 +24,16 @@ class CurrentUser:
 
 
 _jwks_cache: dict[str, dict[str, Any]] = {}
+_JWKS_ALGORITHMS = frozenset({"ES256", "RS256"})
+_JWKS_ALGORITHM_BY_KEY_TYPE = {"EC": "ES256", "RSA": "RS256"}
 logger = logging.getLogger(__name__)
 
 
 def _is_test_or_dev_mode() -> bool:
-    app_env = os.getenv("APP_ENV", "").strip().lower()
-    return bool(os.getenv("PYTEST_CURRENT_TEST")) or app_env in {
-        "test",
-        "dev",
-        "development",
-        "local",
-    }
+    app_env = os.getenv("APP_ENV")
+    if app_env is None:
+        return bool(os.getenv("PYTEST_CURRENT_TEST"))
+    return is_dev_or_test_environment(app_env)
 
 
 def _sanitized_db_error(exc: DBAPIError) -> str:
@@ -86,13 +85,23 @@ async def _jwks(jwks_url: str, *, force_refresh: bool = False) -> dict[str, Any]
     return _jwks_cache[jwks_url]
 
 
-async def _signing_key_from_jwks(jwks_url: str, kid: str | None) -> Any:
+async def _signing_key_from_jwks(
+    jwks_url: str, kid: str | None
+) -> tuple[Any, str]:
     for refresh in (False, True):
         jwks = await _jwks(jwks_url, force_refresh=refresh)
         keys = jwks.get("keys", [])
         for key in keys:
             if key.get("kid") == kid or (kid is None and len(keys) == 1):
-                return jwt.PyJWK.from_dict(key).key
+                signing_jwk = jwt.PyJWK.from_dict(key)
+                algorithm = key.get("alg")
+                if algorithm is None:
+                    algorithm = _JWKS_ALGORITHM_BY_KEY_TYPE.get(
+                        signing_jwk.key_type
+                    )
+                if not isinstance(algorithm, str) or algorithm not in _JWKS_ALGORITHMS:
+                    raise unauthenticated_exception()
+                return signing_jwk.key, algorithm
     raise unauthenticated_exception()
 
 
@@ -103,8 +112,8 @@ async def verify_access_token(token: str) -> dict[str, Any]:
 
     try:
         header = jwt.get_unverified_header(token)
-        algorithm = header.get("alg")
-        if algorithm == "HS256" and settings.supabase_jwt_secret:
+        key_id = header.get("kid")
+        if settings.supabase_jwt_secret and not key_id:
             claims = jwt.decode(
                 token,
                 settings.supabase_jwt_secret,
@@ -112,14 +121,16 @@ async def verify_access_token(token: str) -> dict[str, Any]:
                 options={"verify_aud": False},
             )
         else:
-            signing_key = await _signing_key_from_jwks(settings.jwks_url, header.get("kid"))
+            signing_key, algorithm = await _signing_key_from_jwks(
+                settings.jwks_url, key_id
+            )
             claims = jwt.decode(
                 token,
                 signing_key,
-                algorithms=[algorithm] if algorithm else ["ES256", "RS256"],
+                algorithms=[algorithm],
                 options={"verify_aud": False},
             )
-    except (httpx.HTTPError, jwt.PyJWTError, ValueError) as exc:
+    except (httpx.HTTPError, jwt.PyJWTError, TypeError, ValueError) as exc:
         raise unauthenticated_exception() from exc
 
     if not claims.get("sub"):
@@ -141,7 +152,7 @@ async def _repair_personal_workspace(user: CurrentUser) -> None:
                 {"claims": json.dumps(user.claims)},
             )
             await connection.execute(
-                text("select public.ensure_personal_workspace(:user_id, :email)"),
+                text("select private.ensure_personal_workspace(:user_id, :email)"),
                 {"user_id": str(user.user_id), "email": user.email},
             )
     except DBAPIError as exc:

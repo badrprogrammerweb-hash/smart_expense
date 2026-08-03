@@ -242,7 +242,7 @@ async def _get_ai_key(session: AsyncSession, workspace_id: UUID) -> tuple[str, s
         result = await session.execute(
             text(
                 "select provider, api_key "
-                "from public.get_workspace_ai_key_for_extraction(cast(:workspace_id as uuid))"
+                "from private.get_workspace_ai_key_for_extraction(cast(:workspace_id as uuid))"
             ),
             {"workspace_id": str(workspace_id)},
         )

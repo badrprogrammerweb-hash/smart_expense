@@ -612,6 +612,7 @@
     "generic": "Something went wrong.",
     "requestFailed": "The request failed. Try again.",
     "unauthenticated": "Sign in to continue.",
-    "notFound": "Workspace not found."
+    "notFound": "Workspace not found.",
+    "rateLimited": "Too many requests. Try again later."
   }
 }
