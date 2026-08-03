@@ -217,13 +217,18 @@ async def test_forbidden_key_read_attempt_never_exposes_the_key_either(
 async def test_only_key_read_rpc_function_ever_queries_vault_decrypted_secrets(
     db_connection,
 ) -> None:
+    # Both schemas are scanned on purpose. Phase 18 relocated the key-reading
+    # routine to `private`, but `public` is the schema PostgREST publishes, so a
+    # new public function that reads decrypted secrets is the higher-risk
+    # regression and must still be caught. Scanning only the schema the approved
+    # routine happens to live in would silently narrow this check.
     result = await db_connection.execute(
         text(
             """
             select p.proname
             from pg_proc p
             join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'private'
+            where n.nspname in ('public', 'private')
               and p.prokind = 'f'
               and pg_get_functiondef(p.oid) ilike '%vault.decrypted_secrets%'
             """

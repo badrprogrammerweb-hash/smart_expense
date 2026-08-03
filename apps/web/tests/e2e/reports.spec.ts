@@ -44,9 +44,17 @@ test.describe("reports", () => {
     await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Merchant").fill("Market");
     await page.getByLabel("Description").fill("Groceries run");
-    await page.getByLabel("Category").selectOption({ label: "Groceries" });
+    // CategoryPicker renders "Category" and "Subcategory" selects; the default
+    // substring match would resolve to both, so pin the main one.
+    await page.getByLabel("Category", { exact: true }).selectOption({ label: "Groceries" });
     await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByText("Groceries run")).toBeVisible();
+    // Records render in both the desktop list and the mobile card grid, and
+    // both stay in the DOM, so scope to whichever one is actually displayed.
+    await expect(
+      page
+      .locator("li:visible, [data-testid='mobile-record-card']:visible")
+      .filter({ hasText: "Groceries run" }),
+    ).toBeVisible();
 
     await page.getByRole("link", { name: "Dashboard" }).click();
     await page.waitForURL(/\/dashboard$/);
@@ -65,8 +73,10 @@ test.describe("reports", () => {
     await expect(page.getByText("Groceries", { exact: true })).toBeVisible();
     await expect(page.getByText("Spending trend")).toBeVisible();
     await expect(page.getByText("Top merchants")).toBeVisible();
-    await expect(page.getByText("Market")).toBeVisible();
-    await expect(page.getByText("Groceries run")).toBeVisible();
+    // Both the top-merchants row and the (display:none) mobile record card
+    // carry these strings, so restrict to the rendered one.
+    await expect(page.getByText("Market").filter({ visible: true })).toBeVisible();
+    await expect(page.getByText("Groceries run").filter({ visible: true })).toBeVisible();
 
     await page.getByLabel("Start date").fill("2025-01-01");
     await page.getByLabel("End date").fill("2025-01-31");

@@ -4,7 +4,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import arMessages from "../messages/ar.json";
 import enMessages from "../messages/en.json";
-import { addWorkspaceMember, createSeededUser, hasE2eEnvironment, seedWorkspace, signIn, type SeededUser } from "./_helpers/matrix";
+import { addWorkspaceMember, createSeededUser, currentPeriodDate, hasE2eEnvironment, seedWorkspace, signIn, type SeededUser } from "./_helpers/matrix";
 
 // Matches quickstart.md's own local-stack verification technique, and the
 // same technique extraction.spec.ts uses to reach a `ready_for_review` row
@@ -236,7 +236,11 @@ test.describe("mobile navigation", () => {
     const { categories } = (await categoriesResponse.json()) as { categories: { id: string }[] };
     await apiFetch(`/workspaces/${workspace.id}/expenses`, owner.accessToken, {
       method: "POST",
-      body: JSON.stringify({ amount_minor: 5000, occurred_on: "2026-07-01", category_id: categories[0].id }),
+      // Must land inside the dashboard's server-decided current period
+      // (apps/api/app/services/dashboard.py `get_current_period`), otherwise the
+      // category breakdown renders empty and the drilldown toggle measured
+      // below does not exist at all.
+      body: JSON.stringify({ amount_minor: 5000, occurred_on: currentPeriodDate(), category_id: categories[0].id }),
     });
     await signIn(page, "en", owner);
 

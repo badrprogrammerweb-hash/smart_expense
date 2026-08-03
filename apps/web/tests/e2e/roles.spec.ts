@@ -39,7 +39,11 @@ test.describe("role visibility", () => {
     await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill(ownerExpenseDescription);
     await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByText(ownerExpenseDescription)).toBeVisible();
+    await expect(
+      page
+      .locator("li:visible, [data-testid='mobile-record-card']:visible")
+      .filter({ hasText: ownerExpenseDescription }),
+    ).toBeVisible();
     await page.getByRole("button", { name: "Sign out" }).click();
     await page.waitForURL(/\/en\/sign-in$/);
 
@@ -58,7 +62,11 @@ test.describe("role visibility", () => {
     await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill(memberExpenseDescription);
     await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByText(memberExpenseDescription)).toBeVisible();
+    await expect(
+      page
+      .locator("li:visible, [data-testid='mobile-record-card']:visible")
+      .filter({ hasText: memberExpenseDescription }),
+    ).toBeVisible();
 
     const ownerRow = page.locator("li", { hasText: ownerExpenseDescription });
     await expect(ownerRow.getByRole("button", { name: /Edit|Delete/ })).toHaveCount(0);
@@ -80,12 +88,16 @@ test.describe("role visibility", () => {
     await expect(page.getByRole("button", { name: /Save|Delete|Edit|Archive/ })).toHaveCount(0);
 
     await page.goto(`/en/w/${teamWorkspaceId}/expenses`);
-    await expect(page.getByText(ownerExpenseDescription)).toBeVisible();
+    await expect(
+      page
+      .locator("li:visible, [data-testid='mobile-record-card']:visible")
+      .filter({ hasText: ownerExpenseDescription }),
+    ).toBeVisible();
     await expect(page.getByLabel("Amount")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /Save|Delete|Edit|Archive/ })).toHaveCount(0);
 
     await page.goto(`/en/w/${teamWorkspaceId}/categories`);
-    await expect(page.getByText("Restaurants")).toBeVisible();
+    await expect(page.locator("li", { hasText: "Restaurants" }).getByText("Restaurants", { exact: true })).toBeVisible();
     await expect(page.getByLabel("Category name")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /Save|Delete|Edit|Archive|Rename|Unarchive/ })).toHaveCount(0);
   });

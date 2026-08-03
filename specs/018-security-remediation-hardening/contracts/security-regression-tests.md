@@ -865,3 +865,884 @@ Configuration validity is proven locally; no Dependabot run or generated pull re
 | Hosted exposed-schemas setting | Not observable from a local test — dashboard config outside version control | Release gate with recorded evidence (spec FR-038, SC-018); quickstart step |
 | Live Stripe/Apple/Google sandbox purchases | Out of scope (spec Out of Scope); Phase 17 T052 stays open | Not covered — must not be claimed |
 | Hosted/production Phase 9 state | Local-only implementation; no hosted database was contacted | Deployment/release verification only |
+
+---
+
+## Phase 11 local release-verification evidence
+
+- **Date / branch / HEAD**: 2026-08-02 / `018-security-remediation-hardening` /
+  `f2b82351dfe5b2b5375771138f67a4c18c730487`
+- Phase 10 was committed, the index was empty, and the only initial untracked path was the
+  pre-existing `qa-reports/` directory. It was not read or modified.
+- Tooling: Python 3.12.6, Node 24.12.0, npm 11.6.2, Supabase CLI 2.111.0,
+  Playwright 1.61.1, and Docker client/server 29.5.3.
+
+### T085 backend gate and baseline comparison
+
+From `apps/api`, with the project virtual environment active:
+
+```powershell
+python -m pytest tests/ -q
+```
+
+Result: **346 passed in 1102.82s (18:22), exit 0**; zero failed, skipped, xfailed,
+xpassed, collection errors, or runtime errors.
+
+The recorded baseline was 282 passed in 1180.36s at commit
+`0754c9041781955a981c99eede881202a2dac12d`. A temporary `git archive` of that exact commit was
+collected with `pytest --collect-only -q` without changing branches. The baseline yielded 282 node
+IDs and the current tree yielded 346. Set comparison found **zero missing baseline tests** and
+**64 new Phase 18 tests**. The archive was removed after comparison. No baseline test was renamed,
+deleted, newly skipped, or newly xfailed.
+
+Test-file inventory relative to the baseline:
+
+- Existing files changed: `apps/api/tests/conftest.py` changed only the trusted SQL call from
+  `public.ensure_personal_workspace` to `private.ensure_personal_workspace`;
+  `apps/api/tests/test_extraction_secrecy.py` changed the catalog namespace scanned by
+  `test_only_key_read_rpc_function_ever_queries_vault_decrypted_secrets` from `public` to `private`.
+
+  **Correction (Correction Pass A).** The original wording here — "changed only the expected catalog
+  namespace" and "no pre-existing assertion was weakened" — was accurate about the assertion
+  expression but misleading about coverage, and is superseded. The `assert` itself was untouched, but
+  swapping the scanned schema **narrowed** the check: it stopped covering `public`, which is the
+  schema PostgREST publishes and therefore the higher-risk namespace. A new `public` function reading
+  `vault.decrypted_secrets` would no longer have been detected. That was a real Phase 18-introduced
+  security-coverage regression. It is fixed — see "Phase 11 Correction Pass A" below.
+- New backend files: `test_identity_guard.py`, `test_jwt_algorithm_pinning.py`,
+  `test_log_redaction.py`, `test_migration_safety.py`, `test_private_schema_exposure.py`,
+  `test_production_surface.py`, and `test_rate_limits.py`.
+- New web file: `apps/web/tests/unit/rate-limit-messages.test.ts`. T073 required no modification to
+  an existing test; the production-surface expectations live in the new Group PS file.
+- No test file was deleted or renamed.
+
+### T086 frontend gate
+
+```powershell
+npm run test --workspace=@smart-expense/web
+cd apps/web
+npx playwright test e2e --workers=1
+```
+
+- Web unit tests: **46 files, 237 tests passed in 56.43s, exit 0**. English and Arabic locale
+  loading and the new `errors.rateLimited` parity assertion passed.
+- Playwright: **102 passed, 22 skipped, 11 failed in 16.9 minutes, exit 1** (135 total). It ran
+  against current isolated web/API processes on ports 3100/8001 because stale local processes had
+  occupied the defaults; the current API returned the Phase 18 process-only health shape.
+- Failures were recorded without changing tests: two July-2026 date expectations ran against an
+  August-2026 current period; two support-return tests use a hard-coded `localhost:3000` while the
+  isolated run was on 3100; four visual snapshots differed by about 4% from their Linux reference;
+  one history test returned Internal Server Error; and two `mobile-navigation` T062 tests timed out
+  waiting for the category-breakdown control. Consequently T086 remains unchecked.
+
+  **Correction (Correction Pass A).** The two T062 failures were originally described in a way that
+  implied a mobile touch-target defect. That classification is not supported by the evidence and is
+  withdrawn. `qa-reports/2026-08-01/automated-qa-report.md` diagnoses them as the same stale
+  current-period fixture problem as the F-001 date failures (`TEST-GAP-02`): the spec seeds an
+  expense dated `2026-07-01`, the current-period category-breakdown control therefore never renders,
+  and the locator times out. Both also fail at the canonical base URL `:3000`, so they are neither
+  environment-induced nor Phase 18-induced. The 44x44 touch-target property itself was **not
+  evaluated** by these runs — that remains an open coverage gap, not a proven failure. Playwright
+  triage as a whole is out of scope for Correction Pass A and T086 stays unchecked.
+
+### T087 MG-1: disposable SQL idempotence
+
+A disposable Supabase stack (`phase18-p11-mg1`, isolated ports 56321-56326) applied the 12-project
+migration baseline immediately before `20260731000000`, then applied the target once through
+`supabase migration up --local`. The complete SQL file was then sent directly to that disposable
+PostgreSQL container a second time with `psql -X -v ON_ERROR_STOP=1`.
+
+First- and second-run canonical catalog snapshots were identical (`Compare-Object` difference
+count 0): four private-only functions, stable OIDs, owners, security modes, search paths and ACLs;
+45 tables, 33 policies and 34 non-internal triggers; the policy expression followed
+`private.shares_workspace_with`; `handle_new_user` and its trigger survived; and the
+`identity_mismatch` guard remained present. Migration history contained exactly one
+`20260731000000` row. Direct SQL re-execution does not insert migration-history rows; the normal
+migration runner inserted the single row on first application. The stack was stopped with
+`--no-backup`, and its containers, volumes, and work directory were removed.
+
+### T088 MG-2: whole-file rollback blocker
+
+> **Superseded by Correction Pass A.** The whole-file composition described in this subsection was
+> never a valid rollback procedure, and nothing below should be read as endorsing it. `rollback.sql`
+> no longer has a whole-file mode. See "Phase 11 Correction Pass A" for the corrected interface and
+> the re-proven T088 result.
+
+A fresh disposable full-migration stack (`phase18-p11-mg2`) executed the complete reviewed
+`rollback.sql` without a SQL-level error — that is, psql exited 0. Exit 0 was itself part of the
+defect: the run reported success while leaving an invalid state. Tables, policies, and triggers
+stayed at 45/33/34, the RLS policy followed the returned public `shares_workspace_with`, and
+ordinary-user PostgREST calls proved all four public rollback targets were reachable
+(HTTP 204/200/200/200, never 404).
+
+The resulting state did **not** satisfy the application gate. Section A moved the guarded
+`ensure_personal_workspace` to `public`, after which Section B independently created an unguarded
+copy in `private`, leaving five target rows rather than four. More importantly, the current app
+still qualifies `private.find_user_profile_by_email` and
+`private.get_workspace_ai_key_for_extraction`, which Section A removes.
+
+```powershell
+python -m pytest tests/test_signup_bootstrap.py tests/test_extraction_secrecy.py `
+  tests/test_workspace_members_list.py -q
+```
+
+Result after whole-file rollback: **1 passed, 4 failed in 14.03s, exit 1**. The failures were the
+expected missing-private-function errors, not weakened assertions. T088 remains unchecked. The
+disposable stack was destroyed; the rollback was never applied to the normal local database.
+
+### T089 MG-3: independent rollback sections
+
+Section boundaries were extracted reproducibly after normalizing CRLF to LF: Scenario A used the
+substring before the separator immediately preceding `-- Section B:`; Scenario B used that marker
+through EOF. Each substring contained its own single `BEGIN`/`COMMIT` and neither contained the
+other section.
+
+- Scenario A, on a fresh full stack: SQL exit 0; exactly four public targets with original OIDs and
+  grants; the Phase 4 guard remained on public `ensure_personal_workspace`; private Phase 9 helpers
+  and all 45/33/34 object counts remained intact. A baseline-compatible application archive ran
+  signup, extraction secrecy, member-list, and AI-settings tests: **6 passed in 11.55s, exit 0**.
+- Scenario B, on a separately recreated fresh full stack: SQL exit 0; only the identity guard was
+  removed, `ensure_personal_workspace` kept its OID, all four Phase 3 functions stayed private,
+  grants and trigger wiring were unchanged, and object counts stayed 45/33/34. The current app ran
+  the same focused files: **6 passed in 12.69s, exit 0**.
+
+Both disposable states, containers, volumes, and temporary application archive were removed.
+
+### T090 MG-4 / MG-5 static gates
+
+- Case-insensitive literal count of `create policy|drop policy|create table|alter table` in
+  `20260731000000_private_schema_privileged_functions.sql`: **0**.
+- Statement-aware count after stripping SQL comments: **0**.
+- Recursive production-code search under `apps/api/app` for the four old `public.`-qualified target
+  calls: **no matches** (`rg` exit 1, the expected no-match status).
+
+### T091 Quickstart Steps 1-9
+
+The mapped backend command below passed **68 tests in 144.35s, exit 0**:
+
+```powershell
+python -m pytest tests/test_private_schema_exposure.py tests/test_identity_guard.py `
+  tests/test_extraction_secrecy.py tests/test_signup_bootstrap.py `
+  tests/test_workspace_members_list.py tests/test_workspace_members_add.py `
+  tests/test_extraction_trigger.py tests/test_extraction_authorization.py `
+  tests/test_ai_summary.py tests/test_ai_summary_error_handling.py `
+  tests/test_files_access_privacy.py tests/test_rate_limits.py `
+  tests/test_production_surface.py tests/test_log_redaction.py -q
+```
+
+| Step | Command or UI action | Expected | Actual | Status / evidence |
+|---|---|---|---|---|
+| 1 | Real ordinary-user PostgREST Group EX tests | Four private RPCs 404; EX-5 control not 404 | Four 404s; `clear_workspace_ai_key` control resolved and was not 404 | PASS, `test_private_schema_exposure.py` |
+| 2 | Direct DB identity-guard tests plus PostgREST exposure | Cross-user mutation refused and victim unchanged | SQLSTATE 42501 `identity_mismatch`; target unchanged; matching/NULL paths passed | PASS, `test_identity_guard.py` |
+| 3 | Member/BYOK secrecy tests | RPC 404 and no raw key in client/log output | 404; synthetic key absent from responses and logs | PASS, exposure and extraction-secrecy files |
+| 4a | Real Chromium signup through `/en/sign-up` on current local web/API | Dashboard reached; personal workspace; Owner | Targeted auth flow 2/2 passed in 1.1m; DB follow-up found 1 new UI user, 1 personal workspace, 1 Owner membership | PASS; T035 completed |
+| 4b | Real Chromium sign-in/dashboard/sign-out control | Existing ordinary account reaches dashboard without bootstrap 503 | Passed in the same targeted auth run | PASS |
+| 4c-4d | Owner invite existing/nonexistent email tests | Correct member added; unknown address 404 | Unchanged role matrix and errors passed | PASS, `test_workspace_members_add.py` |
+| 4e-4g | Mocked/local extraction, summary, and Viewer controls | Legitimate roles succeed; Viewer refused; no live provider | Happy path/summary passed with mocks; Viewer denial passed | PASS, extraction/summary suites |
+| 4h | Real ordinary owner/member/outsider RLS member-list test | Co-member visible; unrelated user filtered | Member saw owner/member; outsider received 404; policy dependency resolves private `shares_workspace_with` | PASS, `test_workspace_members_list.py` plus exposure catalog test |
+| 4i | Receipt download-access tests | Member gets short-lived URL; outsider/anonymous denied | URL expiry and denial assertions passed | PASS, `test_files_access_privacy.py` |
+| 5 | Rate-limit/webhook backend tests and complete web units | Ordering, 429 envelope, unthrottled webhooks, EN/AR parity | Backend rate-limit suite passed inside 68; web 237/237 passed | PASS |
+| 6 | Group PS plus actual production/unset/dev HTTP runs | Prod/unset docs 404; dev 200; liveness has no dependency probe | Prod 404/404/404, unset 404/404/404, dev 200/200/200; zero-network/credential/thread tests passed | PASS |
+| 7 | Direct synthetic child-logger probe | Bearer and email redacted | `Bearer [REDACTED]` and `u***@example.com` emitted | PASS |
+| 8 | Disposable idempotence, rollback, independent sections, static gates | All migration and rollback gates pass | MG-1, MG-3, MG-4/5 passed; whole-file MG-2 app gate failed as recorded above. **Re-run green in Correction Pass A** against the corrected explicit-target interface — see below | **PASS (after Correction Pass A)** |
+| 9 | Full backend, web unit, and Playwright commands | All pass unchanged | Backend 346/346 and web unit 237/237 passed; Playwright 11 failures | **FAIL / BLOCKED** |
+
+Because Steps 8 and 9 are not fully green, T091 remains unchecked even though Steps 1-7 pass.
+(Correction Pass A subsequently turned Step 8 green; Step 9 is still blocked on the Playwright gate,
+so T091 stays unchecked.)
+
+### Hosted gates and non-goals
+
+- **T092 — superseded: now PASSED.** At the time of this section no authorized hosted-project
+  settings evidence had been supplied, and the local `schemas = ["public"]` setting was never
+  substituted for it. The Dashboard evidence was subsequently captured and verified — see "T092
+  hosted exposed-schema evidence" at the end of this document.
+- **T093 — superseded: now PASSED.** At the time of this section no `DEPLOYED_URL` or deployed
+  ordinary-user credentials had been supplied, and no local or mocked request was substituted. The
+  gate was subsequently executed against the real hosted project — see "T093 deployed PostgREST
+  smoke" at the end of this document.
+- Phase 17 T052 remains unchecked. `apps/api/app/core/support_tiers.py` has the same Git blob
+  (`82391707b740745de9cc15aa7e4a771714b7df59`) as the Phase 17 baseline; no Phase 18 commit changed
+  its placeholder price IDs. No Stripe, Apple, or Google sandbox was contacted, and no Phase 18
+  artifact claims live provider purchase completion.
+
+The normal local database retained 14 migration-history rows with exactly one
+`20260731000000` row and one `20260732000000` row, 33 policies, and 34 non-internal triggers. No
+rollback or disposable migration command targeted it. Local tests and the real browser signup did
+create uniquely named local test fixtures; no baseline/project record was deleted and no protection
+trigger was bypassed.
+
+---
+
+## Phase 11 Correction Pass A
+
+- **Date / branch / HEAD**: 2026-08-02 / `018-security-remediation-hardening` /
+  `f2b82351dfe5b2b5375771138f67a4c18c730487` (unchanged; nothing was staged, committed, or pushed).
+- **Scope**: the rollback-contract defects and the baseline security-test coverage regression only.
+  Playwright triage (T086) and dependency-vulnerability remediation were not started. T092 and T093
+  were not touched.
+- **Disposable environment**: an isolated Supabase stack, project `phase18-p11-pa`, ports
+  56321-56324, created in a scratch working directory outside the repository with a copy of the
+  project's 14 migrations. The normal local stack (`smart-expense-ai`, ports 54321-54324) was never
+  a rollback target.
+
+### Defect reproduction (test-first)
+
+Reproduced against the disposable stack with the **pre-correction** `rollback.sql`, from a clean
+`supabase db reset` state (all four routines in `private`):
+
+| # | Reproduction | Observed |
+|---|---|---|
+| D-1 | Whole-file execution (`psql -f rollback.sql`) | **exit 0** — reported success — leaving five target rows: guarded `public.ensure_personal_workspace` **and** unguarded `private.ensure_personal_workspace` |
+| D-2 | Section B alone with the routine absent from `private` | **exit 0**; `create or replace` **created** an unguarded `private.ensure_personal_workspace` instead of replacing one |
+| D-3 | Section A re-run against the resulting public+private duplicate | **exit 0**; the `elsif` no-opped and the duplicate survived — the ambiguous state was tolerated, not raised |
+
+D-1 is the composition of D-2 with Section A's relocation. Exit 0 in all three cases is the core
+hazard: an operator had no signal that the rollback had produced an invalid state.
+
+### Corrected interface
+
+`rollback.sql` now takes a required psql variable and executes exactly one target per invocation:
+
+```bash
+psql <db> -v rollback_target=phase3         -f rollback.sql
+psql <db> -v rollback_target=identity_guard -f rollback.sql
+```
+
+The branch decision is made by a single `\gset` outside any dollar-quoted body (psql does not
+interpolate variables inside `$$ ... $$`), and each target lives in its own `\if` block with its own
+`begin`/`commit`. psql skips the untaken branch entirely, so **the two targets cannot be composed in
+one run** — D-1 is structurally impossible rather than merely discouraged.
+
+Both targets end with an in-transaction verification block that raises on any deviation from the
+documented end state, so a partial or unexpected result aborts instead of committing.
+
+### Target `phase3` — proven end state
+
+Fresh disposable database, all migrations applied, then `-v rollback_target=phase3`; **exit 0**.
+
+| Property | Expected | Actual |
+|---|---|---|
+| Relocation | 4 routines in `public`, exactly once each | `public.ensure_personal_workspace`, `public.find_user_profile_by_email`, `public.get_workspace_ai_key_for_extraction`, `public.shares_workspace_with` |
+| No duplicates | 0 `private` copies of the four | `private_dups=0` |
+| Grants | `authenticated` EXECUTE; `anon` and `PUBLIC` denied | `auth=t, anon=f, PUBLIC=f` on all four |
+| Phase 4 guard | Retained | `guard_retained=true` |
+| `handle_new_user` | Calls `public.ensure_personal_workspace`, `search_path = public` | both confirmed; no `private.` reference remains |
+| Trigger | `on_auth_user_created` survives | 1 row |
+| RLS policy | Follows the returned public routine | `shares_workspace_with(id, auth.uid())` |
+| Phase 9 | Not reversed | `private.workspace_role_for`, `private.is_workspace_member` still private |
+
+Re-running `phase3` against the already-reversed database is a no-op (exit 0, still 4 public / 0
+private).
+
+**Application compatibility — recorded honestly.** Against this exact database state:
+
+- A **compatible public-calling application revision** (`git archive e0c608f`, the pre-Phase-3 tree,
+  extracted outside the repository) ran
+  `test_signup_bootstrap.py test_extraction_secrecy.py test_workspace_members_list.py
+  test_workspace_members_add.py test_ai_settings_secrecy.py` → **7 passed in 18.04s, exit 0**.
+- The **current** private-qualified tree ran the same five files → **6 failed, 1 passed in 16.66s**,
+  with `asyncpg.exceptions.UndefinedFunctionError: function private.ensure_personal_workspace(...)
+  does not exist`.
+
+The `phase3` target therefore **requires a coordinated application rollback**. No claim is made that
+the current tree remains compatible with it. (The single passing test in the second run is the
+corrected `vault.decrypted_secrets` catalog scan, which is placement-agnostic by design.)
+
+### Target `identity_guard` — proven end state
+
+Fresh disposable database, then `-v rollback_target=identity_guard`; **exit 0**.
+
+| Property | Expected | Actual |
+|---|---|---|
+| Placement | All four Phase 3 routines stay `private` | confirmed; Phase 9 helpers also still `private` |
+| Guard | Removed from `private.ensure_personal_workspace` only | `guard_pos=0` |
+| OID | Preserved across `create or replace` | `17781` then `17781` |
+| Public duplicate | None created | `no_public_dup=t` |
+| Metadata | `SECURITY DEFINER`, `search_path=public` | `prosecdef=t`, `{search_path=public}` |
+| Grants | `authenticated` EXECUTE; `anon`/`PUBLIC` denied | confirmed |
+| `handle_new_user` | Still calls the private routine | confirmed |
+| Trigger | `on_auth_user_created` survives | 1 row |
+
+**No application rollback is required.** The **current** application tree ran the same five focused
+files against this state → **7 passed in 16.61s, exit 0**.
+
+### Invalid invocations — all fail closed
+
+Each exited non-zero with the database unchanged:
+
+| Scenario | Result |
+|---|---|
+| No `rollback_target` | exit 3; `missing or unknown rollback target: '<unset>'`; no change |
+| `rollback_target=everything` | exit 3; same error naming the received value; no change |
+| Empty `rollback_target` | exit 3; no change |
+| `identity_guard` when the routine is not in `private` | exit 3; `must not create the routine`; **0 private copies created**, guard left untouched on the public copy |
+| `phase3` against a public+private duplicate | exit 3; `ambiguous state ... Refusing to proceed`; duplicate left intact for manual resolution |
+| `phase3` against a database missing the routine entirely | exit 3; `exists in neither public nor private` (observed incidentally when a `supabase db reset` failed to bootstrap) |
+
+The fourth and fifth rows are the direct fixes for D-2 and D-3.
+
+### Why T089 passed while the old whole-file T088 failed
+
+Not a contradiction, and the corrected artifact makes the reason explicit. T089 tested **each section
+against the application state that section targets** — Section A against a public-calling revision,
+Section B against the current private-calling tree — so both were coherent and both passed. The old
+T088 composed **both sections against a single application state that neither target matches**:
+Section A relocated the routines to `public` (breaking the current private-qualified tree) and
+Section B then created a second, unguarded copy in `private` (an end state no target ever specified).
+The Correction Pass A pairing above reproduces this precisely: the same `phase3` database yields
+7 passed with a compatible revision and 6 failed with the current one.
+
+### Security-test coverage restoration
+
+`apps/api/tests/test_extraction_secrecy.py::test_only_key_read_rpc_function_ever_queries_vault_decrypted_secrets`
+now scans `where n.nspname in ('public', 'private')`. The assertion is unchanged
+(`names == {"get_workspace_ai_key_for_extraction"}`), so this widens coverage and weakens nothing.
+
+Proven in both directions on the disposable stack:
+
+| Injected offender | Result |
+|---|---|
+| `public.leaky_probe()` reading `vault.decrypted_secrets` | **FAILS** — `assert {..., 'leaky_probe'} == {'get_workspace_ai_key_for_extraction'}` |
+| `private.leaky_probe()` reading `vault.decrypted_secrets` | **FAILS** — same assertion |
+| Neither present | **PASSES** |
+
+Under the previous `private`-only scan the public offender would not have been detected. Both probes
+were dropped immediately afterwards; neither was created on the normal local database.
+
+The normal local database was independently checked for pre-existing offenders before the full
+rerun — the `public`+`private` scan returned only `private.get_workspace_ai_key_for_extraction`, so
+the broadened test reflects real posture there rather than local drift.
+
+### Quickstart Step 8 re-run
+
+Executed on a fresh disposable database against the corrected procedure:
+
+- **Idempotence**: `20260731000000` applied a second and third time, exit 0 both times; canonical
+  catalog snapshots after the 2nd and 3rd applications were byte-identical (`diff` clean); migration
+  history still held exactly one `20260731000000` row.
+- **Rollback**: both targets proven from fresh state as tabulated above.
+- **Static gates**: `grep -icE 'create policy|drop policy|create table|alter table'` on the
+  migration returned **0**; `public.`-qualified target calls under `apps/api/app` returned **0**.
+
+Step 8 is now **PASS**. Step 9 remains blocked on the Playwright gate, so T091 stays unchecked.
+
+### T085 re-run after the test change
+
+A pre-existing security test changed in this pass, so the complete backend gate was re-run against
+the normal local stack:
+
+```powershell
+cd apps/api
+python -m pytest tests/ -q
+```
+
+Result: **346 passed in 1204.25s (0:20:04)** — zero failed, skipped, xfailed, xpassed, collection
+errors, or runtime errors. The count is unchanged from the pre-correction run (346), confirming the
+`test_extraction_secrecy.py` edit widened a query without adding, removing, or disabling any test.
+Baseline preservation is unaffected: the diff against `0754c9041781955a981c99eede881202a2dac12d`
+still shows zero deleted or renamed tests and the same 64 Phase 18 additions. T085 remains checked.
+
+Recorded caveat on the exit code: the run was captured through a shell pipeline, so the literal
+`EXITCODE=0` that was echoed is the pipeline's status rather than pytest's. The authoritative signal
+is the summary line, which reports only passes — `pytest -q` prints a `failed`/`error` component
+whenever one exists.
+
+---
+
+## Phase 11 Correction Pass B
+
+Scope: repair the confirmed **Playwright test defects** recorded above, re-run the frontend release
+gate against the corrected CI-equivalent definition, and correct the T086 / Quickstart Step 9
+documentation so it mirrors the real CI split. **No application production code was changed.** The
+`download-url` 500 was deliberately left unfixed (see "Deferred product issue" below), no dependency
+remediation was started, and T092/T093 were untouched.
+
+### The two defect classes
+
+Every Playwright failure triaged in this pass reduced to one of two causes, both introduced by
+earlier UI phases and never reflected in the tests:
+
+- **RD (responsive dual-render).** `ExpenseHistoryList.tsx:116` renders a desktop
+  `<ul className="hidden ... md:block">` and `:177` a mobile `<div className="... md:hidden">`
+  wrapping `MobileRecordCard` (`data-testid="mobile-record-card"`). **Both stay in the DOM at every
+  viewport** — only CSS decides which is displayed. Playwright resolves locators against the DOM and
+  raises strict-mode violations *before* visibility filtering, so any unscoped `getByText` on a
+  record matches twice.
+- **CS (category select split).** `CategoryPicker.tsx` renders two selects, `aria-label="Category"`
+  and `aria-label="Subcategory"`. `getByLabel("Category")` defaults to substring matching, so it
+  resolves to both.
+
+Neither is a product defect: the duplicated node is `display:none` and therefore absent from the
+accessibility tree. They are test-selector defects.
+
+### Corrections applied (test files only)
+
+| File | Defect | Correction |
+|---|---|---|
+| `apps/web/tests/e2e/income-expense-flow.spec.ts` | RD x3 | Added `recordRow()` returning `li:visible, [data-testid='mobile-record-card']:visible` filtered by text. `:visible` **is** the proof that the resolved container is the displayed representation, so no bare `.first()` is used. `toHaveCount(1)` retained — one logical record still yields exactly one match. Also fixed two latent failures behind the first: the edit step used `getByLabel("Amount")`, which resolves through the duplicated `id="expense-amount"` to the *create* form outside the row (now `input[name="amount"]` within the row), and the delete step used bare `.first()` (now row-scoped). |
+| `apps/web/tests/e2e/categories.spec.ts` | CS, RD, option/row collision | Added `categoryListRow()`; the three catalog-name assertions now target the list row with `exact: true` (keeps `Other` from matching a longer name). Two latent failures behind the first were also fixed: the create/rename assertions collided with the "Parent category" `<option>`, and `getByLabel("Category")` resolved to both selects. |
+| `apps/web/e2e/f001-dates.spec.ts` | Stale July fixture | Seeded date now derived from the period under test. **The four typed-date assertions (`2026-07-14` to `14/07/2026`, `2026-07-01` to `01/07/2026`, `2026-07-31` to `31/07/2026`) are unchanged** — they format user input and are period-independent, so exactness is preserved. |
+| `apps/web/e2e/mobile-navigation.spec.ts` | Stale July fixture | T062's seeded expense moved from `2026-07-01` to `currentPeriodDate()`. The 44x44 bounding-box assertions are untouched and now genuinely execute. |
+| `apps/web/e2e/_helpers/matrix.ts` | — | Added `currentPeriodDate()` and `toDisplayDate()`; `seedIncome` gained an **optional** `occurredOn` that **defaults to the original `2026-07-13`**. |
+| `apps/web/e2e/support-purchases.spec.ts` | Portability | Hard-coded `http://localhost:3000` return links replaced with the Playwright `baseURL` fixture. |
+| `apps/web/tests/e2e/history.spec.ts` | Portability | `apiBaseUrl` now prefers `process.env.NEXT_PUBLIC_API_URL` before `.env.local`, matching `matrix.ts`. No history assertion or behaviour changed. |
+
+#### Why `page.clock` was not used for the date fixtures
+
+The instruction preferred freezing the clock. **It cannot work here**, and this was verified in
+source rather than assumed: `apps/api/app/services/dashboard.py:11` `get_current_period()` derives
+the window from server-side `datetime.now(UTC+3)`, and `apps/api/app/routes/dashboard.py` accepts
+only `recent_limit` — there is no period parameter. `page.clock` controls the *browser* clock, so it
+cannot move a window the API computes in Python. Option (b), deriving the fixture from the tested
+current period, was therefore the only viable correction and is the one the instruction also
+authorised.
+
+#### Why `seedIncome`'s default was preserved
+
+`e2e/visual-regression.spec.ts:35` seeds through the same helper and its **committed Linux baselines
+render `13/07/2026`**. Changing the default would have invalidated snapshots that must not be
+regenerated. The optional parameter keeps all seven existing callers byte-identical.
+
+### Scope extension, disclosed
+
+Three further specs — `tests/e2e/{error-states,reports,workspace-switch}.spec.ts` — were **not** in
+the instruction's list because Pass A never executed them: they self-skip without `E2E_EMAIL` /
+`E2E_PASSWORD`, and CI does not set those. Running the gate *with* credentials surfaced them as
+**the same RD and CS classes**, so the identical corrections were applied. This is a deliberate,
+disclosed extension of the enumerated scope; it is test-only and each fix was verified by re-run.
+
+`tests/e2e/roles.spec.ts` carried the same RD/CS patterns and was corrected identically. It is gated
+on `E2E_MEMBER_*` / `E2E_VIEWER_*` / `E2E_TEAM_WORKSPACE_ID`, which no earlier run supplied — so
+rather than leave the edits unverified, an owner/member/viewer team workspace was seeded through the
+ordinary signup and member-invite endpoints and the spec was executed:
+
+```
+tests/e2e/roles.spec.ts + tests/e2e/categories.spec.ts --project=chromium
+  -> 3 passed (21.8s), exit 0
+```
+
+That run also executed `categories.spec.ts`'s member/viewer test, which had skipped in every
+previous gate. **No edit in this pass is now unverified by execution.**
+
+### The `toHaveCount(1)` assertions still discriminate
+
+Scoping a locator can silently defang a count assertion — a locator resolving to zero would satisfy
+`toHaveCount(0)` and could make `toHaveCount(1)` pass vacuously. This was checked rather than
+assumed: two expenses sharing one description were created through the API, and the locators were
+counted against that page.
+
+| Locator | Count | Meaning |
+|---|---|---|
+| `page.getByText(desc)` (old, unscoped) | **4** | 2 records x desktop + mobile twins — the strict-mode failure reproduced exactly |
+| `li:visible, [data-testid='mobile-record-card']:visible` filtered by text (corrected) | **2** | one match per *logical* record |
+
+Because a genuine duplicate yields 2, `toHaveCount(1)` still fails on a real duplicate. The
+double-submit protection assertion retains its meaning.
+
+### T086 frontend gate — corrected definition and result
+
+The former T086 command `npx playwright test e2e --workers=1` did not match CI and conflated two
+independent gates. CI (`.github/workflows/ci.yml`) splits them:
+
+**Gate 1 — functional e2e, visual regression excluded** (ci.yml, "Run frontend acceptance tests"):
+
+```bash
+cd apps/web && npx playwright test e2e --workers=1 --grep-invert "design refresh visual regression"
+```
+
+Scope confirmed with `--list` before running: **33 spec files, 131 tests**, covering both `e2e/` and
+`tests/e2e/`, with `visual-regression.spec.ts` excluded.
+
+| Run | Credentials | Result | Duration |
+|---|---|---|---|
+| CI-equivalent (as CI runs it, no `E2E_*`) | none | **109 passed, 22 skipped, 0 failed, exit 0** | 11.1 min |
+| Coverage run (credentials exported) | `E2E_EMAIL`/`E2E_PASSWORD`/`E2E_WORKSPACE_ID` | **115 passed, 3 failed, 13 skipped** — the 3 were the disclosed extension below | 11.4 min |
+| Coverage re-run after the extension fixes | same | **118 passed, 13 skipped, 0 failed, exit 0** | 11.3 min |
+
+Web unit half of T086: `npm run test --workspace=@smart-expense/web` — **46 files, 237 tests passed
+in 51.86s, exit 0**, unchanged from the pre-correction count.
+
+**The skip count is reported deliberately.** CI sets no `E2E_*` credentials, so
+`tests/e2e/{auth,categories,error-states,income-expense-flow,reports,roles,workspace-switch}.spec.ts`
+**self-skip in CI**. A CI-green result therefore attests to less than the file count implies, and
+the two specs corrected first would have skipped silently had only the CI-equivalent run been used
+to justify T086. The credentialed run exists precisely to prove the corrections execute and pass.
+
+**T086 is checked** on the corrected Gate 1 definition, supported by both runs.
+
+**Gate 2 — visual regression, pinned Linux image** is verified as quickstart **Step 9c under T091**,
+not as a separate task ID. See below.
+
+### Step 9c visual regression — first attempt (Correction Pass B): NOT RUN
+
+The CI job runs `e2e/visual-regression.spec.ts` inside
+`mcr.microsoft.com/playwright:v1.61.1-noble` with `--network host`. The image **is** available
+locally (Docker Desktop, linux/amd64) and was pulled and started successfully, but the CI job's
+contract is **not faithfully reproducible on this workstation**, for two independent reasons, both
+verified rather than assumed:
+
+1. **Networking.** From inside the pinned image with `--network host`, Supabase answered
+   (`http://127.0.0.1:54321/auth/v1/health` returned 200) but the API did **not**
+   (`http://127.0.0.1:8000/health` returned 000). Docker Desktop's host networking joins the Linux
+   VM, not the Windows host, and the API runs as a Windows process. Supabase is reachable only
+   because it is itself containerised. (`host.docker.internal` does reach both — 200/200 — but using
+   it would require rewriting `NEXT_PUBLIC_*` and rebuilding the web app, i.e. screenshotting a
+   differently-configured application.)
+2. **Destructive bind mount.** The CI command runs `npm ci` against the bind-mounted workspace. On
+   this host that would overwrite `node_modules/` with Linux-native binaries and break every
+   subsequent host-side Playwright run. It was therefore **not executed**.
+
+No visual assertion was run, **no snapshot was written or updated**, and no visual result is
+claimed. This gate runs green in CI or on a Linux host.
+
+### T091 Quickstart Steps 1-9 — still unchecked
+
+Corrected Step 9 has three parts. 9a (backend + web unit) and 9b (functional e2e) are green; **9c
+(pinned-container visual regression) was not run**, for the reasons above. Step 9 is therefore not
+complete, so **T091 remains unchecked**. T086 is unaffected: the instruction is explicit that the
+ordinary functional gate must not be blocked on Linux screenshots being unrunnable locally.
+
+### Deferred product issue — malformed storage object key causes a 500
+
+Left unfixed in this pass by instruction; recorded so it is not lost.
+
+`GET /workspaces/{id}/files/{file_id}/download-url` returns **500 with an unhandled traceback** when
+the row's `storage_path` is not exactly `{uuid}/{uuid}`:
+`apps/api/app/services/storage.py:32` `_validate_object_key` raises a bare `ValueError`, but
+`apps/api/app/services/files.py:338-341` catches only `storage.StorageError`, so it escapes the
+handler. Evidence: `qa-reports/2026-08-01/evidence/api-8001.log:1472` (read, not modified).
+
+**Severity: low.** Not reachable through normal product use — `files.py:217` always writes
+`storage_path = f"{workspace_id}/{file_id}"`. Same class as the recorded SEC-07 finding
+(`confirm_ai_extraction` returning 500 and leaking `P0002`). The correct fix is to map the
+`ValueError` to a clean 4xx/5xx code, not to weaken the validator.
+
+This item is a robustness defect and is **not** a release blocker; it does not affect T086, and it
+gates neither T092 nor T093.
+
+### Hosted gates unchanged
+
+**T092 and T093 remain unchecked and were not touched in this pass.** No local or mocked substitute
+was introduced for either. No release approval is claimed while they remain open.
+
+---
+
+## Phase 11 Correction Pass C
+
+Scope: two outstanding review corrections, plus making the visual gate period-stable and running it
+to completion in the pinned Linux image. **No production frontend or backend code, migration,
+dependency, lockfile, or snapshot PNG was changed.** T092/T093 untouched.
+
+### C-1. T086a removed
+
+The invented task ID no longer exists as a task: it is gone from `tasks.md` entirely, and the only
+remaining occurrences anywhere in `specs/` are this changelog entry recording its removal. The
+numbered-task set is back to the approved **97**, and the Linux visual gate is now
+represented exactly as the review asked — as **quickstart Step 9c**, verified under **T091**, with
+no task ID of its own.
+
+### C-2. Tenant-isolation assertion restored
+
+`apps/web/tests/e2e/workspace-switch.spec.ts` — the negative cross-workspace check is page-wide
+again:
+
+```ts
+await expect(page.getByText("Team lunch")).toHaveCount(0);
+```
+
+The positive assertion keeps the visibility-scoped locator (it genuinely needed it — it is a
+`toBeVisible()` call and tripped strict mode on the desktop/mobile twins). The negative one never
+did: `toHaveCount` is a multi-element assertion and does not trip strict mode, so scoping it in
+Pass B narrowed a security check for no reason. Page-wide means a leak into a hidden responsive
+branch or an off-screen cached render still fails the test.
+
+Focused re-run with owner/member/viewer credentials: **1 passed, exit 0 (16.8s)**.
+
+### C-3. Visual regression made period-stable
+
+**The defect.** `visual-regression.spec.ts` freezes the *browser* clock to 2026-07-13, but the
+dashboard's reporting window is computed **server-side** —
+`apps/api/app/services/dashboard.py` `get_current_period()` reads `datetime.now(UTC+3)` — and
+`GET /workspaces/{id}/dashboard` accepts no period argument. A browser clock cannot pin it. The
+baselines were captured in July 2026, so from August the response drifted and the dashboard rendered
+`2026-08-01 – 2026-08-31` against a baseline showing `2026-07-01 – 2026-07-31`.
+
+**Why not just re-capture.** Regenerating would re-freeze whatever month the capture ran in and fail
+again the following month — the same defect on a one-month timer.
+
+**The fix (test-only).** New helper `apps/web/e2e/_helpers/visual-dashboard.ts`, called once per
+test before the first dashboard navigation:
+
+- routes **only** `**/workspaces/*/dashboard*` — no other endpoint, no blanket mocking;
+- calls `route.fetch()` to get the **real** response, so the shape and every unrelated field
+  (`workspace_id`, `currency`, `pending_ai_count`, …) stay authentic;
+- a non-OK upstream response is passed through untouched, so a genuine backend failure still
+  surfaces instead of being masked by a synthetic success;
+- overwrites only the period and the fields the server derives from it:
+
+| Field | Pinned value | Why |
+|---|---|---|
+| `period` | `{ start: "2026-07-01", end: "2026-07-31" }` | the window the baselines show; rendered as literal text |
+| `summary` | income `125000`, expenses `0`, remaining `125000`, real `currency` | mirrors `seedIncome`'s default record, which is dated `2026-07-13` and is in-period only in July |
+| `recent_records` | the one seeded income (fixed placeholder id) | same record; the id is never rendered but is part of the contract |
+| `category_breakdown` | `[]` | the dashboard breakdown covers expenses; neither workspace seeds one |
+
+The spec's existing `page.clock.setFixedTime` is kept — it still pins browser-side date reads such
+as the income form's default date. Screenshot names, `maxDiffPixelRatio`, and the
+mobile-navigation capture are all unchanged; nothing is masked with CSS.
+
+**Why it stays valid after August 2026.** The pinned values are constants, not derived from
+`Date.now()` or the server clock, so the captured surface no longer depends on the real month or
+year and does not drift across month or year boundaries. `seedIncome`'s default `2026-07-13` is
+deliberately left alone — the baselines render that date, and it is also what the pinned summary
+describes.
+
+### C-4. Step 9c executed — PASS
+
+Docker Desktop's `--network host` joins the Linux VM rather than the Windows host, so the literal CI
+command cannot reach a host-side API here. Everything therefore ran **in Linux**, on the network the
+local Supabase stack already uses.
+
+| | |
+|---|---|
+| Image | `mcr.microsoft.com/playwright@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48` (`linux/amd64`) |
+| Playwright / Chromium | **1.61.1** / **149.0.7827.55** |
+| Docker Engine | 29.5.3 |
+| Workspace | volume `p11-ws`; tree rsync'd from a **read-only** mount, excluding `node_modules`, `.next`, `.git`, `test-results`, `out`, `.venv` — no host `node_modules` mounted, Linux deps installed only in the volume |
+| API | `p11-api` (`python:3.12-slim`) on `supabase_network_smart-expense-ai`, Supabase via aliases `kong` / `db` |
+| Web + tests | `p11-pw` (pinned image), same network, `npm ci` → `npm run build` → `npm run start` |
+
+Reachability proved from inside the Playwright container before capturing — including a negative
+control taken while the Windows API and web server were **deliberately left running**:
+
+```
+localhost:3000/            -> 307      /en/sign-in -> 200
+p11-api:8000/health        -> 200
+kong:8000/auth/v1/health   -> 200
+127.0.0.1:8000  (Windows)  -> 000      <- host process running, unreachable from container
+127.0.0.1:54321 (Windows)  -> 000
+baselines visible          -> 32
+```
+
+Command (CI's, no `--update-snapshots`):
+
+```bash
+npx playwright test e2e/visual-regression.spec.ts \
+  --workers=1 --project=chromium --project=mobile-rtl --reporter=list
+```
+
+**Result: 4 collected · 4 passed · 0 failed · 0 skipped · 1.1 min · exit code 0.**
+
+```
+✓ [chromium]   ar screens (21.2s)    ✓ [mobile-rtl] ar screens (11.2s)
+✓ [chromium]   en screens (14.3s)    ✓ [mobile-rtl] en screens (10.8s)
+```
+
+The Pass B failure (`chromium` / `en` / `en-mobile-navigation-dialog.png`, 4284 px, ratio 0.02) is
+resolved. Its secondary header/select-width difference resolved with it, consistent with it having
+been a layout consequence of the same July-vs-August data state rather than an independent defect.
+
+**Baselines were not regenerated.** `--update-snapshots` was never passed; the container reported 32
+baseline files with none modified, and a per-file content-hash comparison against the Windows tree
+came back **byte-for-byte identical for all 32**.
+
+### Host pre-check (Windows)
+
+Run before the Linux gate purely to confirm the interception wires up: the dashboard request was
+intercepted, the pinned window rendered (`2026-07-01` / `2026-07-31` present, no real August date),
+and there were zero route or request errors. The spec itself stops on Windows at
+`*-record-mobile-card` with ~0.04 font-rendering diffs against the Linux baselines — expected, not a
+product result, and explicitly not the verdict for Step 9c.
+
+### Status after Pass C
+
+- **T091 — checked.** Quickstart Steps 1–9 complete: 9a, 9b, and 9c all green.
+- **T086 — remains checked**, definition unchanged.
+- **T092 / T093 — remain unchecked and untouched.** No hosted verification was performed or
+  substituted, and no release approval is claimed.
+
+---
+
+## T093 deployed PostgREST smoke — PASSED (2026-08-03)
+
+The one Phase 18 gate that catches hosted dashboard drift. Executed manually against the real hosted
+project; the results were supplied in sanitized form and verified against the T093 and EX-5 contracts
+before this record was written. **No application code, migration, test, snapshot, or dependency was
+touched, and no `service_role` or secret key was used.**
+
+### Environment
+
+| | |
+|---|---|
+| Hosted project | `https://wyno***.supabase.co` (redacted; not localhost, not the local stack) |
+| Credentials | publishable/anon key + ordinary user token — **no `service_role`, no secret key** |
+| Token claims | `role=authenticated`, subject present (decoded locally; token never printed or persisted) |
+| Migration state | all 14 project migrations applied; local/remote history matched |
+
+### Target — must be 404
+
+`POST {DEPLOYED_URL}/rest/v1/rpc/ensure_personal_workspace`
+
+```json
+{ "target_user_id": "00000000-0000-0000-0000-000000000000",
+  "target_email":   "t093-probe@example.invalid" }
+```
+
+**HTTP 404** ✅
+
+```json
+{"code":"PGRST202",
+ "details":"Searched for the function public.ensure_personal_workspace with parameters
+            target_email, target_user_id or with a single unnamed json/jsonb parameter,
+            but no matches were found in the schema cache.",
+ "hint":"Perhaps you meant to call the function public.receipt_object_workspace_id",
+ "message":"Could not find the function public.ensure_personal_workspace(target_email,
+            target_user_id) in the schema cache"}
+```
+
+Why this is the strong form of the proof, not a mis-call:
+
+- The arguments sent are the **real live signature** —
+  `ensure_personal_workspace(target_user_id uuid, target_email text)`
+  (`supabase/migrations/20260624000000_auth_workspace_foundation.sql:96`). A 404 for the correct
+  parameter names means the routine is unresolvable in the exposed schema, not that the call shape
+  was wrong.
+- PostgREST states it searched **`public`** specifically and found no match, which is exactly the
+  "no public fallback or duplicate public function resolves" clause.
+- The hint offered an unrelated still-public routine (`public.receipt_object_workspace_id`). That is
+  incidental but useful: it proves the `public` schema cache is populated and searchable, so the 404
+  is relocation-specific rather than an empty or broken cache 404-ing everything.
+- The routine was relocated by
+  `supabase/migrations/20260731000000_private_schema_privileged_functions.sql:31`
+  (`alter function public.ensure_personal_workspace(uuid, text) set schema private`). The hosted
+  behaviour matches that migration.
+
+### EX-5 control — must NOT be 404
+
+`POST {DEPLOYED_URL}/rest/v1/rpc/clear_workspace_ai_key`, same host, key, and token.
+
+```json
+{ "p_workspace_id": "00000000-0000-0000-0000-000000000000" }
+```
+
+**HTTP 403** ✅ (non-404)
+
+```json
+{"code":"42501","details":null,"hint":null,"message":"not_owner"}
+```
+
+This is the approved control: `clear_workspace_ai_key(p_workspace_id uuid)` is defined at
+`supabase/migrations/20260704000000_byok_ai_settings.sql:107`, deliberately **kept in `public`** and
+re-created there by `20260732000000_private_schema_rls_helpers.sql:201` with
+`grant execute … to authenticated`. It is the same control the local Group EX run used.
+
+Quickstart Step 1 defines the expected control result as "**not** 404 — a 4xx from the function's own
+role check, or 200". A `42501 not_owner` is precisely that: the function **resolved** and reached its
+own authorization logic. Without this, a project that 404-ed every RPC would have made the target
+result vacuous — the exact failure mode EX-5 exists to catch.
+
+`not_owner` rather than `401` additionally corroborates that the bearer token authenticated as a real
+end user, independently of the decoded `role` claim.
+
+### Contract assessment
+
+| T093 / EX-5 clause | Result |
+|---|---|
+| Target RPC returns 404 | ✅ 404 |
+| PostgREST reports the routine is not exposed / unresolvable | ✅ `PGRST202`, searched `public`, no match |
+| No public fallback or duplicate public function resolves | ✅ explicitly none in `public` |
+| Approved control RPC returns non-404 | ✅ 403 |
+| Both reached the real hosted project | ✅ PostgREST `PGRST202` + Postgres `42501` from the hosted host |
+| Ordinary-user authentication confirmed | ✅ `role=authenticated`, subject present, corroborated by `not_owner` |
+| No privileged key used | ✅ publishable key + user token only |
+| No meaningful data changed | ✅ see below |
+
+**No mutation.** The target returned 404 *before* invocation, so its body never executed. The control
+was called with a nil workspace id that matches no row and aborted at its owner check (`42501`)
+before any write. Neither call could alter data.
+
+### Scope limit — this is not T092
+
+**T093 is closed; T092 is not.** A passing smoke is strong evidence that `private` is not exposed at
+this moment, but it is a point-in-time probe, not the recorded Dashboard exposed-schema evidence that
+FR-038/SC-018 require, and it cannot detect drift introduced after the probe. T092 still requires
+opening **Project Settings → API → Exposed schemas**, confirming `public, graphql_public` without
+`private`, and attaching that evidence to the release record.
+
+**No production release approval is claimed while T092 remains open.**
+
+### Secret handling
+
+Only sanitized values were recorded: the host is redacted to `https://wyno***.supabase.co`, and the
+publishable key and user token were never printed, logged, or persisted in any file in this
+repository. The JWT was decoded locally for its `role` and subject-presence claims only.
+
+---
+
+## T092 hosted exposed-schema evidence — PASSED (2026-08-03)
+
+The gate FR-038/SC-018 exist for: `supabase/config.toml:11` governs only the local stack, so the
+hosted project's exposed-schema list is the single setting that decides whether every routine
+relocated in this phase is reachable from the browser. If `private` is ever selected there, the whole
+phase silently reverts to exploitable with no code change and no failing test.
+
+**Evidence artifact:** a hosted Dashboard screenshot of the Data API settings panel, **reviewed as
+external release evidence on 2026-08-03** — opened and read directly rather than accepted from a
+description. It is retained with the release record and deliberately **not** committed to this
+repository, so no path here points at a local-only, untracked file.
+
+### What the artifact shows
+
+Hosted Supabase Dashboard → **Integrations → Data API → Settings**, Exposed-schemas picker open:
+
+| Schema | Exposed? |
+|---|---|
+| `graphql_public` | ✅ ticked |
+| `public` | ✅ ticked |
+| **`private`** | ❌ **listed but NOT ticked** |
+
+Summary control reads **"2 of 3 schemas exposed"** — exactly the required `public, graphql_public`.
+`private` appearing in the picker is expected (this phase creates the schema); the contract is that
+it is never *selected*.
+
+Additionally visible: **Extra search path** = `PUBLIC, EXTENSIONS`, which does **not** include
+`private` — so relocated routines are not reachable by search-path resolution either.
+
+### Contract assessment
+
+| T092 / FR-038 / SC-018 clause | Result |
+|---|---|
+| Exposed-schema list confirmed on the target deployment environment | ✅ hosted Dashboard, Data API settings |
+| List is `public, graphql_public` | ✅ "2 of 3 schemas exposed", both ticked |
+| List excludes `private` | ✅ present but unticked |
+| Positive documented evidence attached to the release record | ✅ screenshot artifact retained |
+| Local config not substituted for hosted evidence | ✅ `supabase/config.toml` was not used |
+
+### Two honest limits of the artifact, and why the gate still holds
+
+1. **The screenshot does not self-identify the project.** The captured region shows no project name
+   or ref, so on its own it does not prove *which* project it is.
+2. **It shows UI state, not proof of a saved write.** The picker is open with a Cancel control
+   present, so the image alone cannot distinguish a saved setting from an unsaved edit.
+
+Both are resolved by **T093**, which is independent and behavioural: a live
+`POST /rest/v1/rpc/ensure_personal_workspace` against `https://wyno***.supabase.co` returned
+**404 / PGRST202** with PostgREST reporting it searched `public` and found no match. A project with
+`private` exposed could not produce that result, and an unsaved setting could not either. The
+settings evidence and the runtime probe corroborate each other; **neither alone would be
+conclusive, and together they are.**
+
+### Standing caveat
+
+T092 and T093 are both **point-in-time**. Re-capture this setting and re-run the smoke after any
+Supabase project configuration change — dashboard drift is precisely the failure mode these two
+gates exist to catch, and nothing in CI will detect it.
+
+### Related posture observation — not a T092 failure
+
+**Automatically expose new tables** is **enabled** in the same panel, and the Dashboard itself
+recommends disabling it. This is outside the T092 contract: it governs table exposure, not schema
+exposure, and since `private` is not exposed nothing in it becomes reachable. The practical effect is
+that any *future* table created in `public` is exposed by default rather than by deliberate choice.
+Recorded as a hardening follow-up for a later phase, not a blocker here.

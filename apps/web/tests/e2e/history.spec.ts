@@ -28,7 +28,12 @@ const apiEnv = readEnv(path.resolve(process.cwd(), "../api/.env"));
 const supabaseUrl = (apiEnv.SUPABASE_URL ?? webEnv.NEXT_PUBLIC_SUPABASE_URL)?.replace(/\/$/, "");
 const anonKey = webEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? apiEnv.SUPABASE_ANON_KEY;
 const serviceRoleKey = apiEnv.SUPABASE_SERVICE_ROLE_KEY;
-const apiBaseUrl = (webEnv.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
+// Environment first, then .env.local, matching e2e/_helpers/matrix.ts — an
+// exported NEXT_PUBLIC_API_URL must win over the checked-in file, otherwise a
+// run pointed at a non-default API port silently talks to the wrong backend.
+const apiBaseUrl = (
+  process.env.NEXT_PUBLIC_API_URL ?? webEnv.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
+).replace(/\/$/, "");
 
 function requireConfig(value: string | undefined, name: string) {
   if (!value) {

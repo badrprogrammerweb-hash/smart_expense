@@ -278,12 +278,61 @@ psql "$SUPABASE_DB_URL" -f supabase/migrations/20260731000000_private_schema_pri
 [contracts/private-schema-migration.md](./contracts/private-schema-migration.md) return identical
 results.
 
+### Rollback — one explicit target per run, on a DISPOSABLE database only
+
+`rollback.sql` has **no whole-file mode**. It requires `-v rollback_target=...` and executes exactly
+one target; the untaken branch is skipped by psql, so the two targets can never be composed. Running
+the file without a target, or with an unrecognized one, exits non-zero and changes nothing.
+
+Running both sections in one pass — which earlier revisions of this file allowed — produced an
+invalid duplicate state (a guarded `public` copy *and* an unguarded `private` copy of
+`ensure_personal_workspace`). That composition was never a valid procedure and must not be
+reintroduced.
+
+**Target `phase3`** — reverse the Phase 3 relocation only:
+
 ```bash
-# Rollback, on a DISPOSABLE database only
-psql "$DISPOSABLE_DB_URL" -f specs/018-security-remediation-hardening/rollback.sql
+psql "$DISPOSABLE_DB_URL" -v rollback_target=phase3 \
+  -f specs/018-security-remediation-hardening/rollback.sql
 ```
 
-**Expected**: the four functions are back in `public` with their original grants; the app still works.
+**Expected**: each of the four routines exists in `public` **exactly once** with no `private` copy
+remaining; grants are `authenticated`-only (`anon` and `PUBLIC` denied); the Phase 4 identity guard
+is **retained** on `public.ensure_personal_workspace`; `handle_new_user` calls
+`public.ensure_personal_workspace` with `search_path = public`; the `on_auth_user_created` trigger
+survives; Phase 9 is untouched and both RLS helpers stay in `private`.
+
+**This target requires a coordinated application rollback.** The current application tree calls these
+routines private-qualified (`app/core/auth.py`, `app/routes/workspace_members.py`,
+`app/services/ai_summary.py`, `app/services/extractions.py`) and **will not work unchanged** against
+this database state — verify with a compatible application revision whose SQL calls use `public.`,
+deployed in the same change window. Do not record "the app still works" using the current tree.
+
+**Target `identity_guard`** — reverse the Phase 4 guard only:
+
+```bash
+psql "$DISPOSABLE_DB_URL" -v rollback_target=identity_guard \
+  -f specs/018-security-remediation-hardening/rollback.sql
+```
+
+**Expected**: all four Phase 3 routines remain in `private`; `private.ensure_personal_workspace`
+keeps its OID, `SECURITY DEFINER`, `search_path = public`, and Phase 3 grants, and loses only the
+guard; no `public` duplicate is created; `handle_new_user` still calls the private routine. **No
+application rollback is required** — the current tree stays compatible.
+
+**Fail-closed checks** (each must exit non-zero and leave the database unchanged):
+
+```bash
+psql "$DISPOSABLE_DB_URL" -f .../rollback.sql                                  # missing target
+psql "$DISPOSABLE_DB_URL" -v rollback_target=everything -f .../rollback.sql    # unknown target
+# identity_guard against a database where the routine is not in private → aborts, creates nothing
+# phase3 against a database with both a public and a private copy → aborts, resolves nothing
+```
+
+**Neither target reverses Phase 9.** `workspace_role_for` and `is_workspace_member` stay in
+`private` under both. `phase3` additionally *requires* Phase 9 to remain in place, because the
+relocated-to-`public` `get_workspace_ai_key_for_extraction` body still calls
+`private.workspace_role_for` by name.
 
 **Static gate**:
 
@@ -300,15 +349,112 @@ grep -rn 'public\.\(ensure_personal_workspace\|find_user_profile_by_email\|get_w
 
 ## Step 9 — Full regression suites
 
+The frontend browser gate is **two separate gates**, exactly as `.github/workflows/ci.yml` splits
+them. Running one bare `npx playwright test e2e` conflates them and will report Linux-baseline
+snapshot diffs as functional failures on any non-Linux machine.
+
+### 9a — Backend and web unit suites
+
 ```bash
 cd apps/api && python -m pytest tests/ -q
 npm run test --workspace=@smart-expense/web
-cd apps/web && npx playwright test e2e --workers=1
 ```
 
-**Expected**: all pass with **no assertion modified** (spec FR-039). If a test had to change, either
-behaviour changed (a defect in this phase) or that test was asserting an implementation detail —
-either way it must be recorded explicitly, not quietly amended.
+### 9b — Functional e2e, visual regression EXCLUDED
+
+The CI contract (`.github/workflows/ci.yml`, "Run frontend acceptance tests"):
+
+```bash
+cd apps/web && npx playwright test e2e --workers=1 --grep-invert "design refresh visual regression"
+```
+
+**Expected**: exit 0, no failures.
+
+> **Report skipped counts, not just passes.** `tests/e2e/{auth,categories,error-states,income-expense-flow,reports,roles,workspace-switch}.spec.ts`
+> self-skip unless `E2E_EMAIL` / `E2E_PASSWORD` (and for some, `E2E_MEMBER_*` / `E2E_VIEWER_*` /
+> `E2E_TEAM_WORKSPACE_ID`) are exported. CI does **not** set them, so CI's green covers fewer specs
+> than the file count suggests. A run reported only as "N passed" hides this. To exercise those
+> specs, export the credentials and re-run; record both runs.
+
+### 9c — Visual regression, pinned Linux container ONLY
+
+The committed baselines in `apps/web/e2e/__screenshots__/` were captured in
+`mcr.microsoft.com/playwright:v1.61.1-noble`. Font rasterisation differs on Windows and on bare
+`ubuntu-latest`, so this spec is meaningful **only** inside that image
+(`.github/workflows/ci.yml`, `visual-regression` job):
+
+```bash
+docker run --rm --network host -v "$PWD:$PWD" -w "$PWD" -e CI=true \
+  mcr.microsoft.com/playwright:v1.61.1-noble \
+  bash -lc "npm ci && cd apps/web && npx playwright test e2e/visual-regression.spec.ts \
+    --workers=1 --project=chromium --project=mobile-rtl"
+```
+
+**Never run this against a working tree you care about on Docker Desktop for Windows/macOS.** The
+bind mount means the container's `npm ci` rewrites the host `node_modules/` with Linux-native
+binaries, breaking subsequent host-side runs until reinstalled. It also assumes `--network host`
+reaches a host-side API on `127.0.0.1:8000`, which holds on a Linux runner but **not** on Docker
+Desktop, where host networking joins the Linux VM rather than the host OS.
+
+**Never run with `--update-snapshots` outside this image.** Regenerating Linux baselines from
+Windows silently replaces the reference set.
+
+On Docker Desktop (Windows/macOS) `--network host` joins the Linux VM rather than the host OS, so
+the command above cannot reach a host-side API. Run everything in Linux instead, on the network the
+local Supabase stack already uses — this is the form that was actually executed and passed:
+
+```bash
+# 1. Isolated copy of the working tree (source mounted read-only, no host node_modules)
+docker volume create p11-ws
+docker run --rm -v p11-ws:/w -v "<repo>:/src:ro" alpine:3 \
+  sh -c "rsync -a --delete --exclude=node_modules --exclude=.next --exclude=.git \
+         --exclude=test-results --exclude=out --exclude=.venv /src/ /w/"
+
+# 2. API in Linux, reaching Supabase by its network aliases (kong / db)
+docker run -d --name p11-api --network supabase_network_<project> -v p11-ws:/w \
+  -e SUPABASE_URL=http://kong:8000 \
+  -e SUPABASE_DB_URL="postgresql+asyncpg://postgres:postgres@db:5432/postgres" \
+  -e SUPABASE_SERVICE_ROLE_KEY=*** -e SUPABASE_JWT_SECRET=*** -e APP_ENV=test \
+  python:3.12-slim sh -c 'cd /w/apps/api && pip install -r requirements.txt \
+    && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000'
+
+# 3. Web + Playwright in the pinned image, same network
+docker run -d --name p11-pw --network supabase_network_<project> -v p11-ws:/w \
+  mcr.microsoft.com/playwright:v1.61.1-noble sleep infinity
+docker exec p11-pw sh -c 'cd /w && npm ci'
+docker exec p11-pw sh -c 'cd /w/apps/web && npm run build'
+docker exec -d p11-pw sh -c 'cd /w/apps/web && npm run start'
+docker exec p11-pw sh -c 'cd /w/apps/web && npx playwright test e2e/visual-regression.spec.ts \
+  --workers=1 --project=chromium --project=mobile-rtl --reporter=list'
+```
+
+Write `apps/web/.env.local` **inside the volume** so `NEXT_PUBLIC_API_URL=http://p11-api:8000` and
+`NEXT_PUBLIC_SUPABASE_URL=http://kong:8000` resolve from the browser in the container. Before
+capturing, prove from inside the container that the web, API, and Supabase respond **and** that
+`127.0.0.1:8000` / `127.0.0.1:54321` do **not** — that is what shows no host process is being used.
+
+**Result (2026-08-03): PASS — 4 passed, 0 failed, exit 0, 1.1 min**, in
+`mcr.microsoft.com/playwright@sha256:5b8f294a…` (Playwright 1.61.1, Chromium 149.0.7827.55).
+**The committed baselines were not regenerated** — all 32 verified byte-for-byte identical before
+and after.
+
+If the pinned container cannot be run faithfully, record 9c as **explicitly pending** — it does not
+block 9a/9b.
+
+### Why 9c is period-stable
+
+The dashboard's reporting window is computed server-side
+(`apps/api/app/services/dashboard.py` `get_current_period()` → `datetime.now(UTC+3)`), and
+`GET /workspaces/{id}/dashboard` takes no period argument, so the spec's `page.clock` freeze cannot
+pin it. The baselines were captured in July 2026, so from August onward the real response drifted
+and `*-mobile-navigation-dialog` no longer matched. `apps/web/e2e/_helpers/visual-dashboard.ts`
+intercepts **only** that request, takes the real response, and overwrites just the period and the
+fields the server derives from it. Re-capturing the baselines instead would only have re-frozen a
+different month and broken again the next one.
+
+**Expected across Step 9**: all pass with **no assertion modified** (spec FR-039). If a test had to
+change, either behaviour changed (a defect in this phase) or that test was asserting an
+implementation detail — either way it must be recorded explicitly, not quietly amended.
 
 ---
 
@@ -334,8 +480,90 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST \
 # EXPECT: 404
 ```
 
+Send the **real** argument names (`target_user_id`, `target_email`). That matters: the live signature
+is `ensure_personal_workspace(target_user_id uuid, target_email text)`
+(`supabase/migrations/20260624000000_auth_workspace_foundation.sql:96`), so a 404 for *those* names
+proves the routine is unresolvable in the exposed schema rather than merely mis-called. Then run the
+**EX-5 control** against the same host, key, and token — without it a project that 404s every RPC
+would make the check pass vacuously:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+  "https://<PROJECT>.supabase.co/rest/v1/rpc/clear_workspace_ai_key" \
+  -H "apikey: <ANON_KEY>" -H "Authorization: Bearer <USER_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"p_workspace_id":"00000000-0000-0000-0000-000000000000"}'
+# EXPECT: NOT 404 — a 4xx from the function's own role check, or 200
+```
+
 This is the only check that catches dashboard drift. Repeat it after any Supabase project
 configuration change.
+
+### Step 10 deployed smoke — executed 2026-08-03: **PASS** (T093)
+
+Run manually against `https://wyno***.supabase.co` with the publishable key and an ordinary user
+token (`role=authenticated`, subject present). **No `service_role` or secret key was used.**
+
+| | Target | Control (EX-5) |
+|---|---|---|
+| RPC | `ensure_personal_workspace` | `clear_workspace_ai_key` |
+| Arguments | `target_user_id=00000000-0000-0000-0000-000000000000`, `target_email=t093-probe@example.invalid` | `p_workspace_id=00000000-0000-0000-0000-000000000000` |
+| Status | **404** ✅ | **403** ✅ (non-404) |
+| Body | `PGRST202` — "Searched for the function `public.ensure_personal_workspace` with parameters `target_email, target_user_id` … no matches were found in the schema cache" | `42501` — `not_owner` |
+
+The target is unresolvable in the exposed schema, and PostgREST confirms it searched **`public`**
+specifically — so no public fallback or duplicate resolves. Its hint offered an unrelated public
+routine (`receipt_object_workspace_id`), which incidentally proves the `public` schema cache is
+populated and searchable, so the 404 is relocation-specific rather than an empty or broken cache.
+The control resolved and reached its own authorization logic, proving URL, key, token, and RPC
+mechanism all work. `not_owner` (rather than 401) also confirms the token authenticated as a real
+user.
+
+**No mutation occurred**: the target 404s before invocation, and the control aborted at its owner
+check on a nil workspace id.
+
+### Step 10 exposed-schema evidence — recorded 2026-08-03: **PASS** (T092)
+
+Captured from the hosted project's **Integrations → Data API → Settings → Exposed schemas**. The
+screenshot was reviewed as **external release evidence on 2026-08-03** and is retained with the
+release record — deliberately not committed to this repository:
+
+| Schema | Exposed? |
+|---|---|
+| `graphql_public` | ✅ ticked |
+| `public` | ✅ ticked |
+| **`private`** | ❌ **present in the list but NOT ticked** |
+
+The control summarises as **"2 of 3 schemas exposed"**, matching the required
+`public, graphql_public`. `private` existing in the picker is expected — the phase creates that
+schema — and the gate is precisely that it is *never selected*.
+
+Also visible and worth recording: **Extra search path** is `PUBLIC, EXTENSIONS` and does **not**
+include `private`.
+
+Two honest limits of this artifact:
+
+1. **It does not self-identify the project.** The captured region shows no project name or ref, so
+   the screenshot alone does not prove which project it is. It is corroborated by T093 above, whose
+   live `404 / PGRST202` from `https://wyno***.supabase.co` is exactly the runtime behaviour this
+   setting produces — a project with `private` exposed could not return that.
+2. **It shows UI state, not proof of a saved write.** The picker is open and a Cancel control is
+   present, so the image alone cannot distinguish a saved setting from an unsaved edit. T093's live
+   probe resolves this: the *effective* runtime configuration already excludes `private`.
+
+Together the two gates are conclusive; neither alone would be.
+
+> **Both parts of Step 10 are now closed** — T092 (this settings evidence) and T093 (the deployed
+> smoke). Both are **point-in-time**: re-run the smoke and re-capture this setting after any Supabase
+> project configuration change, because a later edit here silently re-exposes every relocated
+> routine with no code change and no failing test.
+
+#### Related posture observation (not part of the T092 contract)
+
+**Automatically expose new tables** is **enabled**, and the Dashboard itself advises disabling it.
+This does not affect T092 — it governs tables, not schema exposure, and `private` is not exposed, so
+nothing in `private` is reachable regardless. It does mean any *future* table created in `public`
+is exposed by default. Recorded as a hardening follow-up, not a gate failure.
 
 ---
 

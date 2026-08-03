@@ -342,6 +342,24 @@ No new environment variables. The BYOK key is read entirely through
 `get_workspace_ai_key_for_extraction`; no provider API key is ever set as
 backend configuration.
 
+## Phase 18 security posture
+
+Privileged callable routines live in the `private` schema, which must never be exposed
+through PostgREST. `workspace_role_for(uuid,uuid)` and
+`is_workspace_member(uuid,uuid)` are private RLS helpers: `authenticated` must retain
+`EXECUTE` on both because dependent policies run them as the requesting user. Removing
+that grant breaks those policies. Direct `EXECUTE` for `PUBLIC` and `anon` must remain
+absent.
+
+Use new forward migrations for posture changes; never edit an applied historical
+migration. For an emergency reversal, use the reviewed procedure at
+`specs/018-security-remediation-hardening/rollback.sql`. It requires an explicit
+target and runs exactly one per invocation
+(`-v rollback_target=phase3` or `-v rollback_target=identity_guard`); there is no
+whole-file mode. Prove the selected target on a disposable database first. The
+`phase3` target additionally requires a coordinated application deployment, because
+the current application calls these routines private-qualified.
+
 ## Local development
 
 ```bash

@@ -37,7 +37,13 @@ test.describe("error states", () => {
     await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill("Big expense");
     await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByText("Big expense")).toBeVisible();
+    // Records render in both the desktop list and the mobile card grid, and
+    // both stay in the DOM, so scope to whichever one is actually displayed.
+    await expect(
+      page
+      .locator("li:visible, [data-testid='mobile-record-card']:visible")
+      .filter({ hasText: "Big expense" }),
+    ).toBeVisible();
 
     // Remaining balance is not clamped to zero and not hidden (spec Edge Cases).
     await page.getByRole("link", { name: "Dashboard" }).click();

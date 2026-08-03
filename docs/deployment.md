@@ -143,6 +143,57 @@ docker push "$REGISTRY/smart-expense-web:$TAG"
 4. Confirm browser requests to the API succeed from the web endpoint, proving
    `CORS_ALLOW_ORIGINS` and `NEXT_PUBLIC_API_URL` match the deployed endpoints.
 
+## Phase 18 Security Operations
+
+Phase 18 creates a `private` PostgreSQL schema for privileged callable routines,
+including the `workspace_role_for` and `is_workspace_member` RLS helpers. Never add
+`private` to Supabase's exposed schemas. The target exposed-schema list must remain
+`public, graphql_public`, and this hosted setting must be verified before release.
+
+Set `APP_ENV=production` explicitly on every deployed API instance. If `APP_ENV` is
+absent or unrecognized, documentation/OpenAPI routes and diagnostic error detail fail
+closed; the safe fallback does not replace the operational clarity of an explicit
+production setting.
+
+Rate-limit counters and allowances are local to each application instance. Restarting
+an instance resets its counters, multiple instances multiply the effective allowance,
+and a fixed-window boundary can permit up to twice the configured allowance in a short
+interval. Strict global enforcement would require a shared Redis/database limiter.
+
+The reviewed emergency reversal artifact is
+`specs/018-security-remediation-hardening/rollback.sql`. Test the selected target on a
+disposable database before any operational use. The file requires an explicit target and
+executes exactly one per invocation; there is no whole-file mode, and a missing or
+unrecognized target exits non-zero without changing the database.
+
+```bash
+psql "$DB_URL" -v rollback_target=phase3         -f .../rollback.sql   # reverse Phase 3 relocation
+psql "$DB_URL" -v rollback_target=identity_guard -f .../rollback.sql   # reverse Phase 4 guard
+```
+
+`phase3` returns the four privileged routines to `public` and retains the Phase 4 identity
+guard. **It requires a coordinated application deployment**: the current application calls
+these routines private-qualified and will not work unchanged against that database state.
+Schedule the database target and a compatible public-calling application revision in the
+same change window.
+
+`identity_guard` removes only the Phase 4 guard, leaves all four routines in `private`, and
+requires no application change.
+
+Neither target reverses Phase 9; `workspace_role_for` and `is_workspace_member` remain in
+`private` under both, and `phase3` requires Phase 9 to stay in place because the
+relocated-to-`public` `get_workspace_ai_key_for_extraction` body still calls
+`private.workspace_role_for` by name.
+
+Earlier revisions of this file allowed running both sections in one pass. That composition
+produced an invalid duplicate state — a guarded `public` copy alongside an unguarded
+`private` copy of `ensure_personal_workspace` — and was never a valid procedure. It is now
+structurally impossible.
+
+The hosted exposed-schema check (T092) and deployed ordinary-user PostgREST smoke check
+(T093) remain mandatory release gates whenever their evidence has not yet been captured.
+Local catalog or test results are not substitutes for those checks.
+
 ## Phase Scope
 
 This phase provides committed Dockerfiles, cited configuration guidance, and a

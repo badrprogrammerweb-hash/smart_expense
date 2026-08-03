@@ -4,7 +4,7 @@
 
 **Created**: 2026-07-30
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "Phase 18 — Security Remediation and Production Hardening. Remove the confirmed production-blocking security vulnerabilities found in the Phase 17 security audit, and apply the minimum production hardening required before staging with real credentials or production security testing."
 
@@ -25,6 +25,46 @@ the product may run in an environment holding real user data or real payment-pro
 This phase changes **no product behaviour**. No screen, permission, financial rule, or user-visible
 workflow changes. Success is measured by attacks that stop working and existing behaviour that
 keeps working.
+
+## Implementation and release-gate status
+
+The local Phase 18 implementation is complete. Phase 9 / User Story 7 was completed: both
+`workspace_role_for(uuid,uuid)` and `is_workspace_member(uuid,uuid)` were successfully relocated
+to `private` while preserving their authenticated execution grants and dependent RLS behavior.
+
+Implementation completion is not release approval or hosted-deployment verification. The complete
+local backend suite and web unit suite pass, and migration idempotence, both rollback targets,
+static gates, browser signup, and mapped security flows were verified. T035 is complete after the
+real local browser signup check.
+
+Correction Pass A (2026-08-02) closed the rollback gate and one test-coverage regression:
+`rollback.sql` now requires an explicit `rollback_target` (`phase3` or `identity_guard`), executes
+exactly one target per run, and cannot compose the two — the earlier whole-file composition produced
+an invalid duplicate state and was never a valid procedure. The `phase3` target is documented as
+requiring a coordinated application rollback. `test_extraction_secrecy.py`'s
+`vault.decrypted_secrets` catalog scan, which Phase 18 had narrowed from `public` to `private`, now
+scans both schemas. T088 and T089 are verified against the corrected interface.
+
+The full Playwright gate (T086) remained unresolved through Correction Pass A. It was closed in
+Correction Pass B against a CI-equivalent definition that excludes visual regression, and the pinned
+Linux visual gate (quickstart Step 9c) was closed in Correction Pass C, so **T086 and T091 are now
+green**. **T093** (deployed PostgREST smoke) subsequently **passed** against the real hosted project:
+`ensure_personal_workspace` returned `404 / PGRST202` while the EX-5 control returned a non-404,
+using only a publishable key and an ordinary `role=authenticated` token.
+
+**T092** (hosted exposed-schema evidence) subsequently **passed** as well: the target project's
+Dashboard → Integrations → Data API → Settings records **"2 of 3 schemas exposed"** with
+`graphql_public` and `public` selected and **`private` present but not selected**. The Dashboard
+screenshot was reviewed as external release evidence on 2026-08-03 and is retained with the release
+record rather than in this repository.
+
+**All Phase 11 verification gates (T085–T097) are therefore complete**, including both hosted
+release gates. Two standing caveats apply and are not closed by these gates: T092 and T093 are
+**point-in-time** and must be re-verified after any Supabase project configuration change, since
+dashboard drift re-exposes every relocated routine with no code change and no failing test; and the
+separately recorded low-severity `download-url` robustness defect (a bare `ValueError` escaping as
+HTTP 500 on a malformed `storage_path`) remains open by design. **Sign-off for a production release
+remains a human decision and is not claimed here.**
 
 ## Clarifications
 

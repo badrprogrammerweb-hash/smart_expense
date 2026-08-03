@@ -32,12 +32,23 @@ test.describe("workspace switch", () => {
     await page.getByLabel("Date", { exact: true }).fill(new Date().toISOString().slice(0, 10));
     await page.getByLabel("Description").fill("Team lunch");
     await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByText("Team lunch")).toBeVisible();
+    // Records render in both the desktop list and the mobile card grid, and
+    // both stay in the DOM, so scope to whichever one is actually displayed.
+    await expect(
+      page
+      .locator("li:visible, [data-testid='mobile-record-card']:visible")
+      .filter({ hasText: "Team lunch" }),
+    ).toBeVisible();
 
     // Switch back to the personal workspace and confirm isolation.
     await page.getByLabel("Switch workspace").selectOption({ label: "Personal Workspace (Personal)" });
     await page.waitForURL(/\/dashboard$/);
     await expect(page.getByRole("heading", { name: "Personal Workspace" })).toBeVisible();
+    // Deliberately page-wide, NOT scoped to the visible record containers: this
+    // is the cross-workspace leak check, so it must fail if the other
+    // workspace's data reaches this DOM at all — including a hidden responsive
+    // branch or an off-screen cached render. `toHaveCount` is a multi-element
+    // assertion and does not trip strict mode, so no scoping is needed here.
     await expect(page.getByText("Team lunch")).toHaveCount(0);
 
     // Switch back into the team workspace, making it the most recently
