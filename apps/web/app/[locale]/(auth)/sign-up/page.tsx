@@ -3,11 +3,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { useRouter } from "@/i18n/navigation";
 import { redirectToPreferredWorkspace } from "@/lib/auth-routing";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Alert, Button } from "@/components/ui";
