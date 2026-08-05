@@ -69,6 +69,13 @@ jobs:
         run: npm run lint:support-copy
 
       - name: Start local Supabase and apply migrations
+        # supabase/setup-cli@v3 exports SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io
+        # for any resolved CLI version >= 1.28.0 (see supabase/setup-cli
+        # src/main.ts shouldUseGhcrRegistry), which overrides the registry
+        # `supabase start` pulls every service image from. Pinned back to the
+        # CLI's own pre-v3 default so the Docker image source is unchanged.
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: public.ecr.aws
         run: |
           supabase start
           supabase db reset
@@ -175,6 +182,13 @@ jobs:
           npm ci
 
       - name: Start local Supabase and apply migrations
+        # supabase/setup-cli@v3 exports SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io
+        # for any resolved CLI version >= 1.28.0 (see supabase/setup-cli
+        # src/main.ts shouldUseGhcrRegistry), which overrides the registry
+        # `supabase start` pulls every service image from. Pinned back to the
+        # CLI's own pre-v3 default so the Docker image source is unchanged.
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: public.ecr.aws
         run: |
           supabase start
           supabase db reset
