@@ -1,10 +1,10 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { isLocale, locales, type Locale } from "@/i18n/routing";
+import { usePathname, useRouter } from "@/i18n/navigation";
+import { locales, type Locale } from "@/i18n/routing";
 import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { updateLocale } from "@/lib/api/me";
 import { rememberExplicitLocale } from "@/lib/auth-routing";
@@ -39,11 +39,12 @@ export function LanguageSwitcher() {
     }
 
     rememberExplicitLocale(nextLocale);
-    const segments = pathname.split("/");
-    if (isLocale(segments[1])) {
-      segments[1] = nextLocale;
-    }
-    router.push(segments.join("/") || "/");
+    // `pathname` is already locale-stripped here, so the locale comes from the
+    // option rather than from rewriting the first segment. Going through
+    // next-intl's router is what keeps the NEXT_LOCALE cookie in step with the
+    // choice (see i18n/navigation.ts) — the cookie is the only thing carrying
+    // the language across a sign-out into the signed-out root redirect.
+    router.push(pathname, { locale: nextLocale });
   }
 
   return (
