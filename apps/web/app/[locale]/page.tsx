@@ -1,9 +1,9 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { useRouter } from "@/i18n/navigation";
 import { redirectToPreferredWorkspace } from "@/lib/auth-routing";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Alert, InfoCard } from "@/components/ui";
@@ -25,7 +25,7 @@ export default function LocaleHomePage() {
       } = await supabase.auth.getSession();
 
       if (!session) {
-        router.replace(`/${locale}/sign-in`);
+        router.replace("/sign-in");
         return;
       }
 
