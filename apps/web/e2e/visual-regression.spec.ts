@@ -4,8 +4,8 @@ import { addWorkspaceMember, createSeededUser, hasE2eEnvironment, seedIncome, se
 import { pinDashboardPeriod } from "./_helpers/visual-dashboard";
 
 const labels = {
-  ar: { navigation: "التنقل", openNavigation: "فتح التنقل" },
-  en: { navigation: "Navigation", openNavigation: "Open navigation" },
+  ar: { navigation: "التنقل", openNavigation: "فتح التنقل", switchWorkspace: "تبديل مساحة العمل" },
+  en: { navigation: "Navigation", openNavigation: "Open navigation", switchWorkspace: "Switch workspace" },
 } as const;
 
 async function capture(page: import("@playwright/test").Page, name: string) {
@@ -68,6 +68,12 @@ test.describe("design refresh visual regression", () => {
       await captureMobileRecordCard(page, `${locale}-record-mobile-card`);
 
       await page.goto(`/${locale}/w/${workspace.id}/dashboard`);
+      // The workspace switcher disables itself while its own list is loading
+      // (WorkspaceSelector.tsx `disabled={workspaces.isLoading}`), which is
+      // visible in the header behind the dialog. Capturing before that query
+      // settles caught it mid-load — narrower, greyed, and truncating its
+      // label — an unrelated flake rather than a real difference.
+      await expect(page.getByLabel(labels[locale].switchWorkspace)).toBeEnabled();
       await page.getByRole("button", { name: labels[locale].openNavigation }).click();
       await expect(page.getByRole("dialog", { name: labels[locale].navigation })).toBeVisible();
       await capture(page, `${locale}-mobile-navigation-dialog`);
