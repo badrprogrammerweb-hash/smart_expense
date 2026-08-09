@@ -3,35 +3,51 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { useAuthErrorMessage } from "@/lib/auth/auth-error-message";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Alert, Button } from "@/components/ui";
 
-const schema = z.object({
-  email: z.string().email(),
-});
-
-type ResetValues = z.infer<typeof schema>;
+type ResetValues = { email: string };
 
 export default function ResetPasswordPage() {
   const locale = useLocale();
   const t = useTranslations("auth");
   const [message, setMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const authErrorMessage = useAuthErrorMessage();
+  const schema = useMemo(
+    () =>
+      z.object({
+        email: z
+          .string()
+          .min(1, t("validationEmailRequired"))
+          .email(t("validationEmail")),
+      }),
+    [t],
+  );
   const form = useForm<ResetValues>({
     resolver: zodResolver(schema),
     defaultValues: { email: "" },
   });
 
   async function submit(values: ResetValues) {
+    setMessage(null);
+    setErrorMessage(null);
     const supabase = createSupabaseBrowserClient();
     const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
       redirectTo: `${window.location.origin}/${locale}/sign-in`,
     });
 
-    setMessage(error?.message ?? t("resetSent"));
+    if (error) {
+      setErrorMessage(authErrorMessage(error));
+      return;
+    }
+
+    setMessage(t("resetSent"));
   }
 
   return (
@@ -52,6 +68,7 @@ export default function ResetPasswordPage() {
             <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
           )}
           {message && <Alert variant="info" title={message} />}
+          {errorMessage && <Alert variant="error" title={errorMessage} />}
           <Button
             className="w-full"
             type="submit"

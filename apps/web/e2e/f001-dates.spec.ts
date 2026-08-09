@@ -39,23 +39,30 @@ test.describe("F-001 isolated dates", () => {
     await page.goto(`/ar/w/${workspace.id}/incomes`);
     const listDate = page.getByText(seededDisplayDate, { exact: true }).first();
     await expect(listDate).toHaveAttribute("dir", "ltr");
+
+    // A native date input renders its value in the browser/OS locale, which is
+    // not the product's DD/MM/YYYY contract. These fields used to carry a
+    // DD/MM/YYYY caption directly beneath, so one value appeared twice in two
+    // formats and read as two different days (BUG-02). The control now owns the
+    // single rendering of its own value, and keeps its ISO machine value.
     const formDate = page.getByLabel(/التاريخ|Date/);
     await formDate.fill("2026-07-14");
-    const formPreview = page.getByText("14/07/2026", { exact: true });
-    await expect(formPreview).toBeVisible();
-    await expect(formPreview).toHaveAttribute("dir", "ltr");
+    await expect(formDate).toHaveValue("2026-07-14");
+    await expect(page.getByText("14/07/2026", { exact: true })).toHaveCount(0);
 
     await page.goto(`/ar/w/${workspace.id}/reports`);
     const startDate = page.getByLabel(/تاريخ البداية|Start date/);
     const endDate = page.getByLabel(/تاريخ النهاية|End date/);
     await startDate.fill("2026-07-01");
     await endDate.fill("2026-07-31");
-    for (const expectedDate of ["01/07/2026", "31/07/2026"]) {
-      const preview = page.getByText(expectedDate, { exact: true });
-      await expect(preview).toBeVisible();
-      await expect(preview).toHaveAttribute("dir", "ltr");
+    await expect(startDate).toHaveValue("2026-07-01");
+    await expect(endDate).toHaveValue("2026-07-31");
+    for (const removedCaption of ["01/07/2026", "31/07/2026"]) {
+      await expect(page.getByText(removedCaption, { exact: true })).toHaveCount(0);
     }
 
+    // Dates the product renders itself (rather than delegating to a control)
+    // still follow the contract and stay LTR-isolated inside the RTL page.
     const allRenderedDates = page.locator("[dir='ltr']").filter({ hasText: datePattern });
     await expect(allRenderedDates.first()).toBeVisible();
 

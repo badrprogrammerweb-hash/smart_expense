@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { useRouter } from "@/i18n/navigation";
+import { useApiErrorMessage } from "@/lib/api/error-message";
 import { redirectToPreferredWorkspace } from "@/lib/auth-routing";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Alert, InfoCard } from "@/components/ui";
@@ -12,7 +13,7 @@ export default function LocaleHomePage() {
   const locale = useLocale();
   const router = useRouter();
   const t = useTranslations("common");
-  const errors = useTranslations("errors");
+  const errorMessage = useApiErrorMessage();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,7 +34,7 @@ export default function LocaleHomePage() {
         await redirectToPreferredWorkspace(locale, router);
       } catch (caught) {
         if (!cancelled) {
-          setError(caught instanceof Error ? caught.message : errors("requestFailed"));
+          setError(errorMessage(caught));
         }
       }
     }
@@ -43,7 +44,7 @@ export default function LocaleHomePage() {
     return () => {
       cancelled = true;
     };
-  }, [errors, locale, router]);
+  }, [errorMessage, locale, router]);
 
   return (
     <main className="grid min-h-screen place-items-center p-6">

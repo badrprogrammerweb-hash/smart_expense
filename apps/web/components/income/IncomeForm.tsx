@@ -9,12 +9,15 @@ import { z } from "zod";
 import { CategoryPicker } from "@/components/category/CategoryPicker";
 import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { useCreateIncome, useUpdateIncome } from "@/hooks/use-incomes";
+import { useApiErrorMessage } from "@/lib/api/error-message";
+import { todayIsoDate } from "@/lib/format/date";
 import type { IncomeRecord } from "@/lib/api/incomes";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { minorUnitDigits, type SupportedCurrency } from "@/lib/currency";
+import { useAmountField } from "@/lib/forms/use-amount-field";
 import { parseInputToMinor } from "@/lib/money";
 import { canManageIncome } from "@/lib/permissions";
-import { AmountInput, Button, DateDisplay, FormError, FormField, FormFooter, FormLabel, Input, PermissionDeniedState, Textarea } from "@/components/ui";
+import { AmountInput, Button, FormError, FormField, FormFooter, FormLabel, Input, PermissionDeniedState, Textarea } from "@/components/ui";
 
 type IncomeFormProps = {
   workspaceId: string;
@@ -40,27 +43,28 @@ export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCan
   const { canMutate } = useConnectivity();
   const createIncome = useCreateIncome(workspaceId);
   const updateIncome = useUpdateIncome(workspaceId);
+  const errorMessage = useApiErrorMessage();
+  const amountField = useAmountField(currency);
   const schema = useMemo(
     () =>
       z.object({
-        amount: z.string().refine((value) => parseInputToMinor(value, currency) > 0, t("validationAmount")),
+        amount: amountField.schema,
         occurred_on: z.string().min(1, t("validationDate")),
         description: z.string().optional(),
         category_id: z.string().optional(),
       }),
-    [currency, t],
+    [amountField, t],
   );
   type FormValues = z.infer<typeof schema>;
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       amount: record ? minorToInput(record.amount_minor, currency) : "",
-      occurred_on: record?.occurred_on ?? new Date().toISOString().slice(0, 10),
+      occurred_on: record?.occurred_on ?? todayIsoDate(),
       description: record?.description ?? "",
       category_id: record?.category_id ?? "",
     },
   });
-  const selectedDate = form.watch("occurred_on");
 
   if (!canManageIncome(role)) {
     return <PermissionDeniedState action={t("addIncome").toLowerCase()} description={t("incomeBlocked")} role={role === "viewer" ? "Viewer" : "Member"} title={common("permissionRequired")} />;
@@ -83,14 +87,14 @@ export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCan
         await createIncome.mutateAsync(input);
         form.reset({
           amount: "",
-          occurred_on: new Date().toISOString().slice(0, 10),
+          occurred_on: todayIsoDate(),
           description: "",
           category_id: "",
         });
       }
       onSaved?.();
     } catch (caught) {
-      setFormError(caught instanceof Error ? caught.message : "Unable to save income.");
+      setFormError(errorMessage(caught));
     }
   }
 
@@ -98,8 +102,8 @@ export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCan
     <form className="space-y-4 rounded-[var(--radius-card)] border bg-card p-5 shadow-[var(--shadow-card)]" onSubmit={form.handleSubmit(submit)}>
       <h2 className="text-lg font-semibold">{record ? t("updateIncome") : t("addIncome")}</h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField><FormLabel htmlFor="income-amount">{t("amount")}</FormLabel><AmountInput id="income-amount" className="mt-2" currency={currency} {...form.register("amount")} /></FormField>
-        <FormField><FormLabel htmlFor="income-date">{t("date")}</FormLabel><Input id="income-date" className="mt-2" dir="ltr" type="date" {...form.register("occurred_on")} />{selectedDate ? <DateDisplay date={selectedDate} className="mt-1 text-xs text-muted-foreground" /> : null}</FormField>
+        <FormField><FormLabel htmlFor="income-amount">{t("amount")}</FormLabel><AmountInput id="income-amount" className="mt-2" currency={currency} aria-describedby={amountField.hintId} {...form.register("amount")} /><p className="mt-1 text-xs text-muted-foreground" id={amountField.hintId}>{amountField.hint}</p></FormField>
+        <FormField><FormLabel htmlFor="income-date">{t("date")}</FormLabel><Input id="income-date" className="mt-2" dir="ltr" type="date" {...form.register("occurred_on")} /></FormField>
       </div>
       <FormError>{form.formState.errors.amount?.message}</FormError>
       <FormError>{form.formState.errors.occurred_on?.message}</FormError>

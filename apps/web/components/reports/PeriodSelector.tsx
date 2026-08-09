@@ -5,16 +5,12 @@ import { CalendarDays } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import type { ReportPeriodInput, ReportPeriodPreset } from "@/lib/api/reports";
-import { DateDisplay } from "@/components/ui";
+import { todayIsoDate } from "@/lib/format/date";
 
 type PeriodSelectorProps = {
   value: ReportPeriodInput;
   onChange: (period: ReportPeriodInput) => void;
 };
-
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function daysBetween(start: string, end: string) {
   const startTime = Date.parse(`${start}T00:00:00Z`);
@@ -32,7 +28,7 @@ function customDates(value: ReportPeriodInput) {
     return { start: value.start, end: value.end };
   }
 
-  const fallback = todayIso();
+  const fallback = todayIsoDate();
   return { start: fallback, end: fallback };
 }
 
@@ -104,6 +100,11 @@ export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
           </div>
         </div>
 
+        {/* The native control renders the date in the browser/OS locale, which
+            is not necessarily the product's DD/MM/YYYY contract. A caption
+            repeating the same value in that contract sat directly beneath each
+            input and read as a different day (08/07/2026 above 07/08/2026), so
+            the control is now the single representation of its own value. */}
         <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
           <label className="text-sm font-medium">
             {t("start")}
@@ -114,7 +115,6 @@ export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
               type="date"
               value={start}
             />
-            {start ? <DateDisplay date={start} className="mt-1 text-xs text-muted-foreground" /> : null}
           </label>
           <label className="text-sm font-medium">
             {t("end")}
@@ -125,7 +125,6 @@ export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
               type="date"
               value={end}
             />
-            {end ? <DateDisplay date={end} className="mt-1 text-xs text-muted-foreground" /> : null}
           </label>
           <button
             className="min-h-11 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"

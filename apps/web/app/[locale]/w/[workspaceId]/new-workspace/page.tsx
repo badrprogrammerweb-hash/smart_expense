@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { useCreateWorkspace } from "@/hooks/use-workspaces";
+import { useApiErrorMessage } from "@/lib/api/error-message";
 import { Button, FormError, FormField, FormLabel, Input } from "@/components/ui";
 
 export default function NewWorkspacePage() {
@@ -15,6 +16,7 @@ export default function NewWorkspacePage() {
   const router = useRouter();
   const t = useTranslations("workspace");
   const [formError, setFormError] = useState<string | null>(null);
+  const errorMessage = useApiErrorMessage();
   const createWorkspace = useCreateWorkspace();
   const schema = useMemo(() => z.object({ name: z.string().min(1, t("validationName")) }), [t]);
   type FormValues = z.infer<typeof schema>;
@@ -30,7 +32,7 @@ export default function NewWorkspacePage() {
       const workspace = await createWorkspace.mutateAsync(values.name.trim());
       router.push(`/${locale}/w/${workspace.id}/dashboard`);
     } catch (caught) {
-      setFormError(caught instanceof Error ? caught.message : "Unable to create workspace.");
+      setFormError(errorMessage(caught));
     }
   }
 

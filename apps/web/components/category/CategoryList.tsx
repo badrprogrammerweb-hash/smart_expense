@@ -13,6 +13,7 @@ import {
   useUpdateCategory,
 } from "@/hooks/use-categories";
 import type { CategoryType, MainCategory } from "@/lib/api/categories";
+import { useApiErrorMessage } from "@/lib/api/error-message";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { getCategoryLabel } from "@/lib/i18n/category-labels";
 import { canManageCategories } from "@/lib/permissions";
@@ -30,6 +31,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
   const common = useTranslations("common");
   const errors = useTranslations("errors");
   const catalogT = useTranslations("categories.catalog");
+  const errorMessage = useApiErrorMessage();
   const categories = useCategories(workspaceId, { categoryType, includeArchived: true });
   const updateCategory = useUpdateCategory(workspaceId);
   const reorderCategories = useReorderCategories(workspaceId);
@@ -99,7 +101,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
       setRowError(null);
       setEditingId(null);
     } catch (caught) {
-      setRowError({ id: item.id, message: caught instanceof Error ? caught.message : errors("requestFailed") });
+      setRowError({ id: item.id, message: errorMessage(caught) });
     }
   }
 
@@ -110,7 +112,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
     try {
       await updateCategory.mutateAsync({ categoryId: item.id, input: { is_archived: !item.is_archived } });
     } catch (caught) {
-      setRowError({ id: item.id, message: caught instanceof Error ? caught.message : errors("requestFailed") });
+      setRowError({ id: item.id, message: errorMessage(caught) });
     }
   }
 
@@ -130,7 +132,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
       setRowError(null);
       setConfirmingDeleteId(null);
     } catch (caught) {
-      setRowError({ id: item.id, message: caught instanceof Error ? caught.message : errors("requestFailed") });
+      setRowError({ id: item.id, message: errorMessage(caught) });
       setConfirmingDeleteId(null);
     }
   }
@@ -147,7 +149,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
     try {
       await reorderCategories.mutateAsync({ categoryType, categoryIds: reordered.map((item) => item.id) });
     } catch (caught) {
-      setRowError({ id: mains[index].id, message: caught instanceof Error ? caught.message : errors("requestFailed") });
+      setRowError({ id: mains[index].id, message: errorMessage(caught) });
     }
   }
 
@@ -164,7 +166,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
     try {
       await reorderCategories.mutateAsync({ parentId: main.id, categoryIds: reordered.map((item) => item.id) });
     } catch (caught) {
-      setRowError({ id: subs[index].id, message: caught instanceof Error ? caught.message : errors("requestFailed") });
+      setRowError({ id: subs[index].id, message: errorMessage(caught) });
     }
   }
 

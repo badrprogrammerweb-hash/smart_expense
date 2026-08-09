@@ -70,7 +70,21 @@
     "signUpTitle": "إنشاء حسابك",
     "resetTitle": "إعادة تعيين كلمة المرور",
     "resetSent": "إذا كان الحساب موجودًا، فسيتم إرسال رابط إعادة التعيين.",
-    "confirmEmailSent": "تحقق من بريدك الإلكتروني لتأكيد حسابك قبل تسجيل الدخول."
+    "confirmEmailSent": "تحقق من بريدك الإلكتروني لتأكيد حسابك قبل تسجيل الدخول.",
+    "validationEmailRequired": "أدخل بريدك الإلكتروني.",
+    "validationEmail": "أدخل بريدًا إلكترونيًا صالحًا.",
+    "validationPasswordRequired": "أدخل كلمة المرور.",
+    "validationPasswordLength": "يجب أن تتكون كلمة المرور من {min} أحرف على الأقل.",
+    "errors": {
+      "generic": "حدث خطأ ما. حاول مرة أخرى.",
+      "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+      "emailNotConfirmed": "أكّد بريدك الإلكتروني قبل تسجيل الدخول.",
+      "emailExists": "يوجد حساب بهذا البريد الإلكتروني بالفعل.",
+      "weakPassword": "اختر كلمة مرور أقوى.",
+      "signUpDisabled": "لا يمكن إنشاء حسابات جديدة في الوقت الحالي.",
+      "rateLimited": "محاولات كثيرة جدًا. حاول مرة أخرى لاحقًا.",
+      "validationEmail": "أدخل بريدًا إلكترونيًا صالحًا."
+    }
   },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -110,6 +124,11 @@
     "incomeBlocked": "إدارة الدخل متاحة للمالك والمشرف فقط.",
     "confirmDelete": "تأكيد الحذف",
     "validationAmount": "أدخل مبلغًا أكبر من صفر.",
+    "validationAmountRequired": "أدخل المبلغ.",
+    "validationAmountInvalid": "أدخل مبلغًا صالحًا.",
+    "validationAmountDecimals": "تسمح عملة {currency} بحد أقصى {digits, plural, one {منزلة عشرية واحدة} two {منزلتين عشريتين} few {# منازل عشرية} other {# منزلة عشرية}}.",
+    "validationAmountTooLarge": "هذا المبلغ كبير جدًا. أدخل مبلغًا أصغر.",
+    "amountHint": "حتى {digits, plural, one {منزلة عشرية واحدة} two {منزلتين عشريتين} few {# منازل عشرية} other {# منزلة عشرية}}.",
     "validationDate": "أدخل تاريخًا صحيحًا.",
     "categoryPlaceholder": "اختر تصنيفًا",
     "subcategory": "الفئة الفرعية",
@@ -609,10 +628,26 @@
     "returnAction": "العودة إلى Smart Expense"
   },
   "errors": {
-    "generic": "حدث خطأ ما.",
+    "generic": "حدث خطأ ما. حاول مرة أخرى.",
     "requestFailed": "فشل الطلب. حاول مرة أخرى.",
     "unauthenticated": "سجّل الدخول للمتابعة.",
     "notFound": "مساحة العمل غير موجودة.",
-    "rateLimited": "طلبات كثيرة جدًا. حاول مرة أخرى لاحقًا."
+    "notFoundResource": "لم يعد هذا العنصر موجودًا. حدّث الصفحة وحاول مرة أخرى.",
+    "forbidden": "ليست لديك صلاحية للقيام بذلك.",
+    "conflict": "يتعارض هذا مع الحالة الحالية لمساحة العمل. حدّث الصفحة وحاول مرة أخرى.",
+    "invalidRequest": "تحقق من البيانات وحاول مرة أخرى.",
+    "serviceUnavailable": "الخدمة غير متاحة مؤقتًا. حاول مرة أخرى بعد قليل.",
+    "network": "تعذّر إكمال الطلب. تحقق من اتصالك وحاول مرة أخرى.",
+    "rateLimited": "طلبات كثيرة جدًا. حاول مرة أخرى لاحقًا.",
+    "invalidAmount": "أدخل مبلغًا أكبر من صفر.",
+    "invalidDate": "أدخل تاريخًا صحيحًا.",
+    "invalidCategory": "هذا التصنيف غير صالح لمساحة العمل هذه.",
+    "categoryArchived": "هذا التصنيف مؤرشف.",
+    "categoryTypeMismatch": "هذا التصنيف لا ينتمي إلى هذا النوع من السجلات.",
+    "duplicateCategoryName": "يوجد تصنيف نشط يحمل هذا الاسم بالفعل.",
+    "invalidOrder": "يجب أن يتضمن ترتيب التصنيفات كل تصنيف شقيق مرة واحدة بالضبط.",
+    "invalidParentCategory": "التصنيف الرئيسي غير صالح لمساحة العمل هذه.",
+    "categoryHasReferences": "هذا التصنيف مستخدم في سجلات أو ما زالت له تصنيفات فرعية.",
+    "currencyLocked": "تُقفل عملة مساحة العمل بمجرد وجود سجلات دخل أو مصروفات."
   }
 }

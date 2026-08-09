@@ -10,6 +10,7 @@ import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { SummaryCards } from "@/components/dashboard/SummaryCards";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { getAiSettings } from "@/lib/api/ai-settings";
+import { formatDisplayDate } from "@/lib/format/date";
 import { canCreateExpense, canManageIncome } from "@/lib/permissions";
 import { useWorkspaceContext } from "@/lib/workspace-context";
 import { EmptyState as PrimitiveEmptyState, ErrorState as PrimitiveErrorState, PageHeading, Skeleton } from "@/components/ui";
@@ -50,7 +51,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <PageHeading title={t("title")} description={t("subtitle", { start: data.period.start, end: data.period.end })} />
+        <PageHeading title={t("title")} description={t("subtitle", { start: formatDisplayDate(data.period.start), end: formatDisplayDate(data.period.end) })} />
         <div className="flex gap-2">
           {canAddIncome && (
             <Link

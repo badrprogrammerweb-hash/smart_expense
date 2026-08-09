@@ -14,6 +14,7 @@ import {
 } from "@/components/records/RecordHistoryFilters";
 import { useCategories } from "@/hooks/use-categories";
 import { useDeleteExpense, useExpenses } from "@/hooks/use-expenses";
+import { useApiErrorMessage } from "@/lib/api/error-message";
 import type { ExpenseRecord } from "@/lib/api/expenses";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { getCategoryLabel } from "@/lib/i18n/category-labels";
@@ -27,6 +28,7 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
   const t = useTranslations("records");
   const common = useTranslations("common");
   const errors = useTranslations("errors");
+  const errorMessage = useApiErrorMessage();
   const catalogT = useTranslations("categories.catalog");
   const { currentUserId } = useWorkspaceContext();
   const { canMutate } = useConnectivity();
@@ -78,7 +80,7 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
       setDeleteError(null);
       setConfirmingDeleteId(null);
     } catch (caught) {
-      setDeleteError(caught instanceof Error ? caught.message : errors("requestFailed"));
+      setDeleteError(errorMessage(caught));
     }
   }
 

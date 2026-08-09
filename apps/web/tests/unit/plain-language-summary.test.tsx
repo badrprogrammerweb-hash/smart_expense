@@ -1,8 +1,15 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { PlainLanguageSummary } from "@/components/reports/PlainLanguageSummary";
+
+// The top category now resolves through the workspace catalog (BUG-10); an
+// unknown id falls back to the backend's own `category_name`.
+vi.mock("@/hooks/use-categories", () => ({
+  useCategories: () => ({ data: { categories: [] }, isLoading: false }),
+}));
 import arMessages from "@/messages/ar.json";
 import enMessages from "@/messages/en.json";
 import type { SpendingSummary } from "@/lib/api/reports";
@@ -22,9 +29,13 @@ const summary: SpendingSummary = {
 };
 
 function renderSummary(locale: "en" | "ar", value: SpendingSummary = summary) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return render(
     <NextIntlClientProvider locale={locale} messages={locale === "ar" ? arMessages : enMessages}>
-      <PlainLanguageSummary locale={locale} summary={value} />
+      <QueryClientProvider client={queryClient}>
+        <PlainLanguageSummary locale={locale} summary={value} workspaceId="workspace-1" />
+      </QueryClientProvider>
     </NextIntlClientProvider>,
   );
 }

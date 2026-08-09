@@ -3,29 +3,51 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { useRouter } from "@/i18n/navigation";
-import { redirectToPreferredWorkspace } from "@/lib/auth-routing";
+import { isLocale, routing } from "@/i18n/routing";
+import { useApiErrorMessage } from "@/lib/api/error-message";
+import { updateLocale } from "@/lib/api/me";
+import { redirectToPreferredWorkspace, rememberExplicitLocale } from "@/lib/auth-routing";
+import { useAuthErrorMessage } from "@/lib/auth/auth-error-message";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Alert, Button } from "@/components/ui";
 
-const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
+const PASSWORD_MIN_LENGTH = 6;
 
-type AuthValues = z.infer<typeof schema>;
+type AuthValues = { email: string; password: string };
 
 export default function SignUpPage() {
   const locale = useLocale();
+  // The locale layout validates the URL segment before this page renders, so
+  // the fallback is unreachable and only satisfies the narrowing.
+  const chosenLocale = isLocale(locale) ? locale : routing.defaultLocale;
   const router = useRouter();
   const t = useTranslations("auth");
-  const errors = useTranslations("errors");
   const [formError, setFormError] = useState<string | null>(null);
   const [formNotice, setFormNotice] = useState<string | null>(null);
+  const authErrorMessage = useAuthErrorMessage();
+  const apiErrorMessage = useApiErrorMessage();
+  // Built inside the component so every rule carries application-owned,
+  // localized copy. Zod's defaults are developer diagnostics ("Too small:
+  // expected string to have >=6 characters") and must never reach a user.
+  const schema = useMemo(
+    () =>
+      z.object({
+        email: z
+          .string()
+          .min(1, t("validationEmailRequired"))
+          .email(t("validationEmail")),
+        password: z
+          .string()
+          .min(1, t("validationPasswordRequired"))
+          .min(PASSWORD_MIN_LENGTH, t("validationPasswordLength", { min: PASSWORD_MIN_LENGTH })),
+      }),
+    [t],
+  );
   const form = useForm<AuthValues>({
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "" },
@@ -38,7 +60,7 @@ export default function SignUpPage() {
     const { data, error } = await supabase.auth.signUp(values);
 
     if (error) {
-      setFormError(error.message);
+      setFormError(authErrorMessage(error));
       return;
     }
 
@@ -47,10 +69,25 @@ export default function SignUpPage() {
       return;
     }
 
+    // The profile row is created by a database trigger with the column
+    // default, so the language the user actually signed up in is only recorded
+    // if it is written here. This must complete before
+    // `redirectToPreferredWorkspace`, which reads the stored locale back and
+    // would otherwise route an /ar/sign-up straight into the English app.
     try {
-      await redirectToPreferredWorkspace(locale, router);
+      await updateLocale(chosenLocale);
+    } catch {
+      // The account exists and the session is live; a failed preference write
+      // is not worth blocking entry on. `rememberExplicitLocale` below still
+      // keeps this session in the language the user chose.
+    }
+
+    rememberExplicitLocale(chosenLocale);
+
+    try {
+      await redirectToPreferredWorkspace(chosenLocale, router);
     } catch (caught) {
-      setFormError(caught instanceof Error ? caught.message : errors("requestFailed"));
+      setFormError(apiErrorMessage(caught));
     }
   }
 

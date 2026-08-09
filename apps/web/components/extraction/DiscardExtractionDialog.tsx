@@ -5,7 +5,7 @@ import { Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
-import { ApiError } from "@/lib/api/client";
+import { useApiErrorMessage } from "@/lib/api/error-message";
 import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { discardExtraction, type ExtractionRecord } from "@/lib/api/extractions";
 import { Alert, Button, ConfirmDialog } from "@/components/ui";
@@ -16,16 +16,6 @@ type DiscardExtractionDialogProps = {
   onDiscarded?: (extraction: ExtractionRecord) => void;
 };
 
-function errorMessage(error: unknown, fallback: string) {
-  if (error instanceof ApiError) {
-    return error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return fallback;
-}
-
 export function DiscardExtractionDialog({
   workspaceId,
   extraction,
@@ -33,6 +23,7 @@ export function DiscardExtractionDialog({
 }: DiscardExtractionDialogProps) {
   const t = useTranslations("extraction");
   const common = useTranslations("common");
+  const errorMessage = useApiErrorMessage();
   const queryClient = useQueryClient();
   const [isConfirming, setIsConfirming] = useState(false);
   const [isDiscarding, setIsDiscarding] = useState(false);

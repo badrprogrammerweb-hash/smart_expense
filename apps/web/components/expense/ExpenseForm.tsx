@@ -9,12 +9,15 @@ import { z } from "zod";
 import { CategoryPicker } from "@/components/category/CategoryPicker";
 import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { useCreateExpense, useUpdateExpense } from "@/hooks/use-expenses";
+import { useApiErrorMessage } from "@/lib/api/error-message";
+import { todayIsoDate } from "@/lib/format/date";
 import type { ExpenseRecord } from "@/lib/api/expenses";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { minorUnitDigits, type SupportedCurrency } from "@/lib/currency";
+import { useAmountField } from "@/lib/forms/use-amount-field";
 import { parseInputToMinor } from "@/lib/money";
 import { canCreateExpense } from "@/lib/permissions";
-import { AmountInput, Button, DateDisplay, FormError, FormField, FormFooter, FormLabel, Input, PermissionDeniedState, Textarea } from "@/components/ui";
+import { AmountInput, Button, FormError, FormField, FormFooter, FormLabel, Input, PermissionDeniedState, Textarea } from "@/components/ui";
 
 type ExpenseFormProps = {
   workspaceId: string;
@@ -42,29 +45,30 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
   const createExpense = useCreateExpense(workspaceId);
   const updateExpense = useUpdateExpense(workspaceId);
   const allowed = canSubmit ?? canCreateExpense(role);
+  const errorMessage = useApiErrorMessage();
+  const amountField = useAmountField(currency);
   const schema = useMemo(
     () =>
       z.object({
-        amount: z.string().refine((value) => parseInputToMinor(value, currency) > 0, t("validationAmount")),
+        amount: amountField.schema,
         occurred_on: z.string().min(1, t("validationDate")),
         merchant_name: z.string().optional(),
         description: z.string().optional(),
         category_id: z.string().optional(),
       }),
-    [currency, t],
+    [amountField, t],
   );
   type FormValues = z.infer<typeof schema>;
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       amount: record ? minorToInput(record.amount_minor, currency) : "",
-      occurred_on: record?.occurred_on ?? new Date().toISOString().slice(0, 10),
+      occurred_on: record?.occurred_on ?? todayIsoDate(),
       merchant_name: record?.merchant_name ?? "",
       description: record?.description ?? "",
       category_id: record?.category_id ?? "",
     },
   });
-  const selectedDate = form.watch("occurred_on");
 
   if (!allowed) {
     return <PermissionDeniedState action={t("addExpense").toLowerCase()} description={t("viewerBlocked")} role={role === "viewer" ? "Viewer" : "Member"} title={common("permissionRequired")} />;
@@ -88,7 +92,7 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
         await createExpense.mutateAsync(input);
         form.reset({
           amount: "",
-          occurred_on: new Date().toISOString().slice(0, 10),
+          occurred_on: todayIsoDate(),
           merchant_name: "",
           description: "",
           category_id: "",
@@ -96,7 +100,7 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
       }
       onSaved?.();
     } catch (caught) {
-      setFormError(caught instanceof Error ? caught.message : "Unable to save expense.");
+      setFormError(errorMessage(caught));
     }
   }
 
@@ -104,8 +108,8 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
     <form className="space-y-4 rounded-[var(--radius-card)] border bg-card p-5 shadow-[var(--shadow-card)]" onSubmit={form.handleSubmit(submit)}>
       <h2 className="text-lg font-semibold">{record ? t("updateExpense") : t("addExpense")}</h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField><FormLabel htmlFor="expense-amount">{t("amount")}</FormLabel><AmountInput id="expense-amount" className="mt-2" currency={currency} {...form.register("amount")} /></FormField>
-        <FormField><FormLabel htmlFor="expense-date">{t("date")}</FormLabel><Input id="expense-date" className="mt-2" dir="ltr" type="date" {...form.register("occurred_on")} />{selectedDate ? <DateDisplay date={selectedDate} className="mt-1 text-xs text-muted-foreground" /> : null}</FormField>
+        <FormField><FormLabel htmlFor="expense-amount">{t("amount")}</FormLabel><AmountInput id="expense-amount" className="mt-2" currency={currency} aria-describedby={amountField.hintId} {...form.register("amount")} /><p className="mt-1 text-xs text-muted-foreground" id={amountField.hintId}>{amountField.hint}</p></FormField>
+        <FormField><FormLabel htmlFor="expense-date">{t("date")}</FormLabel><Input id="expense-date" className="mt-2" dir="ltr" type="date" {...form.register("occurred_on")} /></FormField>
       </div>
       <FormError>{form.formState.errors.amount?.message}</FormError>
       <FormError>{form.formState.errors.occurred_on?.message}</FormError>
