@@ -12,6 +12,7 @@ import {
   filterHistoryRecords,
 } from "@/components/records/RecordHistoryFilters";
 import { useDeleteIncome, useIncomes } from "@/hooks/use-incomes";
+import { useApiErrorMessage } from "@/lib/api/error-message";
 import type { IncomeRecord } from "@/lib/api/incomes";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { toDisplayAmount } from "@/lib/money";
@@ -23,6 +24,7 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
   const t = useTranslations("records");
   const common = useTranslations("common");
   const errors = useTranslations("errors");
+  const errorMessage = useApiErrorMessage();
   const { canMutate } = useConnectivity();
   const incomes = useIncomes(workspaceId);
   const deleteIncome = useDeleteIncome(workspaceId);
@@ -56,7 +58,7 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
       setDeleteError(null);
       setConfirmingDeleteId(null);
     } catch (caught) {
-      setDeleteError(caught instanceof Error ? caught.message : errors("requestFailed"));
+      setDeleteError(errorMessage(caught));
     }
   }
 

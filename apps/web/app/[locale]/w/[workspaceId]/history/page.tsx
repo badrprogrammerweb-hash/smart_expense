@@ -42,7 +42,7 @@ export default function HistoryPage() {
       <div>
         <h1 className="text-3xl font-semibold">{t("title")}</h1>
       </div>
-      {items.length === 0 ? <HistoryEmptyState /> : <HistoryList items={items} locale={locale} />}
+      {items.length === 0 ? <HistoryEmptyState /> : <HistoryList items={items} locale={locale} workspaceId={workspaceId} />}
       {history.hasNextPage && (
         <button
           className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"

@@ -2,15 +2,19 @@
 
 import { Clock } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useMemo } from "react";
 
+import { useCategories } from "@/hooks/use-categories";
 import type { ActivityHistoryItem } from "@/lib/api/history";
 import { supportedCurrencies, type SupportedCurrency } from "@/lib/currency";
+import { buildSystemCategoryKeysByName, getCategoryLabelByName } from "@/lib/i18n/category-labels";
 import { toDisplayAmount } from "@/lib/money";
 import { DateDisplay, MobileRecordCard } from "@/components/ui";
 
 type HistoryListProps = {
   items: ActivityHistoryItem[];
   locale: string;
+  workspaceId: string;
 };
 
 function summaryText(summary: Record<string, unknown>) {
@@ -50,15 +54,46 @@ function summaryAmount(summary: Record<string, unknown>) {
   return null;
 }
 
-export function HistoryList({ items, locale }: HistoryListProps) {
+export function HistoryList({ items, locale, workspaceId }: HistoryListProps) {
   const t = useTranslations("history");
   const events = useTranslations("history.events");
+  const catalogT = useTranslations("categories.catalog");
+  // Category events store only the category's name, so the catalog is loaded
+  // for both trees to translate it back. Everything else `summaryText` can
+  // return (merchant, workspace setting, AI provider) is user- or
+  // vendor-supplied and must render exactly as stored.
+  const expenseCategories = useCategories(workspaceId, {
+    categoryType: "expense",
+    includeArchived: true,
+  });
+  const incomeCategories = useCategories(workspaceId, {
+    categoryType: "income",
+    includeArchived: true,
+  });
+  const systemKeyByName = useMemo(
+    () =>
+      buildSystemCategoryKeysByName([
+        expenseCategories.data?.categories,
+        incomeCategories.data?.categories,
+      ]),
+    [expenseCategories.data?.categories, incomeCategories.data?.categories],
+  );
+
+  function detailFor(item: ActivityHistoryItem) {
+    const detail = summaryText(item.summary);
+
+    if (detail === null || !item.event_type.startsWith("category_")) {
+      return detail;
+    }
+
+    return getCategoryLabelByName(catalogT, systemKeyByName, detail);
+  }
 
   return (
     <section className="rounded-[var(--radius-card)] border bg-card text-card-foreground shadow-[var(--shadow-card)]">
       <ul className="hidden divide-y md:block">
         {items.map((item) => {
-          const detail = summaryText(item.summary);
+          const detail = detailFor(item);
           const amount = summaryAmount(item.summary);
 
           return (
@@ -87,7 +122,7 @@ export function HistoryList({ items, locale }: HistoryListProps) {
       </ul>
       <div className="grid gap-3 p-4 md:hidden">
         {items.map((item) => {
-          const detail = summaryText(item.summary);
+          const detail = detailFor(item);
           const amount = summaryAmount(item.summary);
           return <MobileRecordCard key={item.id} title={events(item.event_type)} fields={[{ label: t("actor"), value: item.actor_display_name ?? t("unknownActor") }, { label: t("date"), value: <DateDisplay date={item.created_at} /> }, ...(detail ? [{ label: t("details"), value: detail }] : []), ...(amount ? [{ label: t("amount"), value: toDisplayAmount(amount.amountMinor, locale, amount.currency) }] : [])]} />;
         })}

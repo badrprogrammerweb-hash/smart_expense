@@ -9,6 +9,7 @@ import { z } from "zod";
 import { useCategories, useCreateCategory } from "@/hooks/use-categories";
 import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import type { CategoryType } from "@/lib/api/categories";
+import { useApiErrorMessage } from "@/lib/api/error-message";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { getCategoryLabel } from "@/lib/i18n/category-labels";
 import { canManageCategories } from "@/lib/permissions";
@@ -27,6 +28,7 @@ export function CategoryForm({ workspaceId, role, categoryType }: CategoryFormPr
   const [formError, setFormError] = useState<string | null>(null);
   const { canMutate } = useConnectivity();
   const createCategory = useCreateCategory(workspaceId);
+  const errorMessage = useApiErrorMessage();
   const mainCategories = useCategories(workspaceId, { categoryType, includeArchived: false });
   const schema = useMemo(
     () =>
@@ -58,7 +60,7 @@ export function CategoryForm({ workspaceId, role, categoryType }: CategoryFormPr
       });
       form.reset({ name: "", parentId: "" });
     } catch (caught) {
-      setFormError(caught instanceof Error ? caught.message : "Unable to save category.");
+      setFormError(errorMessage(caught));
     }
   }
 

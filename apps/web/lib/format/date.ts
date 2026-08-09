@@ -48,3 +48,28 @@ export function formatDisplayDate(value: DisplayDateValue): string {
 
   return formatDateInstant(value);
 }
+
+/**
+ * Today's calendar day as the `YYYY-MM-DD` the backend stores, read from the
+ * runtime's LOCAL clock.
+ *
+ * `new Date().toISOString().slice(0, 10)` truncates the UTC instant instead,
+ * which names a different day whenever the local and UTC dates disagree. In
+ * Asia/Riyadh (UTC+3) that is every local 00:00–02:59, when UTC is still on the
+ * previous day — so a form defaulting to "today" would pre-fill yesterday and
+ * file the record under the wrong date unless the user noticed.
+ *
+ * Reads the same local getters as `formatDateInstant` above, so a default date
+ * and the `formatDisplayDate` rendering of it always name the same day.
+ */
+export function todayIsoDate(now: Date = new Date()): string {
+  if (Number.isNaN(now.getTime())) {
+    throw new RangeError("A valid date is required for display formatting.");
+  }
+
+  const year = String(now.getFullYear()).padStart(4, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}

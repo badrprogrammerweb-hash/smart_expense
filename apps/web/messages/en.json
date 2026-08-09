@@ -70,7 +70,21 @@
     "signUpTitle": "Create your account",
     "resetTitle": "Reset your password",
     "resetSent": "If an account exists, a reset link has been sent.",
-    "confirmEmailSent": "Check your email to confirm your account before signing in."
+    "confirmEmailSent": "Check your email to confirm your account before signing in.",
+    "validationEmailRequired": "Enter your email address.",
+    "validationEmail": "Enter a valid email address.",
+    "validationPasswordRequired": "Enter your password.",
+    "validationPasswordLength": "Password must be at least {min} characters.",
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "invalidCredentials": "Invalid email or password.",
+      "emailNotConfirmed": "Confirm your email address before signing in.",
+      "emailExists": "An account already exists for this email address.",
+      "weakPassword": "Choose a stronger password.",
+      "signUpDisabled": "New accounts cannot be created right now.",
+      "rateLimited": "Too many attempts. Try again later.",
+      "validationEmail": "Enter a valid email address."
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -110,6 +124,11 @@
     "incomeBlocked": "Only owners and admins can manage income.",
     "confirmDelete": "Confirm delete",
     "validationAmount": "Enter an amount greater than zero.",
+    "validationAmountRequired": "Enter an amount.",
+    "validationAmountInvalid": "Enter a valid amount.",
+    "validationAmountDecimals": "{currency} supports a maximum of {digits, plural, one {# decimal place} other {# decimal places}}.",
+    "validationAmountTooLarge": "That amount is too large. Enter a smaller amount.",
+    "amountHint": "Up to {digits, plural, one {# decimal place} other {# decimal places}}.",
     "validationDate": "Enter a valid date.",
     "categoryPlaceholder": "Choose a category",
     "subcategory": "Subcategory",
@@ -609,10 +628,26 @@
     "returnAction": "Return to Smart Expense"
   },
   "errors": {
-    "generic": "Something went wrong.",
+    "generic": "Something went wrong. Please try again.",
     "requestFailed": "The request failed. Try again.",
     "unauthenticated": "Sign in to continue.",
     "notFound": "Workspace not found.",
-    "rateLimited": "Too many requests. Try again later."
+    "notFoundResource": "That item no longer exists. Refresh and try again.",
+    "forbidden": "You do not have permission to do that.",
+    "conflict": "That conflicts with the current workspace state. Refresh and try again.",
+    "invalidRequest": "Check the details and try again.",
+    "serviceUnavailable": "The service is temporarily unavailable. Try again shortly.",
+    "network": "The network request could not be completed. Check your connection and try again.",
+    "rateLimited": "Too many requests. Try again later.",
+    "invalidAmount": "Enter an amount greater than zero.",
+    "invalidDate": "Enter a valid date.",
+    "invalidCategory": "That category is not valid for this workspace.",
+    "categoryArchived": "That category is archived.",
+    "categoryTypeMismatch": "That category does not belong to this record type.",
+    "duplicateCategoryName": "An active category already uses that name.",
+    "invalidOrder": "Category order must include each sibling category exactly once.",
+    "invalidParentCategory": "That parent category is not valid for this workspace.",
+    "categoryHasReferences": "This category is referenced by records or still has subcategories.",
+    "currencyLocked": "The workspace currency is locked once income or expense records exist."
   }
 }

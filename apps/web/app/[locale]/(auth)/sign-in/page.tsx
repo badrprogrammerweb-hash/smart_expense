@@ -3,28 +3,46 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { useRouter } from "@/i18n/navigation";
+import { useApiErrorMessage } from "@/lib/api/error-message";
 import { redirectToPreferredWorkspace } from "@/lib/auth-routing";
+import { useAuthErrorMessage } from "@/lib/auth/auth-error-message";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button, FormError, FormField, FormLabel, Input } from "@/components/ui";
 
-const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
+const PASSWORD_MIN_LENGTH = 6;
 
-type AuthValues = z.infer<typeof schema>;
+type AuthValues = { email: string; password: string };
 
 export default function SignInPage() {
   const locale = useLocale();
   const router = useRouter();
   const t = useTranslations("auth");
-  const errors = useTranslations("errors");
   const [formError, setFormError] = useState<string | null>(null);
+  // This is the one form where a bare 400 unambiguously means the credentials
+  // were rejected, so it opts into that reading.
+  const authErrorMessage = useAuthErrorMessage({ credentialFallback: true });
+  const apiErrorMessage = useApiErrorMessage();
+  // See sign-up: schemas live in the component so their messages are localized
+  // application copy rather than Zod's developer-facing defaults.
+  const schema = useMemo(
+    () =>
+      z.object({
+        email: z
+          .string()
+          .min(1, t("validationEmailRequired"))
+          .email(t("validationEmail")),
+        password: z
+          .string()
+          .min(1, t("validationPasswordRequired"))
+          .min(PASSWORD_MIN_LENGTH, t("validationPasswordLength", { min: PASSWORD_MIN_LENGTH })),
+      }),
+    [t],
+  );
   const form = useForm<AuthValues>({
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "" },
@@ -36,14 +54,14 @@ export default function SignInPage() {
     const { error } = await supabase.auth.signInWithPassword(values);
 
     if (error) {
-      setFormError(error.message);
+      setFormError(authErrorMessage(error));
       return;
     }
 
     try {
       await redirectToPreferredWorkspace(locale, router);
     } catch (caught) {
-      setFormError(caught instanceof Error ? caught.message : errors("requestFailed"));
+      setFormError(apiErrorMessage(caught));
     }
   }
 

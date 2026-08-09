@@ -13,6 +13,7 @@ import { SpendingTrendChart } from "@/components/reports/SpendingTrendChart";
 import { TeamActivitySummary } from "@/components/reports/TeamActivitySummary";
 import { TopMerchants } from "@/components/reports/TopMerchants";
 import { useReports } from "@/hooks/use-reports";
+import { formatDisplayDate } from "@/lib/format/date";
 import { useWorkspaceContext } from "@/lib/workspace-context";
 import { EmptyState as PrimitiveEmptyState, ErrorState as PrimitiveErrorState, PageHeading, Skeleton } from "@/components/ui";
 
@@ -52,10 +53,10 @@ export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
 
   return (
     <div className="space-y-6">
-      <PageHeading title={t("title")} description={t("subtitle", { start: data.period.start, end: data.period.end })} />
+      <PageHeading title={t("title")} description={t("subtitle", { start: formatDisplayDate(data.period.start), end: formatDisplayDate(data.period.end) })} />
       <PeriodSelector onChange={reports.setPeriod} value={reports.period} />
       <SummaryCards locale={locale} period={data.period} summary={data.summary} />
-      <PlainLanguageSummary locale={locale} summary={data.spending_summary} />
+      <PlainLanguageSummary locale={locale} summary={data.spending_summary} workspaceId={workspaceId} />
       <AiSpendingSummary
         locale={locale}
         period={reports.period}

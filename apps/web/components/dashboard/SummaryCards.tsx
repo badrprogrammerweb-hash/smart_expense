@@ -4,6 +4,7 @@ import { CalendarDays, TrendingDown, TrendingUp, WalletCards } from "lucide-reac
 import { useTranslations } from "next-intl";
 
 import type { DashboardPeriod, DashboardSummary } from "@/lib/api/dashboard";
+import { formatDisplayDate } from "@/lib/format/date";
 import { toDisplayAmount } from "@/lib/money";
 import { InfoCard, SummaryCard } from "@/components/ui";
 
@@ -34,7 +35,12 @@ export function SummaryCards({ summary, period, locale }: SummaryCardsProps) {
     },
     {
       label: t("period"),
-      value: `${period.start} - ${period.end}`,
+      // Kept as a plain interpolated string rather than an LTR-isolated node:
+      // the range is bidi-reordered by the browser, and the audit confirmed the
+      // resulting RTL order is correct. `07/08/2026` and `2026-08-01` resolve
+      // identically under UAX#9 (both `/` and `-` join digits into one number
+      // run), so formatting changes the text without changing that ordering.
+      value: `${formatDisplayDate(period.start)} - ${formatDisplayDate(period.end)}`,
       icon: CalendarDays,
     },
   ];

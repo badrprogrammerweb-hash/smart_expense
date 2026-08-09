@@ -5,14 +5,15 @@ import { useState, type FormEvent } from "react";
 
 import { CategoryPicker } from "@/components/category/CategoryPicker";
 import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
-import { ApiError } from "@/lib/api/client";
+import { useApiErrorMessage } from "@/lib/api/error-message";
 import {
   confirmExtraction,
   type ConfirmExtractionInput,
   type ExtractionRecord,
 } from "@/lib/api/extractions";
 import { minorUnitDigits, type SupportedCurrency } from "@/lib/currency";
-import { parseInputToMinor, toDisplayAmount } from "@/lib/money";
+import { useAmountMessages } from "@/lib/forms/use-amount-field";
+import { classifyAmountInput, parseInputToMinor, toDisplayAmount } from "@/lib/money";
 import { Alert, Button, DateDisplay, FormField, FormFooter, FormLabel, Input, StatusBadge, Textarea } from "@/components/ui";
 
 type ExtractionReviewFormProps = {
@@ -34,16 +35,6 @@ function minorToInput(minor: number | null | undefined, currency: SupportedCurre
   return `${whole}.${fraction}`;
 }
 
-function errorMessage(error: unknown, fallback: string) {
-  if (error instanceof ApiError) {
-    return error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return fallback;
-}
-
 export function ExtractionReviewForm({
   workspaceId,
   currency,
@@ -53,6 +44,9 @@ export function ExtractionReviewForm({
 }: ExtractionReviewFormProps) {
   const t = useTranslations("extraction");
   const common = useTranslations("common");
+  const records = useTranslations("records");
+  const errorMessage = useApiErrorMessage();
+  const amountMessages = useAmountMessages(currency);
   const locale = useLocale();
   const draft = extraction.draft;
   const [amount, setAmount] = useState(minorToInput(draft?.amount_minor, currency));
@@ -108,11 +102,22 @@ export function ExtractionReviewForm({
     if (!canMutate) return;
     setFormError(null);
 
-    const amountMinor = parseInputToMinor(amount, currency);
-    if (!Number.isFinite(amountMinor) || amountMinor <= 0 || !occurredOn) {
-      setFormError(t("errors.invalidRequest"));
+    // Same classifier and copy as the income/expense forms, so a 3-decimal
+    // amount in a SAR workspace is explained here the same way it is there
+    // rather than collapsing into one generic message. The manual check stays —
+    // this form is controlled state, not react-hook-form.
+    const amountReason = classifyAmountInput(amount, currency);
+    if (amountReason) {
+      setFormError(amountMessages.messageFor(amountReason));
       return;
     }
+
+    if (!occurredOn) {
+      setFormError(records("validationDate"));
+      return;
+    }
+
+    const amountMinor = parseInputToMinor(amount, currency);
 
     const input: ConfirmExtractionInput = {
       amountMinor,
@@ -161,9 +166,13 @@ export function ExtractionReviewForm({
             id={amountInputId}
             className="mt-2 h-11 w-full rounded-md border bg-background px-3"
             inputMode="decimal"
+            aria-describedby={amountMessages.hintId}
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
           />
+          <p className="mt-1 text-xs text-muted-foreground" id={amountMessages.hintId}>
+            {amountMessages.hint}
+          </p>
         </FormField>
         <FormField>
           <FormLabel htmlFor={`extraction-date-${extraction.id}`}>{t("review.date")}</FormLabel>
