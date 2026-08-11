@@ -10,6 +10,7 @@ import { useCategories, useCreateCategory } from "@/hooks/use-categories";
 import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import type { CategoryType } from "@/lib/api/categories";
 import { useApiErrorMessage } from "@/lib/api/error-message";
+import { useSubmitError } from "@/lib/forms/use-submit-error";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { getCategoryLabel } from "@/lib/i18n/category-labels";
 import { canManageCategories } from "@/lib/permissions";
@@ -25,7 +26,7 @@ export function CategoryForm({ workspaceId, role, categoryType }: CategoryFormPr
   const t = useTranslations("categories");
   const common = useTranslations("common");
   const catalogT = useTranslations("categories.catalog");
-  const [formError, setFormError] = useState<string | null>(null);
+
   const { canMutate } = useConnectivity();
   const createCategory = useCreateCategory(workspaceId);
   const errorMessage = useApiErrorMessage();
@@ -43,6 +44,9 @@ export function CategoryForm({ workspaceId, role, categoryType }: CategoryFormPr
     resolver: zodResolver(schema),
     defaultValues: { name: "", parentId: "" },
   });
+  // Retires a server error once the values it described have changed,
+  // instead of leaving it on screen contradicting a corrected field (BUG-08).
+  const { error: submitError, setError: setSubmitError } = useSubmitError(form);
 
   if (!canManageCategories(role)) {
     return <PermissionDeniedState action={t("addCategory").toLowerCase()} description={t("viewerBlocked")} role={role === "viewer" ? "Viewer" : "Member"} title={common("permissionRequired")} />;
@@ -50,7 +54,7 @@ export function CategoryForm({ workspaceId, role, categoryType }: CategoryFormPr
 
   async function submit(values: FormValues) {
     if (!canMutate) return;
-    setFormError(null);
+    setSubmitError(null);
 
     try {
       await createCategory.mutateAsync({
@@ -60,7 +64,7 @@ export function CategoryForm({ workspaceId, role, categoryType }: CategoryFormPr
       });
       form.reset({ name: "", parentId: "" });
     } catch (caught) {
-      setFormError(errorMessage(caught));
+      setSubmitError(errorMessage(caught));
     }
   }
 
@@ -81,7 +85,7 @@ export function CategoryForm({ workspaceId, role, categoryType }: CategoryFormPr
           </Select></FormField>
       </div>
       <FormError>{form.formState.errors.name?.message}</FormError>
-      <FormError>{formError}</FormError>
+      <FormError>{submitError}</FormError>
       <Button
         type="submit"
         disabled={!canMutate}

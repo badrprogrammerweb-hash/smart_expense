@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -10,6 +10,7 @@ import { CategoryPicker } from "@/components/category/CategoryPicker";
 import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { useCreateIncome, useUpdateIncome } from "@/hooks/use-incomes";
 import { useApiErrorMessage } from "@/lib/api/error-message";
+import { useSubmitError } from "@/lib/forms/use-submit-error";
 import { todayIsoDate } from "@/lib/format/date";
 import type { IncomeRecord } from "@/lib/api/incomes";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
@@ -39,12 +40,20 @@ function minorToInput(minor: number, currency: SupportedCurrency) {
 export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCancel }: IncomeFormProps) {
   const t = useTranslations("records");
   const common = useTranslations("common");
-  const [formError, setFormError] = useState<string | null>(null);
+
   const { canMutate } = useConnectivity();
   const createIncome = useCreateIncome(workspaceId);
   const updateIncome = useUpdateIncome(workspaceId);
   const errorMessage = useApiErrorMessage();
   const amountField = useAmountField(currency);
+  // The record list mounts this form once per open editor, in both the
+  // desktop and the mobile list, alongside the always-present create form.
+  // Literal ids collided three ways and made `label[for]` focus the wrong
+  // form (BUG-09), so each instance derives its own.
+  const fieldId = useId();
+  const amountId = `${fieldId}-amount`;
+  const dateId = `${fieldId}-date`;
+  const descriptionId = `${fieldId}-description`;
   const schema = useMemo(
     () =>
       z.object({
@@ -65,6 +74,9 @@ export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCan
       category_id: record?.category_id ?? "",
     },
   });
+  // Retires a server error once the values it described have changed,
+  // instead of leaving it on screen contradicting a corrected field (BUG-08).
+  const { error: submitError, setError: setSubmitError } = useSubmitError(form);
 
   if (!canManageIncome(role)) {
     return <PermissionDeniedState action={t("addIncome").toLowerCase()} description={t("incomeBlocked")} role={role === "viewer" ? "Viewer" : "Member"} title={common("permissionRequired")} />;
@@ -72,7 +84,7 @@ export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCan
 
   async function submit(values: FormValues) {
     if (!canMutate) return;
-    setFormError(null);
+    setSubmitError(null);
     const input = {
       amount_minor: parseInputToMinor(values.amount, currency),
       occurred_on: values.occurred_on,
@@ -94,7 +106,7 @@ export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCan
       }
       onSaved?.();
     } catch (caught) {
-      setFormError(errorMessage(caught));
+      setSubmitError(errorMessage(caught));
     }
   }
 
@@ -102,8 +114,8 @@ export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCan
     <form className="space-y-4 rounded-[var(--radius-card)] border bg-card p-5 shadow-[var(--shadow-card)]" onSubmit={form.handleSubmit(submit)}>
       <h2 className="text-lg font-semibold">{record ? t("updateIncome") : t("addIncome")}</h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField><FormLabel htmlFor="income-amount">{t("amount")}</FormLabel><AmountInput id="income-amount" className="mt-2" currency={currency} aria-describedby={amountField.hintId} {...form.register("amount")} /><p className="mt-1 text-xs text-muted-foreground" id={amountField.hintId}>{amountField.hint}</p></FormField>
-        <FormField><FormLabel htmlFor="income-date">{t("date")}</FormLabel><Input id="income-date" className="mt-2" dir="ltr" type="date" {...form.register("occurred_on")} /></FormField>
+        <FormField><FormLabel htmlFor={amountId}>{t("amount")}</FormLabel><AmountInput id={amountId} className="mt-2" currency={currency} aria-describedby={amountField.hintId} {...form.register("amount")} /><p className="mt-1 text-xs text-muted-foreground" id={amountField.hintId}>{amountField.hint}</p></FormField>
+        <FormField><FormLabel htmlFor={dateId}>{t("date")}</FormLabel><Input id={dateId} className="mt-2" dir="ltr" type="date" {...form.register("occurred_on")} /></FormField>
       </div>
       <FormError>{form.formState.errors.amount?.message}</FormError>
       <FormError>{form.formState.errors.occurred_on?.message}</FormError>
@@ -119,8 +131,8 @@ export function IncomeForm({ workspaceId, role, currency, record, onSaved, onCan
           />
         )}
       />
-      <FormField><FormLabel htmlFor="income-description">{t("description")}</FormLabel><Textarea id="income-description" className="mt-2" {...form.register("description")} /></FormField>
-      {formError && <FormError>{formError}</FormError>}
+      <FormField><FormLabel htmlFor={descriptionId}>{t("description")}</FormLabel><Textarea id={descriptionId} className="mt-2" {...form.register("description")} /></FormField>
+      {submitError && <FormError>{submitError}</FormError>}
       <FormFooter>
         <Button
           type="submit"
