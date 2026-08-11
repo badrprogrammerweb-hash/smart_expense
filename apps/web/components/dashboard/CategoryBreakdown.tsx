@@ -73,7 +73,12 @@ export function CategoryBreakdown({
 
             return (
               <li key={item.category_id ?? "uncategorized"}>
+                {/* This control already names itself through its visible text,
+                    but it is a disclosure, so its state has to be exposed too
+                    (BUG-12). Only when it can actually drill down — a disabled,
+                    non-expandable row must not claim to be expandable. */}
                 <button
+                  aria-expanded={canDrillDown && item.category_id ? isExpanded : undefined}
                   className="flex min-h-11 w-full items-center justify-between gap-4 text-left disabled:cursor-default"
                   disabled={!canDrillDown || !item.category_id}
                   onClick={() => toggleExpanded(item.category_id)}

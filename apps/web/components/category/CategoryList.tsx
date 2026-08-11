@@ -14,6 +14,7 @@ import {
 } from "@/hooks/use-categories";
 import type { CategoryType, MainCategory } from "@/lib/api/categories";
 import { useApiErrorMessage } from "@/lib/api/error-message";
+import { useValueSubmitError } from "@/lib/forms/use-submit-error";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { getCategoryLabel } from "@/lib/i18n/category-labels";
 import { canManageCategories } from "@/lib/permissions";
@@ -38,7 +39,13 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
   const deleteCategory = useDeleteCategory(workspaceId);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState("");
+  // `rowError` still carries failures that are not about the draft — archiving,
+  // deleting, reordering — so they are not swept away by typing a new name.
   const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
+  // A failed rename describes the name that was submitted, so it retires once
+  // that draft changes rather than surviving the correction (the BUG-08 rule,
+  // via the same shared mechanism).
+  const renameError = useValueSubmitError(nameDraft);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const canManage = canManageCategories(role);
@@ -82,6 +89,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
 
   function startEditing(item: RowItem) {
     setRowError(null);
+    renameError.setError(null);
     setConfirmingDeleteId(null);
     setEditingId(item.id);
     setNameDraft(item.name);
@@ -92,17 +100,30 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
     const trimmed = nameDraft.trim();
 
     if (!trimmed) {
-      setRowError({ id: item.id, message: t("validationName") });
+      renameError.setError(t("validationName"));
       return;
     }
 
     try {
       await updateCategory.mutateAsync({ categoryId: item.id, input: { name: trimmed } });
       setRowError(null);
+      renameError.setError(null);
       setEditingId(null);
     } catch (caught) {
-      setRowError({ id: item.id, message: errorMessage(caught) });
+      renameError.setError(errorMessage(caught));
     }
+  }
+
+  /**
+   * The message shown beneath a row. While that row is being renamed its own
+   * submit error wins; otherwise the row-level failure (archive/delete/reorder)
+   * is shown.
+   */
+  function errorForRow(id: string) {
+    if (editingId === id && renameError.error) {
+      return renameError.error;
+    }
+    return rowError?.id === id ? rowError.message : null;
   }
 
   async function toggleArchive(item: RowItem) {
@@ -260,7 +281,16 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
             <li className="p-5" key={main.id}>
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
+                  {/* Icon-only, so the accessible name has to carry both the
+                      action and the row it belongs to — otherwise a screen
+                      reader announces a run of unlabelled buttons and cannot
+                      tell expansion from the reorder controls beside it
+                      (BUG-12). */}
                   <button
+                    aria-expanded={isExpanded}
+                    aria-label={t(isExpanded ? "collapseCategory" : "expandCategory", {
+                      category: getCategoryLabel(catalogT, main),
+                    })}
                     className="inline-flex h-11 w-11 items-center justify-center rounded-md hover:bg-muted"
                     onClick={() => toggleExpanded(main.id)}
                     type="button"
@@ -316,7 +346,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
                     onMoveDown: () => void moveMain(mainIndex, 1),
                   })}
               </div>
-              {rowError?.id === main.id && <p className="mt-2 text-sm text-destructive">{rowError.message}</p>}
+              {errorForRow(main.id) && <p className="mt-2 text-sm text-destructive">{errorForRow(main.id)}</p>}
 
               {isExpanded && (
                 <ul className="mt-4 space-y-3 border-l pl-6 rtl:border-l-0 rtl:border-r rtl:pl-0 rtl:pr-6">
@@ -369,7 +399,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
                             onMoveUp: () => void moveSub(main, subIndex, -1),
                             onMoveDown: () => void moveSub(main, subIndex, 1),
                           })}
-                        {rowError?.id === sub.id && <p className="w-full text-sm text-destructive">{rowError.message}</p>}
+                        {errorForRow(sub.id) && <p className="w-full text-sm text-destructive">{errorForRow(sub.id)}</p>}
                       </li>
                     );
                   })}

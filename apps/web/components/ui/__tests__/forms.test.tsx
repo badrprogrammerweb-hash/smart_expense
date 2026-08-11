@@ -30,7 +30,12 @@ describe("form primitives", () => {
     render(<FormFooter data-testid="footer">submit</FormFooter>);
     const footer = screen.getByTestId("footer");
     expect(footer.className).toMatch(/\bsticky\b/);
-    expect(footer.className).toMatch(/\bbottom-24\b/);
+    // The offset is the nav's own height, shared via `--app-bottom-nav-height`.
+    // The previous hardcoded `bottom-24` (6rem) was more than twice the nav's
+    // real height, leaving a band where form fields rendered below the primary
+    // action (BUG-04).
+    expect(footer.className).toMatch(/\bbottom-above-nav\b/);
+    expect(footer.className).not.toMatch(/\bbottom-24\b/);
     expect(footer.className).toMatch(/pb-\[max\(0\.75rem,env\(safe-area-inset-bottom\)\)\]/);
     expect(footer.className).toMatch(/\blg:static\b/);
   });

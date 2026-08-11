@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -10,6 +10,7 @@ import { CategoryPicker } from "@/components/category/CategoryPicker";
 import { MutationDisabledNotice, useConnectivity } from "@/components/connectivity";
 import { useCreateExpense, useUpdateExpense } from "@/hooks/use-expenses";
 import { useApiErrorMessage } from "@/lib/api/error-message";
+import { useSubmitError } from "@/lib/forms/use-submit-error";
 import { todayIsoDate } from "@/lib/format/date";
 import type { ExpenseRecord } from "@/lib/api/expenses";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
@@ -40,13 +41,22 @@ function minorToInput(minor: number, currency: SupportedCurrency) {
 export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, onSaved, onCancel }: ExpenseFormProps) {
   const t = useTranslations("records");
   const common = useTranslations("common");
-  const [formError, setFormError] = useState<string | null>(null);
+
   const { canMutate } = useConnectivity();
   const createExpense = useCreateExpense(workspaceId);
   const updateExpense = useUpdateExpense(workspaceId);
   const allowed = canSubmit ?? canCreateExpense(role);
   const errorMessage = useApiErrorMessage();
   const amountField = useAmountField(currency);
+  // The record list mounts this form once per open editor, in both the
+  // desktop and the mobile list, alongside the always-present create form.
+  // Literal ids collided three ways and made `label[for]` focus the wrong
+  // form (BUG-09), so each instance derives its own.
+  const fieldId = useId();
+  const amountId = `${fieldId}-amount`;
+  const dateId = `${fieldId}-date`;
+  const descriptionId = `${fieldId}-description`;
+  const merchantId = `${fieldId}-merchant`;
   const schema = useMemo(
     () =>
       z.object({
@@ -69,6 +79,9 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
       category_id: record?.category_id ?? "",
     },
   });
+  // Retires a server error once the values it described have changed,
+  // instead of leaving it on screen contradicting a corrected field (BUG-08).
+  const { error: submitError, setError: setSubmitError } = useSubmitError(form);
 
   if (!allowed) {
     return <PermissionDeniedState action={t("addExpense").toLowerCase()} description={t("viewerBlocked")} role={role === "viewer" ? "Viewer" : "Member"} title={common("permissionRequired")} />;
@@ -76,7 +89,7 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
 
   async function submit(values: FormValues) {
     if (!canMutate) return;
-    setFormError(null);
+    setSubmitError(null);
     const input = {
       amount_minor: parseInputToMinor(values.amount, currency),
       occurred_on: values.occurred_on,
@@ -100,7 +113,7 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
       }
       onSaved?.();
     } catch (caught) {
-      setFormError(errorMessage(caught));
+      setSubmitError(errorMessage(caught));
     }
   }
 
@@ -108,12 +121,12 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
     <form className="space-y-4 rounded-[var(--radius-card)] border bg-card p-5 shadow-[var(--shadow-card)]" onSubmit={form.handleSubmit(submit)}>
       <h2 className="text-lg font-semibold">{record ? t("updateExpense") : t("addExpense")}</h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField><FormLabel htmlFor="expense-amount">{t("amount")}</FormLabel><AmountInput id="expense-amount" className="mt-2" currency={currency} aria-describedby={amountField.hintId} {...form.register("amount")} /><p className="mt-1 text-xs text-muted-foreground" id={amountField.hintId}>{amountField.hint}</p></FormField>
-        <FormField><FormLabel htmlFor="expense-date">{t("date")}</FormLabel><Input id="expense-date" className="mt-2" dir="ltr" type="date" {...form.register("occurred_on")} /></FormField>
+        <FormField><FormLabel htmlFor={amountId}>{t("amount")}</FormLabel><AmountInput id={amountId} className="mt-2" currency={currency} aria-describedby={amountField.hintId} {...form.register("amount")} /><p className="mt-1 text-xs text-muted-foreground" id={amountField.hintId}>{amountField.hint}</p></FormField>
+        <FormField><FormLabel htmlFor={dateId}>{t("date")}</FormLabel><Input id={dateId} className="mt-2" dir="ltr" type="date" {...form.register("occurred_on")} /></FormField>
       </div>
       <FormError>{form.formState.errors.amount?.message}</FormError>
       <FormError>{form.formState.errors.occurred_on?.message}</FormError>
-      <FormField><FormLabel htmlFor="expense-merchant">{t("merchant")}</FormLabel><Input id="expense-merchant" className="mt-2" {...form.register("merchant_name")} /></FormField>
+      <FormField><FormLabel htmlFor={merchantId}>{t("merchant")}</FormLabel><Input id={merchantId} className="mt-2" {...form.register("merchant_name")} /></FormField>
       <Controller
         control={form.control}
         name="category_id"
@@ -126,8 +139,8 @@ export function ExpenseForm({ workspaceId, role, currency, record, canSubmit, on
           />
         )}
       />
-      <FormField><FormLabel htmlFor="expense-description">{t("description")}</FormLabel><Textarea id="expense-description" className="mt-2" {...form.register("description")} /></FormField>
-      {formError && <FormError>{formError}</FormError>}
+      <FormField><FormLabel htmlFor={descriptionId}>{t("description")}</FormLabel><Textarea id={descriptionId} className="mt-2" {...form.register("description")} /></FormField>
+      {submitError && <FormError>{submitError}</FormError>}
       <FormFooter>
         <Button
           type="submit"

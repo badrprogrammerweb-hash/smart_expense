@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import { useTranslations } from "next-intl";
 
 import { useCategories } from "@/hooks/use-categories";
@@ -28,6 +28,13 @@ export function CategoryPicker({ workspaceId, categoryType, value, onChange }: C
   const t = useTranslations("records");
   const common = useTranslations("common");
   const catalogT = useTranslations("categories.catalog");
+  // A record list renders this picker once per open editor — and twice over,
+  // because the desktop and mobile lists are both in the DOM. Literal ids made
+  // `label[for]` resolve to the first match in the document, so clicking a
+  // label inside an inline editor focused the create form instead (BUG-09).
+  const fieldId = useId();
+  const mainId = `${fieldId}-main`;
+  const subId = `${fieldId}-sub`;
   const categories = useCategories(workspaceId, { categoryType, includeArchived: true });
   const mainCategories = categories.data?.categories ?? [];
 
@@ -59,9 +66,9 @@ export function CategoryPicker({ workspaceId, categoryType, value, onChange }: C
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <FormField>
-        <FormLabel htmlFor="category-main">{t("category")}</FormLabel>
+        <FormLabel htmlFor={mainId}>{t("category")}</FormLabel>
         <Select
-          id="category-main"
+          id={mainId}
           aria-label={t("category")}
           className="mt-2"
           value={selectedMainId}
@@ -76,9 +83,9 @@ export function CategoryPicker({ workspaceId, categoryType, value, onChange }: C
         </Select>
       </FormField>
       <FormField>
-        <FormLabel htmlFor="category-sub">{t("subcategory")}</FormLabel>
+        <FormLabel htmlFor={subId}>{t("subcategory")}</FormLabel>
         <Select
-          id="category-sub"
+          id={subId}
           aria-label={t("subcategory")}
           className="mt-2"
           value={selectedSubId}

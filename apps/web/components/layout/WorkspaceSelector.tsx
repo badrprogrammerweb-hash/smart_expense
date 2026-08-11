@@ -32,11 +32,15 @@ export function WorkspaceSelector() {
   const options = workspaces.data?.workspaces ?? [{ id: workspaceId, name: workspaceName, type: workspaceType }];
 
   return (
-    <div className="flex flex-col gap-1">
+    // `min-w-0` so this column can shrink inside the header's flex row, and
+    // the name truncates instead of setting the row's width from its content —
+    // a long workspace name pushed the header 28 px past a 320 px viewport
+    // (BUG-05).
+    <div className="flex min-w-0 flex-col gap-1">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">
         {workspaceType === "personal" ? t("workspaceTypePersonal") : t("workspaceTypeTeam")}
       </p>
-      <h1 className="text-xl font-semibold text-card-foreground">{workspaceName}</h1>
+      <h1 className="truncate text-xl font-semibold text-card-foreground">{workspaceName}</h1>
       <label className="mt-1 block text-xs font-medium text-muted-foreground" htmlFor="workspace-switcher">
         {t("switchWorkspace")}
       </label>

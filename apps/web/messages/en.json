@@ -167,6 +167,8 @@
     "deleteBlocked": "Cannot delete — still in use",
     "moveUp": "Move up",
     "moveDown": "Move down",
+    "expandCategory": "Show subcategories of {category}",
+    "collapseCategory": "Hide subcategories of {category}",
     "catalog": {
       "restaurants": "Restaurants",
       "groceries": "Groceries",

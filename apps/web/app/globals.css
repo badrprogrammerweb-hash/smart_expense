@@ -47,6 +47,14 @@
 }
 
 :root {
+  /*
+   * Height of the fixed mobile bottom navigation: one row of `min-h-11` tap
+   * targets plus its 1px top border, extended by the device safe area.
+   * Declared once so the sticky form footer can sit flush on top of the nav
+   * rather than guessing an offset — a hardcoded 6rem left a 51px band in
+   * which form fields rendered *below* the primary action (BUG-04).
+   */
+  --app-bottom-nav-height: calc(2.75rem + 1px + env(safe-area-inset-bottom));
   --radius: 0.5rem;
   --radius-control: 0.5rem;
   --radius-card: 0.75rem;
@@ -156,11 +164,37 @@
     min-block-size: 100vh; /* fallback for engines without dvh */
     min-block-size: 100dvh;
   }
+
+  /*
+   * Pins a sticky submit bar directly on top of the fixed bottom nav, so no
+   * form content is ever stranded in a gap beneath the primary action.
+   */
+  .bottom-above-nav {
+    bottom: var(--app-bottom-nav-height);
+  }
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+
+  /*
+   * Scrolling a field into view (tab order, or the browser reacting to the
+   * on-screen keyboard) must clear the fixed bottom nav and the sticky submit
+   * bar that sits on it, or focus lands underneath them. This reserves that
+   * clearance for scroll-into-view only — it adds no layout space, so the
+   * page's own spacing is unchanged. Above `lg` the nav is hidden and the
+   * footer is static, so the reservation is dropped.
+   */
+  html {
+    scroll-padding-block-end: calc(var(--app-bottom-nav-height) + 5rem);
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      scroll-padding-block-end: 0;
+    }
   }
 
   body {

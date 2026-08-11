@@ -167,6 +167,8 @@
     "deleteBlocked": "لا يمكن الحذف — لا يزال قيد الاستخدام",
     "moveUp": "نقل لأعلى",
     "moveDown": "نقل لأسفل",
+    "expandCategory": "عرض التصنيفات الفرعية لـ {category}",
+    "collapseCategory": "إخفاء التصنيفات الفرعية لـ {category}",
     "catalog": {
       "restaurants": "المطاعم",
       "groceries": "البقالة",
