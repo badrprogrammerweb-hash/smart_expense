@@ -127,7 +127,7 @@ describe("period surfaces use the product's date contract", () => {
     renderWithMessages(<ReportSummary workspaceId="workspace-1" locale="en" />);
 
     expect(
-      screen.getByText("Current period: 01/08/2026 to 31/08/2026"),
+      screen.getByText("Current month: 01/08/2026 to 31/08/2026"),
     ).toBeInTheDocument();
     expect(document.body.textContent ?? "").not.toMatch(ISO_DATE);
   });
@@ -135,7 +135,7 @@ describe("period surfaces use the product's date contract", () => {
   it("formats the Arabic Reports subtitle with no ISO date anywhere on the page", () => {
     renderWithMessages(<ReportSummary workspaceId="workspace-1" locale="ar" />, "ar");
 
-    expect(screen.getByText("الفترة الحالية: 01/08/2026 إلى 31/08/2026")).toBeInTheDocument();
+    expect(screen.getByText("الشهر الحالي: 01/08/2026 إلى 31/08/2026")).toBeInTheDocument();
     // Covers the subtitle and the period card together — the audit found the
     // raw ISO range on both, on one screen.
     expect(document.body.textContent ?? "").not.toMatch(ISO_DATE);

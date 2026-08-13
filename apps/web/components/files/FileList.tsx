@@ -7,6 +7,7 @@ import { useState } from "react";
 import { FileRow, formatFileBytes } from "@/components/files/FileRow";
 import { listExtractions, type ExtractionRecord } from "@/lib/api/extractions";
 import { getFileDownloadUrl, listFiles, type FileMetadata } from "@/lib/api/files";
+import { getWorkspaceMembers } from "@/lib/api/workspace-members";
 import type { WorkspaceRole } from "@/lib/api/workspaces";
 import { Button, DateDisplay, EmptyState, ErrorState, Ltr, MobileRecordCard, Skeleton } from "@/components/ui";
 
@@ -38,6 +39,20 @@ export function FileList({ role, workspaceId }: FileListProps) {
     queryFn: () => listFiles(workspaceId),
     enabled: Boolean(workspaceId),
   });
+  // The uploader column stored only a user id, so it showed a raw UUID and
+  // could not answer the one question it exists to answer (BUG-20).
+  const members = useQuery({
+    queryKey: ["workspace-members", workspaceId],
+    queryFn: () => getWorkspaceMembers(workspaceId),
+    enabled: Boolean(workspaceId),
+  });
+  const uploaderLabel = (userId: string) =>
+    members.data?.members.find((member) => member.user_id === userId)?.email ??
+    t("list.unknownUploader");
+  // A file keeps its row after its uploader leaves the workspace, so an
+  // unresolved id falls back rather than leaking the identifier.
+  const statusLabel = (status: FileMetadata["status"]) =>
+    status === "active" ? t("list.statusActive") : t("list.statusDeleted");
   // Non-blocking: a file row simply shows no extraction badge until this
   // resolves, so its own loading/error state never blocks the file list.
   const extractions = useQuery({
@@ -67,7 +82,7 @@ export function FileList({ role, workspaceId }: FileListProps) {
   if (files.isError) {
     return (
       <ErrorState
-        title={errors("requestFailed")}
+        title={errors("loadFailedTitle")}
         description={errors("requestFailed")}
         retry={() => void files.refetch()}
         retryLabel={common("retry")}
@@ -112,6 +127,8 @@ export function FileList({ role, workspaceId }: FileListProps) {
                 onDownload={(selectedFile) => void openSignedUrl(selectedFile)}
                 onPreview={(selectedFile) => void openSignedUrl(selectedFile)}
                 role={role}
+                statusLabel={statusLabel(file.status)}
+                uploaderLabel={uploaderLabel(file.uploaded_by)}
                 workspaceId={workspaceId}
               />
             ))}
@@ -127,7 +144,8 @@ export function FileList({ role, workspaceId }: FileListProps) {
               { label: t("list.type"), value: <Ltr>{file.content_type}</Ltr> },
               { label: t("list.size"), value: <Ltr>{formatFileBytes(file.size_bytes, locale)}</Ltr> },
               { label: t("list.uploadedAt"), value: <DateDisplay date={file.created_at} /> },
-              { label: t("list.status"), value: file.status },
+              { label: t("list.uploadedBy"), value: uploaderLabel(file.uploaded_by) },
+              { label: t("list.status"), value: statusLabel(file.status) },
             ]}
             actions={<><Button size="compact" variant="secondary" disabled={openingFileId === file.id} onClick={() => void openSignedUrl(file)}>{t("actions.preview")}</Button><Button size="compact" variant="secondary" disabled={openingFileId === file.id} onClick={() => void openSignedUrl(file)}>{t("actions.download")}</Button></>}
           />

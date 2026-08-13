@@ -30,7 +30,10 @@ describe("SummaryCards", () => {
     });
 
     expect(screen.getAllByText(/SAR\s*0\.00/)).toHaveLength(3);
-    expect(screen.getByText(/Add income or an expense/i)).toBeInTheDocument();
+    // The banner names the empty period rather than prescribing an action
+    // the user may already have taken (BUG-11).
+    expect(screen.getByText(/Nothing was recorded between/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Add income or an expense/i)).not.toBeInTheDocument();
   });
 
   it("renders populated and negative SAR figures as returned by the backend", () => {

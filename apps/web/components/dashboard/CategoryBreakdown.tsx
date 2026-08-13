@@ -19,6 +19,7 @@ export function CategoryBreakdown({
   categoryType = "expense",
   period,
   title,
+  emptyDescription,
 }: {
   items: CategoryBreakdownItem[];
   locale: string;
@@ -26,6 +27,10 @@ export function CategoryBreakdown({
   categoryType?: CategoryType;
   period?: ReportPeriodInput;
   title?: string;
+  /** Copy naming the data that is missing. Defaults to the neutral
+   *  "nothing in this period" sentence rather than an action the user may
+   *  already have taken (BUG-11). */
+  emptyDescription?: string;
 }) {
   const t = useTranslations("dashboard");
   const common = useTranslations("common");
@@ -65,7 +70,7 @@ export function CategoryBreakdown({
     <section className="rounded-[var(--radius-card)] border bg-card p-5 text-card-foreground shadow-[var(--shadow-card)]">
       <h2 className="text-lg font-semibold">{title ?? t("categoryBreakdown")}</h2>
       {items.length === 0 ? (
-        <p className="mt-3 text-sm text-muted-foreground">{t("emptyDescription")}</p>
+        <p className="mt-3 text-sm text-muted-foreground">{emptyDescription ?? t("emptyPeriod")}</p>
       ) : (
         <ul className="mt-4 space-y-3">
           {items.map((item) => {

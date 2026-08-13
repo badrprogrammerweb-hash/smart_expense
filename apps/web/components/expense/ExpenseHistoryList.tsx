@@ -91,7 +91,7 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
   if (expenses.isError) {
     return (
       <ErrorState
-        title={errors("requestFailed")}
+        title={errors("loadFailedTitle")}
         description={errors("requestFailed")}
         retry={() => void expenses.refetch()}
         retryLabel={common("retry")}
@@ -100,7 +100,7 @@ export function ExpenseHistoryList({ workspaceId, role }: { workspaceId: string;
   }
 
   if (allRecords.length === 0) {
-    return <EmptyState title={t("noExpenses")} description={t("noExpenses")} />;
+    return <EmptyState title={t("noExpenses")} description={t("noExpensesHint")} />;
   }
 
   return (

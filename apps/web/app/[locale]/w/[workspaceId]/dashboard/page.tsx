@@ -37,7 +37,7 @@ export default function DashboardPage() {
   if (dashboard.isError || !dashboard.data) {
     return (
       <PrimitiveErrorState
-        title={errors("requestFailed")}
+        title={errors("loadFailedTitle")}
         description={errors("requestFailed")}
         retry={() => void dashboard.refetch()}
         retryLabel={common("retry")}
@@ -74,7 +74,7 @@ export default function DashboardPage() {
         </div>
       </div>
       <SummaryCards locale={locale} period={data.period} summary={data.summary} />
-      {isEmpty && <PrimitiveEmptyState title={t("emptyTitle")} description={t("emptyDescription")} />}
+      {isEmpty && <PrimitiveEmptyState title={t("emptyPeriod")} description={t("emptyPeriodHint", { start: formatDisplayDate(data.period.start), end: formatDisplayDate(data.period.end) })} />}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
         <RecentActivity
           aiConfigured={aiSettings.data?.configured}

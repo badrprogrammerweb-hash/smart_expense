@@ -69,7 +69,7 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
   if (incomes.isError) {
     return (
       <PrimitiveErrorState
-        title={errors("requestFailed")}
+        title={errors("loadFailedTitle")}
         description={errors("requestFailed")}
         retry={() => void incomes.refetch()}
         retryLabel={common("retry")}
@@ -79,7 +79,7 @@ export function IncomeHistoryList({ workspaceId, role }: { workspaceId: string; 
   }
 
   if (allRecords.length === 0) {
-    return <PrimitiveEmptyState title={t("noIncome")} description={t("noIncome")} />;
+    return <PrimitiveEmptyState title={t("noIncome")} description={t("noIncomeHint")} />;
   }
 
   return (

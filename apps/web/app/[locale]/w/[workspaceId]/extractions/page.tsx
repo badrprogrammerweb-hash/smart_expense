@@ -8,13 +8,14 @@ import { DiscardExtractionDialog } from "@/components/extraction/DiscardExtracti
 import { ExtractionStatusBadge } from "@/components/extraction/ExtractionStatusBadge";
 import { listExtractions } from "@/lib/api/extractions";
 import { useWorkspaceContext } from "@/lib/workspace-context";
-import { DateDisplay, EmptyState, ErrorState, Ltr, MobileRecordCard, Skeleton, Table } from "@/components/ui";
+import { DateDisplay, EmptyState, ErrorState, Ltr, MobileRecordCard, PageHeading, Skeleton, Table } from "@/components/ui";
 
 export default function ExtractionsPage() {
   const locale = useLocale();
   const t = useTranslations("extraction");
   const common = useTranslations("common");
   const errors = useTranslations("errors");
+  const nav = useTranslations("nav");
   const { workspaceId } = useWorkspaceContext();
   const extractions = useQuery({
     queryKey: ["extractions", workspaceId, "reviewable"],
@@ -29,7 +30,7 @@ export default function ExtractionsPage() {
   if (extractions.isError) {
     return (
       <ErrorState
-        title={errors("requestFailed")}
+        title={errors("loadFailedTitle")}
         description={errors("requestFailed")}
         retry={() => void extractions.refetch()}
         retryLabel={common("retry")}
@@ -41,13 +42,20 @@ export default function ExtractionsPage() {
     ["ready_for_review", "failed"].includes(extraction.status),
   );
   if (records.length === 0) {
-    return <EmptyState title={t("queue.emptyState")} />;
+    return (
+      <div className="space-y-6">
+        <PageHeading title={nav("extractions")} />
+        <EmptyState title={t("queue.emptyState")} />
+      </div>
+    );
   }
 
   return (
-    <section className="rounded-[var(--radius-card)] border bg-card shadow-[var(--shadow-card)]">
+    <div className="space-y-6">
+      <PageHeading title={nav("extractions")} />
+      <section className="rounded-[var(--radius-card)] border bg-card shadow-[var(--shadow-card)]">
       <div className="border-b p-5">
-        <h1 className="text-lg font-semibold">{t("queue.title")}</h1>
+        <h2 className="text-lg font-semibold">{t("queue.title")}</h2>
       </div>
       <div className="hidden md:block">
         <Table
@@ -74,6 +82,7 @@ export default function ExtractionsPage() {
           />
         ))}
       </div>
-    </section>
+      </section>
+    </div>
   );
 }

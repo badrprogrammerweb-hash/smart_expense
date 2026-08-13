@@ -33,7 +33,7 @@ export default function ExtractionReviewPage() {
   }
 
   if (extraction.isError || !extraction.data) {
-    return <ErrorState title={errors("requestFailed")} description={errors("requestFailed")} retry={() => void extraction.refetch()} retryLabel={common("retry")} />;
+    return <ErrorState title={errors("loadFailedTitle")} description={errors("requestFailed")} retry={() => void extraction.refetch()} retryLabel={common("retry")} />;
   }
 
   const previewUrl = filePreview.data?.url;

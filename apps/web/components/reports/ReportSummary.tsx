@@ -37,7 +37,7 @@ export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
   if (reports.isError || !reports.data) {
     return (
       <PrimitiveErrorState
-        title={errors("requestFailed")}
+        title={errors("loadFailedTitle")}
         description={errors("requestFailed")}
         retry={() => void reports.refetch()}
         retryLabel={common("retry")}
@@ -46,6 +46,19 @@ export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
   }
 
   const data = reports.data;
+  // "Current period" was printed for every range, including the previous month
+  // and custom ranges the user had just chosen (BUG-21). The API echoes the
+  // preset back, so the heading and the KPI card name the real range.
+  const periodKey =
+    data.period.preset === "previous_month"
+      ? "PreviousMonth"
+      : data.period.preset === "custom"
+        ? "Custom"
+        : "CurrentMonth";
+  const periodDates = {
+    start: formatDisplayDate(data.period.start),
+    end: formatDisplayDate(data.period.end),
+  };
   const isEmpty =
     data.category_breakdown.length === 0 &&
     data.summary.total_income_minor === 0 &&
@@ -53,9 +66,9 @@ export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
 
   return (
     <div className="space-y-6">
-      <PageHeading title={t("title")} description={t("subtitle", { start: formatDisplayDate(data.period.start), end: formatDisplayDate(data.period.end) })} />
+      <PageHeading title={t("title")} description={t(`subtitle${periodKey}`, periodDates)} />
       <PeriodSelector onChange={reports.setPeriod} value={reports.period} />
-      <SummaryCards locale={locale} period={data.period} summary={data.summary} />
+      <SummaryCards locale={locale} period={data.period} summary={data.summary} periodLabel={t(`period${periodKey}`)} />
       <PlainLanguageSummary locale={locale} summary={data.spending_summary} workspaceId={workspaceId} />
       <AiSpendingSummary
         locale={locale}
@@ -67,13 +80,14 @@ export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
         <TeamActivitySummary items={data.team_activity} />
         <PendingReviewSummary count={data.pending_review_count} />
       </div>
-      {isEmpty && <PrimitiveEmptyState title={t("emptyTitle")} description={t("emptyDescription")} />}
+      {isEmpty && <PrimitiveEmptyState title={dashboardT("emptyPeriod")} description={dashboardT("emptyPeriodHint", periodDates)} />}
       <div className="grid gap-6 xl:grid-cols-2">
         <CategoryBreakdown
           locale={locale}
           items={data.category_breakdown}
           workspaceId={workspaceId}
           period={reports.period}
+          emptyDescription={dashboardT("noExpenseCategories")}
         />
         <SpendingTrendChart locale={locale} points={data.spending_trend} />
       </div>
@@ -85,6 +99,7 @@ export function ReportSummary({ workspaceId, locale }: ReportSummaryProps) {
           categoryType="income"
           period={reports.period}
           title={dashboardT("incomeCategoryBreakdown")}
+          emptyDescription={dashboardT("noIncomeCategories")}
         />
       </div>
       <div className="grid gap-6 xl:grid-cols-2">

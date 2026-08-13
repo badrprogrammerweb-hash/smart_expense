@@ -63,7 +63,7 @@ export function CategoryList({ workspaceId, role, categoryType }: CategoryListPr
   if (categories.isError) {
     return (
       <ErrorState
-        title={errors("requestFailed")}
+        title={errors("loadFailedTitle")}
         description={errors("requestFailed")}
         retry={() => void categories.refetch()}
         retryLabel={common("retry")}

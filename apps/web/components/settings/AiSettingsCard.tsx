@@ -39,7 +39,7 @@ export function AiSettingsCard({ role, workspaceId }: AiSettingsCardProps) {
       <div className="mt-5 space-y-5">
         {query.isLoading ? <Skeleton className="h-24 w-full" label={common("loading")} /> : null}
         {query.isError ? (
-          <ErrorState title={errors("requestFailed")} description={errors("requestFailed")} retry={() => void query.refetch()} retryLabel={common("retry")} />
+          <ErrorState title={errors("loadFailedTitle")} description={errors("requestFailed")} retry={() => void query.refetch()} retryLabel={common("retry")} />
         ) : null}
         {status ? <AiKeyStatus status={status} /> : null}
         {canManageAiSettings(role) && status ? (

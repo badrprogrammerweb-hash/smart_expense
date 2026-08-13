@@ -18,6 +18,10 @@ type FileRowProps = {
   onDownload: (file: FileMetadata) => void;
   onPreview: (file: FileMetadata) => void;
   role: WorkspaceRole;
+  /** Localized file status; the stored value is an enum (BUG-20). */
+  statusLabel: string;
+  /** The uploader's e-mail, or a fallback when the id cannot be resolved. */
+  uploaderLabel: string;
   workspaceId: string;
 };
 
@@ -50,6 +54,8 @@ export function FileRow({
   onDownload,
   onPreview,
   role,
+  statusLabel,
+  uploaderLabel,
   workspaceId,
 }: FileRowProps) {
   const locale = useLocale();
@@ -71,7 +77,7 @@ export function FileRow({
       <td className="whitespace-nowrap px-4 py-3 align-top text-sm">
         <DateDisplay date={file.created_at} />
       </td>
-      <td className="max-w-44 break-words px-4 py-3 align-top text-sm"><Ltr>{file.uploaded_by}</Ltr></td>
+      <td className="max-w-44 break-words px-4 py-3 align-top text-sm"><Ltr>{uploaderLabel}</Ltr></td>
       <td className="px-4 py-3 align-top text-sm">
         <span
           className="inline-flex max-w-36 items-center rounded-md border px-2 py-1 text-xs"
@@ -85,7 +91,7 @@ export function FileRow({
       </td>
       <td className="px-4 py-3 align-top text-sm">
         <span className="inline-flex items-center rounded-md border px-2 py-1 text-xs">
-          {file.status}
+          {statusLabel}
         </span>
       </td>
       <td className="whitespace-nowrap px-4 py-3 align-top">
