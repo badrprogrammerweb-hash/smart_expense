@@ -19,6 +19,7 @@ export function RecentActivity({
   locale: string;
 }) {
   const t = useTranslations("dashboard");
+  const recordsT = useTranslations("records");
 
   return (
     <section className="rounded-[var(--radius-card)] border bg-card p-5 text-card-foreground shadow-[var(--shadow-card)]">
@@ -33,13 +34,13 @@ export function RecentActivity({
         <p className="mt-2 text-xs text-muted-foreground">{t("aiUnavailable")}</p>
       )}
       {records.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">{t("emptyDescription")}</p>
+        <p className="mt-4 text-sm text-muted-foreground">{t("noRecentActivity")}</p>
       ) : (
         <ul className="mt-4 divide-y">
           {records.map((record) => (
             <li className="flex items-center justify-between gap-4 py-3" key={`${record.type}-${record.id}`}>
               <div>
-                <p className="text-sm font-medium">{record.description || record.merchant_name || record.type}</p>
+                <p className="text-sm font-medium">{record.description || record.merchant_name || recordsT(record.type === "income" ? "typeIncome" : "typeExpense")}</p>
                 <p className="text-xs text-muted-foreground"><DateDisplay date={record.occurred_on} /></p>
               </div>
               <p className="text-sm font-semibold">

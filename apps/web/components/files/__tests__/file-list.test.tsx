@@ -11,6 +11,7 @@ const getFileDownloadUrlMock = vi.hoisted(() => vi.fn());
 const deleteFileMock = vi.hoisted(() => vi.fn());
 const listFilesMock = vi.hoisted(() => vi.fn());
 const listExtractionsMock = vi.hoisted(() => vi.fn());
+const getWorkspaceMembersMock = vi.hoisted(() => vi.fn());
 const triggerExtractionMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/api/files", () => ({
@@ -22,6 +23,11 @@ vi.mock("@/lib/api/files", () => ({
 vi.mock("@/lib/api/extractions", () => ({
   listExtractions: listExtractionsMock,
   triggerExtraction: triggerExtractionMock,
+}));
+
+// The uploader column resolves the stored user id to a person (BUG-20).
+vi.mock("@/lib/api/workspace-members", () => ({
+  getWorkspaceMembers: getWorkspaceMembersMock,
 }));
 
 function renderWithProviders(ui: ReactNode) {
@@ -56,6 +62,9 @@ describe("FileList", () => {
     getFileDownloadUrlMock.mockReset();
     listFilesMock.mockReset();
     listExtractionsMock.mockReset().mockResolvedValue([]);
+    getWorkspaceMembersMock
+      .mockReset()
+      .mockResolvedValue({ members: [{ user_id: "user-1", email: "owner@example.com", role: "owner" }] });
     triggerExtractionMock.mockReset();
   });
 
@@ -73,9 +82,14 @@ describe("FileList", () => {
     expect(within(desktopTable).getByText("receipt.pdf")).toBeInTheDocument();
     expect(within(desktopTable).getByText("application/pdf")).toBeInTheDocument();
     expect(within(desktopTable).getByText("2 KB")).toBeInTheDocument();
-    expect(within(desktopTable).getByText("user-1")).toBeInTheDocument();
     expect(within(desktopTable).getByText("expense-")).toBeInTheDocument();
-    expect(within(desktopTable).getByText("active")).toBeInTheDocument();
+
+    // The uploader is named, and neither the raw id nor the status enum is
+    // shown to the user (BUG-20).
+    expect(await within(desktopTable).findByText("owner@example.com")).toBeInTheDocument();
+    expect(within(desktopTable).queryByText("user-1")).not.toBeInTheDocument();
+    expect(within(desktopTable).getByText("Active")).toBeInTheDocument();
+    expect(within(desktopTable).queryByText("active")).not.toBeInTheDocument();
   });
 
   it("shows the empty state", async () => {

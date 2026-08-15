@@ -1,14 +1,22 @@
 import { expect, test } from "@playwright/test";
 
 import { addWorkspaceMember, createSeededUser, hasE2eEnvironment, seedWorkspace, signIn } from "./_helpers/matrix";
+import arMessages from "../messages/ar.json";
+import enMessages from "../messages/en.json";
 
+// BUG-11: the dashboard's empty state used to reuse a generic "add a record"
+// sentence (dashboard.emptyTitle) for every empty surface. It now names the
+// actual condition -- no records in the selected period -- via
+// dashboard.emptyPeriod. Read straight from the app's own catalogue rather
+// than duplicating the literal copy, so a future wording change can't leave
+// this assertion silently stale again.
 const copy = {
   ar: {
-    empty: "\u0644\u0627 \u062a\u0648\u062c\u062f \u0633\u062c\u0644\u0627\u062a \u0645\u0624\u0643\u062f\u0629 \u0628\u0639\u062f",
+    empty: arMessages.dashboard.emptyPeriod,
     permission: "\u062f\u0648\u0631\u0643 \u0627\u0644\u062d\u0627\u0644\u064a \u064a\u0633\u0645\u062d \u0628\u0639\u0631\u0636 \u0645\u0633\u0627\u062d\u0629 \u0627\u0644\u0639\u0645\u0644 \u0641\u0642\u0637 \u0648\u0644\u0627 \u064a\u0633\u0645\u062d \u0628\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0633\u062c\u0644\u0627\u062a.",
   },
   en: {
-    empty: "No confirmed records yet",
+    empty: enMessages.dashboard.emptyPeriod,
     permission: "Your current role can view this workspace but cannot modify records.",
   },
 } as const;

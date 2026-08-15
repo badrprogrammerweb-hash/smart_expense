@@ -3,7 +3,25 @@ import { resolve } from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 
+import enMessages from "../messages/en.json";
+
 type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
+
+// BUG-14: the header used to interpolate the raw role enum ("owner role"). It
+// now resolves through the same nav.role* / nav.workspaceRole keys the app
+// itself uses (WorkspaceShell.tsx -> getRoleLabel), so this asserts the
+// user-facing presentation rather than duplicating a literal string that
+// would drift the moment the copy changes again.
+const roleKeyByRole: Record<WorkspaceRole, keyof typeof enMessages.nav> = {
+  owner: "roleOwner",
+  admin: "roleAdmin",
+  member: "roleMember",
+  viewer: "roleViewer",
+};
+
+function roleHeading(role: WorkspaceRole): string {
+  return enMessages.nav.workspaceRole.replace("{role}", enMessages.nav[roleKeyByRole[role]]);
+}
 
 type TestUser = {
   email: string;
@@ -102,7 +120,7 @@ async function signOut(page: Page) {
 
 async function expectNavigation(page: Page, workspaceId: string, role: WorkspaceRole) {
   await page.goto(`/en/w/${workspaceId}/dashboard`);
-  await expect(page.getByText(`${role} role`, { exact: true })).toBeVisible();
+  await expect(page.getByText(roleHeading(role), { exact: true })).toBeVisible();
 
   const incomeVisible = role === "owner" || role === "admin";
   const expenseVisible = role !== "viewer";

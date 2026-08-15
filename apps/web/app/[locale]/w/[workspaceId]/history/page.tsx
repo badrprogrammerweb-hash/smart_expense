@@ -29,7 +29,7 @@ export default function HistoryPage() {
   if (history.isError) {
     return (
       <ErrorState
-        title={errors("requestFailed")}
+        title={errors("loadFailedTitle")}
         description={errors("requestFailed")}
         retry={() => void history.refetch()}
         retryLabel={common("retry")}

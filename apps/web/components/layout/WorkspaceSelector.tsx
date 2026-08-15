@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 
 import { useWorkspaces } from "@/hooks/use-workspaces";
+import { getWorkspaceDisplayName } from "@/lib/i18n/workspace-labels";
 import { useWorkspaceContext } from "@/lib/workspace-context";
 import { Select } from "@/components/ui";
 
@@ -40,7 +41,7 @@ export function WorkspaceSelector() {
       <p className="text-xs uppercase tracking-wide text-muted-foreground">
         {workspaceType === "personal" ? t("workspaceTypePersonal") : t("workspaceTypeTeam")}
       </p>
-      <h1 className="truncate text-xl font-semibold text-card-foreground">{workspaceName}</h1>
+      <p className="truncate text-xl font-semibold text-card-foreground">{getWorkspaceDisplayName(t, { name: workspaceName, type: workspaceType })}</p>
       <label className="mt-1 block text-xs font-medium text-muted-foreground" htmlFor="workspace-switcher">
         {t("switchWorkspace")}
       </label>
@@ -53,7 +54,7 @@ export function WorkspaceSelector() {
       >
         {options.map((workspace) => (
           <option key={workspace.id} value={workspace.id}>
-            {workspace.name} ({workspace.type === "personal" ? t("workspaceTypePersonal") : t("workspaceTypeTeam")})
+            {getWorkspaceDisplayName(t, workspace)} ({workspace.type === "personal" ? t("workspaceTypePersonal") : t("workspaceTypeTeam")})
           </option>
         ))}
       </Select>

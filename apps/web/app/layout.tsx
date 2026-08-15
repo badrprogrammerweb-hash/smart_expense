@@ -17,7 +17,13 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
-  title: "Smart Expense - AI",
+  // Routes supply only their own page name; the product suffix is applied here
+  // so the tab-title format is defined once (BUG-17). `default` covers routes
+  // that set no title of their own.
+  title: {
+    default: "Smart Expense - AI",
+    template: "%s · Smart Expense - AI",
+  },
   description: "Saudi-first expense tracking workspace",
 };
 

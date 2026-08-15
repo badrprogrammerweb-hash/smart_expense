@@ -8,6 +8,7 @@ import { LanguageSwitcher } from "@/components/settings/LanguageSwitcher";
 import { WorkspaceCurrencySelector } from "@/components/settings/WorkspaceCurrencySelector";
 import { SupportPurchaseCard } from "@/components/settings/SupportPurchaseCard";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { getWorkspaceDisplayName } from "@/lib/i18n/workspace-labels";
 import { useWorkspaceContext } from "@/lib/workspace-context";
 import { InfoCard, PageHeading } from "@/components/ui";
 
@@ -32,7 +33,7 @@ export default function SettingsPage() {
         <p className="mt-2 text-xs uppercase tracking-wide text-muted-foreground">
           {workspaceType === "personal" ? nav("workspaceTypePersonal") : nav("workspaceTypeTeam")}
         </p>
-        <p className="text-sm text-card-foreground">{workspaceName}</p>
+        <p className="text-sm text-card-foreground">{getWorkspaceDisplayName(nav, { name: workspaceName, type: workspaceType })}</p>
         {workspaceType === "team" && (
           <p className="mt-2 text-sm text-muted-foreground">
             {memberCount <= 1 ? nav("noTeamMembersYet") : nav("memberCount", { count: memberCount })}
