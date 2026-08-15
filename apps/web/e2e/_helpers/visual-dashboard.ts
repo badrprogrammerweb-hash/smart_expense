@@ -1,6 +1,7 @@
 import type { Page, Route } from "@playwright/test";
 
 import type { DashboardResponse } from "@/lib/api/dashboard";
+import type { ReportResponse } from "@/lib/api/reports";
 
 /**
  * The committed visual baselines were captured while the server's reporting
@@ -80,6 +81,120 @@ export async function pinDashboardPeriod(page: Page, seededWorkspaceId: string) 
             },
           ]
         : [],
+    };
+
+    await route.fulfill({
+      response,
+      contentType: "application/json",
+      body: JSON.stringify(pinned),
+    });
+  });
+}
+
+/**
+ * Pin the reports response to the same fixed July 2026 scenario.
+ *
+ * `GET /workspaces/{id}/reports` resolves its window from the *server's* clock
+ * (`apps/api/app/services/reports.py` `resolve_report_period`) just as the
+ * dashboard does, and the reports page renders those dates as literal text in
+ * both its subheading and its period KPI card. Reports is in fact strictly more
+ * date-sensitive than the dashboard, in two ways the period text alone does not
+ * show:
+ *
+ *   - `get_team_activity` filters on `created_at` — the real insert time — so a
+ *     record seeded during the run counts only while the wall clock happens to
+ *     fall inside the reported window.
+ *   - `seedIncome`'s record is dated 2026-07-13, so from August 2026 onward it
+ *     leaves the current month altogether and the page flips from its populated
+ *     layout to its empty one.
+ *
+ * The values below are not invented. They are the response this endpoint really
+ * returned for the seeded workspace when queried for 2026-07-01..2026-07-31;
+ * `workspace_id` and `currency` are still taken from the live response so the
+ * envelope and the workspace's own currency stay authentic. Typing the literal
+ * as `ReportResponse` is deliberate: if the contract gains or changes a field,
+ * this stops compiling instead of silently pinning a stale shape.
+ *
+ * Deliberately does not share a record-builder with `pinDashboardPeriod` above:
+ * that helper backs already-approved baselines, and leaving it untouched keeps
+ * this change incapable of moving them.
+ *
+ * Register before the first reports navigation.
+ */
+export async function pinReportsPeriod(page: Page, seededWorkspaceId: string) {
+  await page.route("**/workspaces/*/reports*", async (route: Route) => {
+    const response = await route.fetch();
+    if (!response.ok()) {
+      // Let a genuine backend failure surface as itself rather than masking it
+      // behind a synthetic success.
+      await route.fulfill({ response });
+      return;
+    }
+
+    const real = (await response.json()) as ReportResponse;
+    const isSeeded = real.workspace_id === seededWorkspaceId;
+    const currency = real.summary.currency;
+    const income = isSeeded ? SEEDED_INCOME_MINOR : 0;
+
+    const pinned: ReportResponse = {
+      ...real,
+      // `current_month` keeps the heading on its "Current month: …" wording,
+      // which is what the page's default period selection renders.
+      period: { preset: "current_month", ...VISUAL_PERIOD },
+      summary: {
+        total_income_minor: income,
+        total_expenses_minor: 0,
+        remaining_balance_minor: income,
+        currency,
+      },
+      // No expense is ever seeded, so the expense-side breakdown and the
+      // merchant list are empty in every scenario this spec captures.
+      category_breakdown: [],
+      top_merchants: [],
+      // The seeded income carries no category, which the API reports as a
+      // single "Uncategorized" row rather than an empty list.
+      income_category_breakdown: isSeeded
+        ? [{ category_id: null, category_name: "Uncategorized", total_minor: income, currency }]
+        : [],
+      spending_trend: isSeeded
+        ? [
+            {
+              bucket: SEEDED_INCOME_DATE,
+              granularity: "day",
+              income_minor: income,
+              expense_minor: 0,
+              remaining_minor: income,
+              currency,
+            },
+          ]
+        : [],
+      recent_records: isSeeded
+        ? [
+            {
+              type: "income",
+              id: SEEDED_INCOME_ID,
+              amount_minor: income,
+              currency,
+              occurred_on: SEEDED_INCOME_DATE,
+              description: SEEDED_INCOME_DESCRIPTION,
+              merchant_name: null,
+              category_id: null,
+            },
+          ]
+        : [],
+      // Empty for the seeded workspace too: team activity is keyed on
+      // `created_at`, so anything else here would track the wall clock rather
+      // than the fixture.
+      team_activity: [],
+      pending_review_count: 0,
+      spending_summary: {
+        total_income_minor: income,
+        total_expenses_minor: 0,
+        remaining_balance_minor: income,
+        top_category: null,
+        trend_direction: "flat",
+        currency,
+      },
     };
 
     await route.fulfill({
