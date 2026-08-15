@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
-import type { InstallCapabilityState } from "@/lib/pwa/install";
+import type { DeferredInstallPrompt, InstallCapabilityState } from "@/lib/pwa/install";
 import arMessages from "@/messages/ar.json";
 import enMessages from "@/messages/en.json";
 
@@ -19,7 +19,10 @@ function state(capability: InstallCapabilityState["capability"]): InstallCapabil
     capability,
     deferredPrompt:
       capability === "promptable"
-        ? { prompt: vi.fn().mockResolvedValue(undefined), userChoice: Promise.resolve({ outcome: "dismissed" }) }
+        ? ({
+            prompt: vi.fn().mockResolvedValue(undefined),
+            userChoice: Promise.resolve({ outcome: "dismissed" }),
+          } as unknown as DeferredInstallPrompt)
         : null,
     dismissedThisSession: false,
     dismiss: vi.fn(),
