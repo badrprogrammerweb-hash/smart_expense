@@ -79,6 +79,43 @@ def _parse_cors_origins(raw: str) -> tuple[str, ...]:
     return origins or DEFAULT_CORS_ALLOW_ORIGINS
 
 
+#: The only PostgreSQL driver this project installs (`apps/api/requirements.txt`)
+#: and the only kind that can work here at all: `db.py` builds the engine with
+#: `create_async_engine`, so the dialect must be an asyncio one.
+ASYNC_POSTGRES_DRIVER = "postgresql+asyncpg"
+
+#: Scheme prefixes that name PostgreSQL without naming a DBAPI. `postgresql://`
+#: is the form Supabase's dashboard hands out and the form `.env.example`
+#: documents; `postgres://` is the older alias still emitted by several hosts.
+_DRIVERLESS_POSTGRES_SCHEMES = ("postgresql://", "postgres://")
+
+
+def _normalize_async_db_url(raw: str) -> str:
+    """Point a driverless PostgreSQL URL at the async driver we actually ship.
+
+    SQLAlchemy resolves a bare `postgresql://` scheme to its *default* DBAPI,
+    which is psycopg2 — a synchronous driver this project neither installs nor
+    could use. The result is a `ModuleNotFoundError: No module named 'psycopg2'`
+    raised the first time an engine is built, i.e. on the first request that
+    touches the database rather than at startup, so the process still passes a
+    liveness check while every data route returns 500.
+
+    Local development only escaped this because a working `.env` happens to spell
+    the driver out. Deployments configured from `.env.example` or from Supabase's
+    own connection string do not, and installing psycopg2 would not rescue them:
+    `create_async_engine` rejects a synchronous dialect outright.
+
+    A URL that already names a driver is left exactly as written — an explicit
+    choice stays the caller's to make.
+    """
+
+    url = raw.strip()
+    for scheme in _DRIVERLESS_POSTGRES_SCHEMES:
+        if url.startswith(scheme):
+            return f"{ASYNC_POSTGRES_DRIVER}://{url[len(scheme):]}"
+    return url
+
+
 def _positive_int_setting(name: str, default: int) -> int:
     raw = os.getenv(name, str(default)).strip()
     try:
@@ -123,7 +160,7 @@ def load_environment(dotenv_path: str | None = None) -> None:
 def get_settings() -> Settings:
     return Settings(
         supabase_url=os.getenv("SUPABASE_URL", "").strip(),
-        supabase_db_url=os.getenv("SUPABASE_DB_URL", "").strip(),
+        supabase_db_url=_normalize_async_db_url(os.getenv("SUPABASE_DB_URL", "")),
         supabase_service_role_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip(),
         supabase_jwt_secret=os.getenv("SUPABASE_JWT_SECRET", "").strip(),
         supabase_jwt_audience=os.getenv(
